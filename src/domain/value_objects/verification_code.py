@@ -4,8 +4,8 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class VerificationCode:
     """
-    Formato esperado: PLA-123-V-456 (ou PLA123V456).
-    Onde V é o dígito verificador.
+    Formato esperado: PLA-XXX-C-XXX onde C é o dígito verificador (0-9).
+    Exemplo: PLA-347-5-218 (5 = (3+4+7+2+1+8) % 10)
     """
     raw_code: str
 
