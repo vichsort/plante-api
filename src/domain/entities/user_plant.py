@@ -1,13 +1,13 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from src.domain.value_objects.streak import Streak
+from src.domain.exceptions import PlantNotReadyForWateringError
 from enum import Enum
 
 class IdentificationStatus(Enum):
     IDENTIFIED = "identified"
     PENDING_ENRICHMENT = "pending_enrichment"
     ENRICHED = "enriched"
-
 
 @dataclass(frozen=True)
 class UserPlant:
@@ -38,7 +38,41 @@ class UserPlant:
 
     @property
     def needs_watering(self) -> bool:
-        """Verifica se a planta precisa ser regada hoje."""
-        if self.next_watering_at is None:
-            return False
-        return datetime.utcnow() >= self.next_watering_at
+        """Verifica se a planta precisa ser regada hoje pedindo ao cronograma."""
+        return self.care_schedule.is_overdue(datetime.now(timezone.utc))
+
+    @property
+    def water(self, action_time: datetime) -> None:
+        """
+        Executa a ação de rega, aplicando validações rigorosas de tempo e gamificação.
+        """
+        if self.care_schedule.next_due_at and action_time < self.care_schedule.next_due_at:
+            raise PlantNotReadyForWateringError(
+                next_date=self.care_schedule.next_due_at.strftime("%d/%m/%Y")
+            )
+
+        # Atualiza a Ofensiva (Streak)
+        self.streak = self.streak.register_action(action_time)
+
+        # Atualiza o Cronograma de Cuidado
+        self.care_schedule = self.care_schedule.complete(action_time)
+
+    @property
+    def check_and_reset_streak(self, current_time: datetime) -> bool:
+        """
+        Verifica se a planta passou do prazo de carência para rega.
+        Retorna True se o streak foi resetado.
+        """
+        if self.streak.current_count <= 1:
+            return False # Já está no mínimo
+
+        # Se a próxima rega era ONTEM (ou antes) e já passou das 08h de HOJE
+        # (A lógica de 'carência' já está embutida no VO Streak via _get_domain_date)
+        if self.care_schedule.is_overdue(current_time):
+            # Resetamos o Streak VO para um novo começando em 1
+            # mas mantendo o last_action_time original para referência
+            from src.domain.value_objects.streak import Streak
+            self.streak = Streak(current_count=1, last_action_time=self.streak.last_action_time)
+            return True
+            
+        return False

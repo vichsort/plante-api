@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone, time
 from enum import Enum
 from src.domain.value_objects.care_interval import CareInterval
 
@@ -29,16 +29,15 @@ class CareSchedule:
                 "climate_adjusted só pode ser True se houve ao menos uma execução."
             )
 
-    @property
-    def is_overdue(self) -> bool:
-        """Verifica se o cuidado está atrasado."""
+    def is_overdue(self, current_time: datetime) -> bool:
+        """Verifica se o cuidado está atrasado em relação a um tempo fornecido."""
         if self.next_due_at is None:
             return False
-        return datetime.utcnow() > self.next_due_at
+        return current_time > self.next_due_at
 
     def complete(self, completed_at: datetime) -> 'CareSchedule':
         """Registra a conclusão e calcula o próximo agendamento."""
-        next_due = self.interval.next_date_from(completed_at)
+        next_due = self.interval.calculate_next_due_date(completed_at.date())
         return CareSchedule(
             id=self.id,
             user_plant_id=self.user_plant_id,

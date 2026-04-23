@@ -41,6 +41,14 @@ class PlantLimitExceededError(PlantEError):
             code="PLANT_LIMIT_EXCEEDED",
         )
 
+class PlantNotReadyForWateringError(PlantEError):
+    """Usuário tentou regar a planta antes do tempo ou no mesmo dia."""
+    def __init__(self, next_date: str):
+        super().__init__(
+            message=f"Your plant is well hydrataded! Your next watering date is: {next_date}.",
+            code="PLANT_NOT_READY_FOR_WATERING"
+        )
+
 # Subscription
 class SubscriptionRequiredError(PlantEError):
     """Funcionalidade exclusiva do Plano Pro."""
