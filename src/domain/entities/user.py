@@ -92,6 +92,16 @@ class User:
         # validação já aconteceu no __post_init__ do VO
         self.location = new_location
 
+    def change_email(self, new_email: str) -> None:
+        self._assert_valid_email(new_email)
+        self.email = new_email
+        self.is_verified = False  # exige nova verificação
+
+    def change_password(self, new_hashed_password: str) -> None:
+        if not new_hashed_password:
+            raise ValueError("hashed_password cannot be empty.")
+        self.hashed_password = new_hashed_password
+
     def upgrade_to_pro(self, expires_at: datetime, current_time: datetime) -> None:
         if expires_at <= current_time:
             raise ValueError("expires_at must be a future datetime.")

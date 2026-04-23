@@ -72,6 +72,16 @@ class UnauthorizedError(PlantEError):
     def __init__(self, message: str = "Authentication required."):
         super().__init__(message=message, code="UNAUTHORIZED")
 
+class EmailAlreadyInUseError(PlantEError):
+    """O email já está em uso por outro usuário."""
+    def __init__(self, message: str = "Email already in use."):
+        super().__init__(message=message, code="EMAIL_ALREADY_IN_USE")
+
+class WeakPasswordError(PlantEError):
+    """Senha fraca ou inválida."""
+    def __init__(self, message: str = "Weak password."):
+        super().__init__(message=message, code="WEAK_PASSWORD")
+
 class ForbiddenError(PlantEError):
     """Usuário autenticado mas sem permissão para o recurso."""
     def __init__(self, message: str = "You do not have permission to access this resource."):
