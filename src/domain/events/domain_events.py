@@ -25,3 +25,22 @@ class PlantIdentifiedEvent(DomainEvent):
             species_id=species_id,
             is_first_plant=is_first_plant
         )
+
+@dataclass(frozen=True)
+class StreakBrokenEvent(DomainEvent):
+    """
+    Emitido quando um usuário perde a ofensiva de uma planta.
+    Útil para disparar Push Notifications de 'recuperação'.
+    """
+    user_id: int
+    user_plant_id: int
+    last_streak_count: int
+
+    @classmethod
+    def create(cls, user_id: int, user_plant_id: int, last_count: int) -> 'StreakBrokenEvent':
+        return cls(
+            occurred_on=datetime.now(timezone.utc),
+            user_id=user_id,
+            user_plant_id=user_plant_id,
+            last_streak_count=last_count
+        )
