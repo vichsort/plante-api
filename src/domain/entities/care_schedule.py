@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone, time
+from datetime import date, datetime, timezone, time
 from enum import Enum
 from src.domain.value_objects.care_interval import CareInterval
 
@@ -33,10 +33,18 @@ class CareSchedule:
         """Verifica se o cuidado está atrasado em relação a um tempo fornecido."""
         if self.next_due_at is None:
             return False
-        return current_time > self.next_due_at
+        # Garante comparação homogênea datetime vs datetime
+        next_due = (
+            datetime.combine(self.next_due_at, time.min, tzinfo=timezone.utc)
+            if isinstance(self.next_due_at, date) and not isinstance(self.next_due_at, datetime)
+            else self.next_due_at
+        )
+        return current_time > next_due
 
-    def complete(self, completed_at: datetime) -> 'CareSchedule':
+    def complete(self, completed_at: datetime) -> "CareSchedule":
         """Registra a conclusão e calcula o próximo agendamento."""
+        if completed_at.tzinfo is None:
+            raise ValueError("completed_at must be timezone-aware.")
         next_due = self.interval.calculate_next_due_date(completed_at.date())
         return CareSchedule(
             id=self.id,

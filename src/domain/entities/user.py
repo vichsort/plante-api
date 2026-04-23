@@ -1,105 +1,135 @@
+from __future__ import annotations
 from dataclasses import dataclass
+from src.domain.value_objects.user_location import UserLocation
 from datetime import datetime
+import re
+
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 
-@dataclass
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+@dataclass(slots=True)
 class User:
     """
-    Agregado Principal do usuário. 
+    Agregado raiz do usuário.
+    Todas as mutações de estado passam por métodos — nunca por atribuição direta.
     """
+
     id: int | None
     email: str
-    is_verified: bool
     hashed_password: str
+    location: UserLocation
+    is_verified: bool
     subscription: SubscriptionTier
-    country: str
-    state: str
     created_at: datetime
-    
-    # Atributos operacionais cruciais para as Políticas de Domínio
     tokens_used_today: int = 0
     garden_count: int = 0
-
     fcm_token: str | None = None
     fcm_token_updated_at: datetime | None = None
     subscription_expires_at: datetime | None = None
     bio: str | None = None
     profile_picture_url: str | None = None
 
-    def __post_init__(self):
-        if not self.email or "@" not in self.email:
-            raise ValueError("Invalid email address.")
-        if not self.country or len(self.country) != 2:
-            raise ValueError("Invalid Country. Must be ISO 3166-1 alpha-2 (e.g., BR).")
-        if not self.state or len(self.state) < 2:
-            raise ValueError("Invalid State.")
+    def __post_init__(self) -> None:
+        self._assert_valid_email(self.email)
+        object.__setattr__(self, "country", self._normalize_country(self.country))
+        object.__setattr__(self, "state", self._normalize_state(self.state))
+        self._assert_valid_country(self.country)
+        self._assert_valid_state(self.state)
+
+        if self.tokens_used_today < 0:
+            raise ValueError("tokens_used_today cannot be negative.")
+        if self.garden_count < 0:
+            raise ValueError("garden_count cannot be negative.")
         if self.subscription == SubscriptionTier.PRO and self.subscription_expires_at is None:
-            raise ValueError("Pro user needs expiration date.")
+            raise ValueError("PRO subscription requires an expiration date.")
 
     @classmethod
-    def create_new(cls, email: str, hashed_password: str, country: str, state: str, current_time: datetime) -> 'User':
-        """Fábrica de criação: define como o usuário nasce."""
+    def create_new(
+        cls,
+        email: str,
+        hashed_password: str,
+        country: str,
+        state: str,
+        current_time: datetime,
+    ) -> User:
+        """Único ponto de entrada para criação de um novo usuário."""
         return cls(
             id=None,
             email=email,
-            is_verified=False,
             hashed_password=hashed_password,
-            subscription=SubscriptionTier.FREE,
             country=country,
             state=state,
+            is_verified=False,
+            subscription=SubscriptionTier.FREE,
             created_at=current_time,
-            tokens_used_today=0,
-            garden_count=0
         )
 
     def verify_email(self) -> None:
-        """Desbloqueia a conta após a validação do OTP."""
         self.is_verified = True
 
     def add_plant_to_garden(self) -> None:
-        """Realiza uma identificação e salva no jardim virtual"""
         self.garden_count += 1
 
     def remove_plant_from_garden(self) -> None:
-        """Retira planta do jardim virtual, sem remover a planta do db (treino da IA)"""
-        if self.garden_count > 0:
-            self.garden_count -= 1
+        if self.garden_count <= 0:
+            raise ValueError("Cannot remove plant: garden is already empty.")
+        self.garden_count -= 1
 
     def consume_identify_token(self) -> None:
-        """Consumo de um token para identificação (1 token por planta)"""
+        """1 token por identificação simples."""
         self.tokens_used_today += 1
 
     def consume_deep_analysis_token(self) -> None:
-        """Consumo de um token para análise profunda (2 tokens por planta)"""
+        """2 tokens por análise profunda de saúde."""
         self.tokens_used_today += 2
 
-    def update_location(self, country: str, state: str) -> None:
-        """Atualiza o fallback de localização do usuário com validação."""
-        if not country or len(country) != 2:
-            raise ValueError("Invalid Country. Must be ISO 3166-1 alpha-2 (e.g., BR).")
-        if not state or len(state) < 2:
-            raise ValueError("Invalid State.")
-            
-        self.country = country.upper()
-        self.state = state.title() # Ex: "santa catarina" vira "Santa Catarina"
+    def reset_daily_tokens(self) -> None:
+        """Chamado pelo worker diário (Celery Beat). Idempotente."""
+        self.tokens_used_today = 0
 
-    def upgrade_to_pro(self, expires_at: datetime) -> None:
-        """Preparando o terreno para o nosso futuro Use Case de Monetização."""
+    def update_location(self, new_location: UserLocation) -> None:
+        # validação já aconteceu no __post_init__ do VO
+        self.location = new_location
+
+    def upgrade_to_pro(self, expires_at: datetime, current_time: datetime) -> None:
+        if expires_at <= current_time:
+            raise ValueError("expires_at must be a future datetime.")
         self.subscription = SubscriptionTier.PRO
         self.subscription_expires_at = expires_at
         self.tokens_used_today = 0
 
     def is_pro(self, current_time: datetime) -> bool:
-        """
-        Verifica se a assinatura PRO ainda está ativa.
-        Recebe current_time para garantir testes determinísticos (sem utcnow!).
-        """
-        if self.subscription != SubscriptionTier.PRO:
-            return False
-        if self.subscription_expires_at is None:
-            return False
-        return current_time < self.subscription_expires_at
+        return (
+            self.subscription == SubscriptionTier.PRO
+            and self.subscription_expires_at is not None
+            and current_time < self.subscription_expires_at
+        )
 
     def get_active_tier(self, current_time: datetime) -> SubscriptionTier:
-        """Retorna o plano real considerando uma possível expiração do PRO."""
         return SubscriptionTier.PRO if self.is_pro(current_time) else SubscriptionTier.FREE
+
+    @staticmethod
+    def _normalize_country(value: str) -> str:
+        return value.strip().upper()
+
+    @staticmethod
+    def _normalize_state(value: str) -> str:
+        return value.strip().title()
+
+    @staticmethod
+    def _assert_valid_email(value: str) -> None:
+        if not value or not _EMAIL_RE.match(value):
+            raise ValueError(f"Invalid email address: '{value}'.")
+
+    @staticmethod
+    def _assert_valid_country(value: str) -> None:
+        if len(value) != 2:
+            raise ValueError(
+                f"Invalid country '{value}'. Expected ISO 3166-1 alpha-2 (e.g., 'BR')."
+            )
+
+    @staticmethod
+    def _assert_valid_state(value: str) -> None:
+        if len(value) < 2:
+            raise ValueError(f"Invalid state '{value}'. Minimum 2 characters.")

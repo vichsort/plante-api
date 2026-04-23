@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from src.domain.exceptions import UserNotFoundError
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.user_location import UserLocation
 
 @dataclass(frozen=True)
 class UpdateLocationFallbackInputDTO:
@@ -12,18 +13,16 @@ class UpdateLocationFallbackUseCase:
     def __init__(self, user_repo: IUserRepository):
         self.user_repo = user_repo
 
-    def execute(self, dto: UpdateLocationFallbackInputDTO) -> dict:
-        user = self.user_repo.get_by_id(dto.user_id)
-        if not user:
+    async def execute(self, dto: UpdateLocationFallbackInputDTO) -> None:
+        # Valida o VO antes de qualquer I/O — falha rápido e barato
+        new_location = UserLocation(country=dto.country, state=dto.state)
+
+        # I/O só acontece com dados já validados
+        user = await self.user_repo.get_by_id(dto.user_id)
+        if user is None:
             raise UserNotFoundError(dto.user_id)
 
-        # Mutação protegida pela Entidade (Se for inválido, lança ValueError)
-        user.update_location(country=dto.country, state=dto.state)
+        # Mutação protegida pela entidade
+        user.update_location(new_location)
 
-        self.user_repo.save(user)
-
-        return {
-            "message": "Localização atualizada com sucesso.",
-            "country": user.country,
-            "state": user.state
-        }
+        await self.user_repo.save(user)
