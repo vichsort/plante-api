@@ -33,6 +33,14 @@ class PlantNotFoundError(PlantEError):
             code="PLANT_NOT_FOUND",
         )
 
+class SpeciesNotFoundError(PlantEError):
+    """A espécie solicitada não existe."""
+    def __init__(self, species_id: int):
+        super().__init__(
+            message=f"Species {species_id} not found.",
+            code="SPECIES_NOT_FOUND",
+        )
+
 class PlantLimitExceededError(PlantEError):
     """Usuário free atingiu o limite de plantas no jardim."""
     def __init__(self, limit: int):

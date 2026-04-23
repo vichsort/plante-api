@@ -44,3 +44,30 @@ class StreakBrokenEvent(DomainEvent):
             user_plant_id=user_plant_id,
             last_streak_count=last_count
         )
+
+@dataclass(frozen=True)
+class PlantAddedToGardenEvent(DomainEvent):
+    """
+    Emitido quando o usuário confirma e salva a planta no jardim.
+    Separado do PlantIdentifiedEvent — nem toda identificação vira jardim.
+    """
+    user_id: int
+    user_plant_id: int
+    species_id: int
+    is_first_plant: bool
+
+    @classmethod
+    def create(
+        cls,
+        user_id: int,
+        user_plant_id: int,
+        species_id: int,
+        is_first_plant: bool,
+    ) -> "PlantAddedToGardenEvent":
+        return cls(
+            occurred_on=datetime.now(timezone.utc),
+            user_id=user_id,
+            user_plant_id=user_plant_id,
+            species_id=species_id,
+            is_first_plant=is_first_plant,
+        )

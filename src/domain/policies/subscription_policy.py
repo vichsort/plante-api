@@ -29,3 +29,12 @@ class SubscriptionPolicy:
         """
         if not user.subscription_tier.can_consume(FeatureCost.DEEP_ANALYSIS, user.tokens_used_today):
             raise SubscriptionRequiredError(feature="Análise Profunda com IA")
+
+    @staticmethod
+    def enforce_can_add_to_garden(user: User) -> None:
+        """
+        Garante que o usuário pode adicionar uma planta ao jardim.
+        Tokens não são verificados aqui — já foram consumidos na identificação.
+        """
+        if not user.subscription_tier.can_add_plant(user.garden_count):
+            raise PlantLimitExceededError(limit=user.subscription_tier.max_plants)
