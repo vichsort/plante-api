@@ -69,6 +69,10 @@ class ForbiddenError(PlantEError):
     def __init__(self, message: str = "You do not have permission to access this resource."):
         super().__init__(message=message, code="FORBIDDEN")
 
+class InvalidVerificationCodeError(PlantEError):
+    def __init__(self, message: str = "Invalid verification code."):
+        super().__init__(message=message, code="INVALID_VERIFICATION_CODE")
+
 # Externos
 class ExternalServiceError(PlantEError):
     """Uma API externa (Gemini, Firebase, clima) falhou."""
