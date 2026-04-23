@@ -41,6 +41,14 @@ class SpeciesNotFoundError(PlantEError):
             code="SPECIES_NOT_FOUND",
         )
 
+class SampleNotFoundError(PlantEError):
+    """A amostra solicitada não existe."""
+    def __init__(self, sample_id: int):
+        super().__init__(
+            message=f"Sample {sample_id} not found.",
+            code="SAMPLE_NOT_FOUND",
+        )
+
 class PlantLimitExceededError(PlantEError):
     """Usuário free atingiu o limite de plantas no jardim."""
     def __init__(self, limit: int):

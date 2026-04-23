@@ -19,9 +19,15 @@ class SoilType(Enum):
     LOAMY = "loamy"
     WELL_DRAINING = "well_draining"
 
+class EnrichmentSource(Enum):
+    GEMINI = "gemini"
+    KINDWISE = "kindwise"
+    PLANTNET = "plantnet"
+
 @dataclass(frozen=True)
 class PlantSpecies:
     scientific_name: str
+    id: int | None = None
     enrichment_status: EnrichmentStatus
 
     # Taxonomia — vem do PlantNet/Kindwise na identificação
@@ -46,7 +52,7 @@ class PlantSpecies:
 
     # Controle de enriquecimento
     enriched_at: datetime | None = None
-    enrichment_source: str | None = None  # "gemini" | "kindwise" | "plantnet"
+    enrichment_source: EnrichmentSource | None = None
 
     def __post_init__(self):
         if not self.scientific_name:
