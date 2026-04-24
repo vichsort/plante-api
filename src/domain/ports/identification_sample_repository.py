@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from src.domain.entities.plant_identification_sample import PlantIdentificationSample
+from datetime import datetime
 
 class IIdentificationSampleRepository(ABC):
 
@@ -19,4 +20,9 @@ class IIdentificationSampleRepository(ABC):
     @abstractmethod
     async def get_complete_for_training(self, limit: int = 100) -> list[PlantIdentificationSample]:
         """Busca samples completas para exportação ao pipeline de ML."""
+        ...
+
+    @abstractmethod
+    async def get_confirmed_before(self, cutoff: datetime) -> list[PlantIdentificationSample]:
+        """Busca samples confirmadas com confirmed_at anterior ao cutoff."""
         ...

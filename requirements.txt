@@ -1,0 +1,35 @@
+# Web
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# Banco
+sqlalchemy[asyncio]==2.0.35
+alembic==1.13.3
+asyncpg==0.29.0
+
+# Cache / Workers
+redis==5.0.8
+celery==5.4.0
+celery-pool-asyncio==0.2.0
+
+# Validação / Config
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# IA
+google-generativeai==0.8.0
+httpx==0.27.2
+
+# Push
+firebase-admin==6.5.0
+
+# Segurança
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+
+# Logs
+structlog==24.4.0
+
+# Testes
+pytest==8.3.3
+pytest-asyncio==0.24.0
