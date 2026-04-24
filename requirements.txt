@@ -5,7 +5,7 @@ uvicorn[standard]==0.30.6
 # Banco
 sqlalchemy[asyncio]==2.0.35
 alembic==1.13.3
-asyncpg==0.29.0
+psycopg[binary]==3.2.4
 
 # Cache / Workers
 redis==5.0.8
