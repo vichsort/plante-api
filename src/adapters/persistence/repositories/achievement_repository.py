@@ -1,7 +1,9 @@
-from sqlalchemy import select, insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, insert
 from datetime import datetime, timezone
 from src.domain.ports.achievement_repository import IAchievementRepository
+from src.adapters.persistence.models.achievement_model import AchievementModel
+from src.adapters.persistence.mappers.achievement_mapper import AchievementMapper
 
 class AchievementRepository(IAchievementRepository):
 
@@ -9,16 +11,15 @@ class AchievementRepository(IAchievementRepository):
         self._session = session
 
     async def get_user_achievements_view(self, user_id: int) -> list[dict]:
-        from sqlalchemy import text
-        result = await self._session.execute(
-            text("SELECT badge_code, unlocked_at FROM user_achievements WHERE user_id = :uid"),
-            {"uid": user_id},
-        )
-        return [{"badge_code": r.badge_code, "unlocked_at": r.unlocked_at} for r in result]
+        stmt = select(AchievementModel).where(AchievementModel.user_id == user_id)
+        result = await self._session.execute(stmt)
+        return [AchievementMapper.to_dict(m) for m in result.scalars().all()]
 
     async def grant_badge(self, user_id: int, badge_code: str) -> None:
-        from sqlalchemy import text
-        await self._session.execute(
-            text("INSERT INTO user_achievements (user_id, badge_code, unlocked_at) VALUES (:uid, :code, :now) ON CONFLICT DO NOTHING"),
-            {"uid": user_id, "code": badge_code, "now": datetime.now(timezone.utc)},
+        model = AchievementModel(
+            user_id=user_id,
+            badge_code=badge_code,
+            unlocked_at=datetime.now(timezone.utc),
         )
+        self._session.add(model)
+        await self._session.flush()
