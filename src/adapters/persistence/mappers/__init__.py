@@ -5,6 +5,7 @@ from .plant_nutritional_mapper import PlantNutritionalMapper
 from .plant_reference_image_mapper import PlantReferenceImageMapper
 from .health_record_mapper import HealthRecordMapper
 from .identification_sample_mapper import IdentificationSampleMapper
+from .achievement_mapper import AchievementMapper
 
 __all__ = [
     "UserMapper",
@@ -14,4 +15,5 @@ __all__ = [
     "PlantReferenceImageMapper",
     "HealthRecordMapper",
     "IdentificationSampleMapper",
+    'AchievementMapper'
 ]

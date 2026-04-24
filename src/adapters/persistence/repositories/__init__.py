@@ -5,6 +5,7 @@ from .plant_nutritional_repository import PlantNutritionalRepository
 from .plant_reference_image_repository import PlantReferenceImageRepository
 from .health_record_repository import HealthRecordRepository
 from .identification_sample_repository import IdentificationSampleRepository
+from .achievement_repository import AchievementRepository
 
 __all__ = [
     "UserRepository",
@@ -14,4 +15,5 @@ __all__ = [
     "PlantReferenceImageRepository",
     "HealthRecordRepository",
     "IdentificationSampleRepository",
+    'AchievementRepository'
 ]
