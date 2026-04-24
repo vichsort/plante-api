@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date
 from enum import Enum
+from src.domain.value_objects.user_location import UserLocation
+from src.domain.value_objects.geo_coordinates import GeoCoordinates
 
 class WeatherSeverity(Enum):
     NORMAL = "normal"
@@ -17,14 +19,13 @@ class DailyWeather:
     humidity_percent: float
     severity: WeatherSeverity
 
+
 @dataclass(frozen=True)
 class WeatherContext:
-    """Contexto climático de uma localização nos últimos N dias + previsão."""
-    country: str
-    state: str
-    recent_days: tuple[DailyWeather, ...]   # histórico recente
-    forecast_days: tuple[DailyWeather, ...]  # previsão futura
-    has_critical_event: bool                 # atalho pro Flutter exibir alerta
+    location: UserLocation | GeoCoordinates
+    recent_days: tuple[DailyWeather, ...]
+    forecast_days: tuple[DailyWeather, ...]
+    has_critical_event: bool
 
     @property
     def recent_precipitation_total(self) -> float:
@@ -36,15 +37,15 @@ class WeatherContext:
             return 0.0
         return sum(d.temperature_max for d in self.recent_days) / len(self.recent_days)
 
+
 class IWeatherService(ABC):
     @abstractmethod
     async def get_context(
         self,
-        country: str,
-        state: str,
-        recent_days: int = 7,
-        forecast_days: int = 3,
-    ) -> WeatherContext:
+        location: UserLocation | GeoCoordinates,
+        recent_days: int = 0,
+        forecast_days: int = 7,
+    ) -> WeatherContext: 
         """
         Retorna contexto climático de uma região.
         Usado para ajustar rega, diagnosticar saúde e emitir alertas.

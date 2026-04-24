@@ -1,6 +1,7 @@
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio import Redis
+import httpx
 
 from src.infrastructure.settings import Settings
 from src.adapters.persistence.session import build_session_factory
@@ -39,6 +40,8 @@ from src.adapters.notifications.firebase_adapter import FirebaseAdapter
 from src.adapters.ai.gemini.gemini_adapter import GeminiAdapter
 from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.email.ses_email_sender import SesEmailSender
+from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
+from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
 
 class Container(containers.DeclarativeContainer):
 
@@ -106,6 +109,8 @@ class Container(containers.DeclarativeContainer):
     # ------------------------------------------------------------------ #
     # Adapters externos                                                  #
     # ------------------------------------------------------------------ #
+    weather_http = providers.Singleton(httpx.AsyncClient)
+
     redis = providers.Singleton(
         Redis.from_url,
         url=settings.provided.redis_url,
@@ -138,6 +143,17 @@ class Container(containers.DeclarativeContainer):
     plant_enricher = providers.Singleton(
         GeminiAdapter,
         api_key=settings.provided.gemini_api_key,
+    )
+
+    geocoder = providers.Singleton(
+        NominatimGeocoder,
+        client=weather_http,
+    )
+
+    weather_service = providers.Singleton(
+        OpenMeteoAdapter,
+        client=weather_http,
+        geocoder=geocoder,
     )
 
     # ------------------------------------------------------------------ #
