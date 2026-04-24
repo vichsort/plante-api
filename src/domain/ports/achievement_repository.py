@@ -6,7 +6,7 @@ class IAchievementRepository(ABC):
     """
     
     @abstractmethod
-    def get_user_achievements_view(self, user_id: int) -> list[dict]:
+    async def get_user_achievements_view(self, user_id: int) -> list[dict]:
         """
         Retorna uma lista de dicionários com as medalhas desbloqueadas.
         Ex: [{"badge_code": "FIRST_PLANT", "unlocked_at": "..."}]
@@ -14,6 +14,6 @@ class IAchievementRepository(ABC):
         ...
 
     @abstractmethod
-    def grant_badge(self, user_id: int, badge_code: str) -> None:
+    async def grant_badge(self, user_id: int, badge_code: str) -> None:
         """Registra que o usuário ganhou uma nova conquista."""
         ...

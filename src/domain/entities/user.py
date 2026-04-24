@@ -32,10 +32,6 @@ class User:
 
     def __post_init__(self) -> None:
         self._assert_valid_email(self.email)
-        object.__setattr__(self, "country", self._normalize_country(self.country))
-        object.__setattr__(self, "state", self._normalize_state(self.state))
-        self._assert_valid_country(self.country)
-        self._assert_valid_state(self.state)
 
         if self.tokens_used_today < 0:
             raise ValueError("tokens_used_today cannot be negative.")
@@ -49,8 +45,7 @@ class User:
         cls,
         email: str,
         hashed_password: str,
-        country: str,
-        state: str,
+        location: UserLocation,
         current_time: datetime,
     ) -> User:
         """Único ponto de entrada para criação de um novo usuário."""
@@ -58,8 +53,7 @@ class User:
             id=None,
             email=email,
             hashed_password=hashed_password,
-            country=country,
-            state=state,
+            location=location,
             is_verified=False,
             subscription=SubscriptionTier.FREE,
             created_at=current_time,
@@ -118,14 +112,6 @@ class User:
 
     def get_active_tier(self, current_time: datetime) -> SubscriptionTier:
         return SubscriptionTier.PRO if self.is_pro(current_time) else SubscriptionTier.FREE
-
-    @staticmethod
-    def _normalize_country(value: str) -> str:
-        return value.strip().upper()
-
-    @staticmethod
-    def _normalize_state(value: str) -> str:
-        return value.strip().title()
 
     @staticmethod
     def _assert_valid_email(value: str) -> None:
