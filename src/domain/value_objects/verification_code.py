@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass
+import random
 
 @dataclass(frozen=True)
 class VerificationCode:
@@ -34,6 +35,16 @@ class VerificationCode:
         # Se passou por tudo, podemos salvar a versão limpa.
         # Contornando o frozen=True do dataclass:
         object.__setattr__(self, 'raw_code', clean_code)
+
+    import random
+
+    @classmethod
+    def generate(cls) -> "VerificationCode":
+        first = [random.randint(0, 9) for _ in range(3)]
+        second = [random.randint(0, 9) for _ in range(3)]
+        v = sum(first + second) % 10
+        raw = f"PLA-{''.join(map(str, first))}-{v}-{''.join(map(str, second))}"
+        return cls(raw)
 
     def __str__(self):
         return self.raw_code

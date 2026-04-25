@@ -46,6 +46,7 @@ from src.adapters.email.ses_email_sender import SesEmailSender
 from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
 from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
 from src.adapters.cache.redis_token_repository import RedisTokenRepository
+from src.adapters.events.celery_publisher import CeleryPublisher
 
 class Container(containers.DeclarativeContainer):
 
@@ -129,6 +130,8 @@ class Container(containers.DeclarativeContainer):
 
     password_hasher = providers.Singleton(BcryptHasher)
 
+    domain_publisher = providers.Singleton(CeleryPublisher)
+
     otp_repository = providers.Singleton(
         RedisOtpRepository,
         redis=redis,
@@ -210,6 +213,7 @@ class Container(containers.DeclarativeContainer):
         hasher=password_hasher,
         email_sender=email_sender,
         otp_repo=otp_repository,
+        publisher=domain_publisher,
     )
 
     verify_email_use_case = providers.Factory(

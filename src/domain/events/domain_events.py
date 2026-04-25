@@ -71,3 +71,16 @@ class PlantAddedToGardenEvent(DomainEvent):
             species_id=species_id,
             is_first_plant=is_first_plant,
         )
+
+@dataclass(frozen=True)
+class UserRegisteredEvent(DomainEvent):
+    user_id: int
+    email: str
+
+    @classmethod
+    def create(cls, user_id: int, email: str) -> "UserRegisteredEvent":
+        return cls(
+            occurred_on=datetime.now(timezone.utc),
+            user_id=user_id,
+            email=email,
+        )
