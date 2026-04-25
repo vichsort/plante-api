@@ -17,7 +17,7 @@ class HealthRecord:
     vitality_score: float           # 0.0 a 1.0
     severity: HealthSeverity
     source: str                     # "gemini" | "kindwise"
-
+    image_key: str
     issues_detected: tuple[str, ...] = field(default_factory=tuple)
     treatment_plan: tuple[str, ...] = field(default_factory=tuple)
     recovery_estimate_days: int | None = None

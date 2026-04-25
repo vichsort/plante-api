@@ -8,6 +8,8 @@ class SubscriptionPolicy:
     vinculadas ao plano de assinatura do usuário.
     """
 
+    _HEALTH_UNHEALTHY_THRESHOLD = 0.5
+
     @staticmethod
     def enforce_can_identify_plant(user: User) -> None:
         """
@@ -38,3 +40,7 @@ class SubscriptionPolicy:
         """
         if not user.subscription_tier.can_add_plant(user.garden_count):
             raise PlantLimitExceededError(limit=user.subscription_tier.max_plants)
+
+    @staticmethod
+    def health_unhealthy_threshold() -> float:
+        return SubscriptionPolicy._HEALTH_UNHEALTHY_THRESHOLD
