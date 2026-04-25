@@ -308,11 +308,6 @@ class Container(containers.DeclarativeContainer):
 
     """
     NOTA PARA AMANHÃ: 
-    - eu preciso decidir sobre s3 ou r2.
-    - USAR DADOS DE SAÚDE PARA A MINHA IA APRENDER TAMBÉM: isso nos leva a precisar de uma
-    verificação daquelas de aprovar ou discordar da verificação, algo que teremos que implementar
-    de qualquer forma.
-    - decidir também como vamos fazer o acompanhamento da saúde da planta.
     - verificar prompts e coisas relativas as IAs.
     - cogitar refatorar ou diminuir esse arquivo aqui
     - fazer aquilo de pedir pra duas IA (kindwise e plantnet em conjunto)
