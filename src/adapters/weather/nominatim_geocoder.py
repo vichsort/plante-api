@@ -1,5 +1,6 @@
 import httpx
 import structlog
+from src.domain.exceptions import ExternalServiceError
 from src.domain.value_objects.user_location import UserLocation
 from src.domain.value_objects.geo_coordinates import GeoCoordinates
 
@@ -29,7 +30,7 @@ class NominatimGeocoder:
 
         results = response.json()
         if not results:
-            raise GeocodingError(f"No results for location: {location}")
+            raise ExternalServiceError(f"No results for location: {location}")
 
         first = results[0]
         coords = GeoCoordinates(
@@ -38,6 +39,3 @@ class NominatimGeocoder:
         )
         log.debug("geocoding.resolved", lat=coords.latitude, lon=coords.longitude)
         return coords
-
-class GeocodingError(Exception):
-    pass
