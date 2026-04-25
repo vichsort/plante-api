@@ -35,6 +35,8 @@ from src.domain.use_cases.list_user_achievements_use_case import ListUserAchieve
 from src.domain.use_cases.login_use_case import LoginUseCase
 from src.domain.use_cases.refresh_token_use_case import RefreshTokenUseCase
 from src.domain.use_cases.logout_use_case import LogoutUseCase
+from src.domain.use_cases.diagnose_health_use_case import DiagnoseHealthUseCase
+from src.domain.use_cases.get_health_history_use_case import GetHealthHistoryUseCase
 
 # Adapters
 from src.adapters.security.bcrypt_hasher import BcryptHasher
@@ -47,6 +49,7 @@ from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
 from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
 from src.adapters.cache.redis_token_repository import RedisTokenRepository
 from src.adapters.events.celery_publisher import CeleryPublisher
+from src.adapters.storage.s3_image_storage import S3ImageStorage
 
 class Container(containers.DeclarativeContainer):
 
@@ -132,6 +135,14 @@ class Container(containers.DeclarativeContainer):
 
     domain_publisher = providers.Singleton(CeleryPublisher)
 
+    image_storage = providers.Singleton(
+        S3ImageStorage,
+        bucket=settings.provided.s3_bucket,
+        region=settings.provided.aws_region,
+        aws_access_key_id=settings.provided.aws_access_key_id,
+        aws_secret_access_key=settings.provided.aws_secret_access_key,
+    )
+
     otp_repository = providers.Singleton(
         RedisOtpRepository,
         redis=redis,
@@ -145,6 +156,11 @@ class Container(containers.DeclarativeContainer):
     plant_identifier = providers.Singleton(
         KindwiseAdapter, 
         api_key=settings.provided.plant_id_api_key
+    )
+
+    health_analyzer = providers.Singleton(
+        KindwiseAdapter,
+        api_key=settings.provided.plant_id_api_key,
     )
 
     plant_enricher = providers.Singleton(
@@ -288,4 +304,33 @@ class Container(containers.DeclarativeContainer):
     list_user_achievements_use_case = providers.Factory(
         ListUserAchievementsUseCase,
         achievement_repo=achievement_repository,
+    )
+
+    """
+    NOTA PARA AMANHÃ: 
+    - eu preciso decidir sobre s3 ou r2.
+    - USAR DADOS DE SAÚDE PARA A MINHA IA APRENDER TAMBÉM: isso nos leva a precisar de uma
+    verificação daquelas de aprovar ou discordar da verificação, algo que teremos que implementar
+    de qualquer forma.
+    - decidir também como vamos fazer o acompanhamento da saúde da planta.
+    - verificar prompts e coisas relativas as IAs.
+    - cogitar refatorar ou diminuir esse arquivo aqui
+    - fazer aquilo de pedir pra duas IA (kindwise e plantnet em conjunto)
+    - fase R
+    """
+
+    diagnose_health_use_case = providers.Factory(
+        DiagnoseHealthUseCase,
+        user_repo=user_repository,
+        user_plant_repo=user_plant_repository,
+        health_repo=health_record_repository,
+        health_analyzer=health_analyzer,
+        plant_enricher=plant_enricher,
+        storage=image_storage,
+    )
+
+    get_health_history_use_case = providers.Factory(
+        GetHealthHistoryUseCase,
+        user_plant_repo=user_plant_repository,
+        health_repo=health_record_repository,
     )

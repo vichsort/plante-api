@@ -45,6 +45,9 @@ class Settings(BaseSettings):
 
     # Aws
     aws_region: str = "us-east-1"
+    s3_bucket: str = "plante-bucket-name"
+    aws_access_key_id: str
+    aws_secret_access_key: str
     ses_sender_email: str
 
     # Firebase
