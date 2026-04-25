@@ -32,6 +32,9 @@ from src.domain.use_cases.enrich_plant_species_use_case import EnrichPlantSpecie
 from src.domain.use_cases.water_plant_use_case import WaterPlantUseCase
 from src.domain.use_cases.break_streak_cron_use_case import BreakStreakCronUseCase
 from src.domain.use_cases.list_user_achievements_use_case import ListUserAchievementsUseCase
+from src.domain.use_cases.login_use_case import LoginUseCase
+from src.domain.use_cases.refresh_token_use_case import RefreshTokenUseCase
+from src.domain.use_cases.logout_use_case import LogoutUseCase
 
 # Adapters
 from src.adapters.security.bcrypt_hasher import BcryptHasher
@@ -42,6 +45,7 @@ from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.email.ses_email_sender import SesEmailSender
 from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
 from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
+from src.adapters.cache.redis_token_repository import RedisTokenRepository
 
 class Container(containers.DeclarativeContainer):
 
@@ -156,9 +160,36 @@ class Container(containers.DeclarativeContainer):
         geocoder=geocoder,
     )
 
+    token_repository = providers.Singleton(
+        RedisTokenRepository,
+        redis=redis,
+    )
+
     # ------------------------------------------------------------------ #
     # Use cases                                                            #
     # ------------------------------------------------------------------ #
+
+    login_use_case = providers.Factory(
+        LoginUseCase,
+        user_repo=user_repository,
+        hasher=password_hasher,
+        token_repo=token_repository,
+        secret_key=settings.provided.secret_key,
+        algorithm=settings.provided.jwt_algorithm,
+    )
+
+    refresh_token_use_case = providers.Factory(
+        RefreshTokenUseCase,
+        token_repo=token_repository,
+        secret_key=settings.provided.secret_key,
+        algorithm=settings.provided.jwt_algorithm,
+    )
+
+    logout_use_case = providers.Factory(
+        LogoutUseCase,
+        token_repo=token_repository,
+    )
+
     change_email_use_case = providers.Factory(
         ChangeEmailUseCase,
         user_repo=user_repository,
