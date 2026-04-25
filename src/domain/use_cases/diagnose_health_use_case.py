@@ -4,13 +4,13 @@ from datetime import datetime, timezone
 from src.domain.entities.health_record import HealthRecord, HealthSeverity
 from src.domain.exceptions import UserNotFoundError, PlantNotFoundError
 from src.domain.policies.subscription_policy import SubscriptionPolicy
-from src.domain.ports.user_repository import IUserRepository
-from src.domain.ports.user_plant_repository import IUserPlantRepository
-from src.domain.ports.health_record_repository import IHealthRecordRepository
 from src.domain.ports.health_analyzer import IHealthAnalyzer
-from src.domain.ports.plant_enricher import IPlantEnricher
+from src.domain.ports.health_raw_response_repository import IHealthRawResponseRepository
+from src.domain.ports.health_record_repository import IHealthRecordRepository
 from src.domain.ports.image_storage import IImageStorage
-
+from src.domain.ports.plant_enricher import IPlantEnricher
+from src.domain.ports.user_plant_repository import IUserPlantRepository
+from src.domain.ports.user_repository import IUserRepository
 
 def _map_severity(vitality: float) -> HealthSeverity:
     if vitality >= 0.85:
@@ -38,6 +38,7 @@ class DiagnoseHealthUseCase:
         health_analyzer: IHealthAnalyzer,
         plant_enricher: IPlantEnricher,
         storage: IImageStorage,
+        health_raw_repo: IHealthRawResponseRepository,
     ) -> None:
         self._user_repo = user_repo
         self._user_plant_repo = user_plant_repo
@@ -45,6 +46,7 @@ class DiagnoseHealthUseCase:
         self._health_analyzer = health_analyzer
         self._plant_enricher = plant_enricher
         self._storage = storage
+        self._health_raw_repo = health_raw_repo
 
     async def execute(self, dto: DiagnoseHealthInputDTO) -> dict:
         now = datetime.now(timezone.utc)
@@ -67,7 +69,7 @@ class DiagnoseHealthUseCase:
 
         # Gemini — só se Kindwise detectar problema
         if assessment.health_probability < SubscriptionPolicy.health_unhealthy_threshold():
-            user.consume_identify_token()   # consome token extra
+            user.consume_identify_token()
             gemini_data = await self._plant_enricher.diagnose_health(
                 scientific_name=user_plant.scientific_name,
                 issues=issues,
@@ -100,6 +102,9 @@ class DiagnoseHealthUseCase:
 
         await self._user_repo.save(user)
 
+        # Persiste raw_response no Redis — consumido pelo confirm_health_diagnosis_use_case
+        await self._health_raw_repo.save(record.id, assessment.raw_response)
+
         return {
             "health_record_id": record.id,
             "severity": record.severity.value,
@@ -109,4 +114,5 @@ class DiagnoseHealthUseCase:
             "treatment_plan": list(record.treatment_plan),
             "recovery_estimate_days": record.recovery_estimate_days,
             "image_key": record.image_key,
+            "similar_images_urls": list(assessment.all_similar_images_urls),
         }

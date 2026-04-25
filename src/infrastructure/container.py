@@ -44,13 +44,14 @@ from src.domain.use_cases.confirm_health_diagnosis_use_case import ConfirmHealth
 # Adapters
 from src.adapters.security.bcrypt_hasher import BcryptHasher
 from src.adapters.cache.redis_otp_repository import RedisOtpRepository
+from src.adapters.cache.redis_health_raw_response_repository import RedisHealthRawResponseRepository
+from src.adapters.cache.redis_token_repository import RedisTokenRepository
 from src.adapters.notifications.firebase_adapter import FirebaseAdapter
 from src.adapters.ai.gemini.gemini_adapter import GeminiAdapter
 from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.email.ses_email_sender import SesEmailSender
 from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
 from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
-from src.adapters.cache.redis_token_repository import RedisTokenRepository
 from src.adapters.events.celery_publisher import CeleryPublisher
 from src.adapters.storage.s3_image_storage import S3ImageStorage
 
@@ -136,6 +137,11 @@ class Container(containers.DeclarativeContainer):
         Redis.from_url,
         url=settings.provided.redis_url,
         decode_responses=False,
+    )
+
+    health_raw_response_repository = providers.Singleton(
+        RedisHealthRawResponseRepository,
+        redis=redis,
     )
 
     email_sender = providers.Singleton(
@@ -351,6 +357,7 @@ class Container(containers.DeclarativeContainer):
         health_analyzer=health_analyzer,
         plant_enricher=plant_enricher,
         storage=image_storage,
+        health_raw_repo=health_raw_response_repository,
     )
 
     get_health_history_use_case = providers.Factory(
