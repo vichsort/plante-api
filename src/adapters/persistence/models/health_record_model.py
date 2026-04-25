@@ -16,6 +16,7 @@ class HealthRecordModel(Base):
         nullable=False,
     )
     source: Mapped[str] = mapped_column(String(50), nullable=False)
+    image_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
     issues_detected: Mapped[list | None] = mapped_column(JSON, nullable=True)
     treatment_plan: Mapped[list | None] = mapped_column(JSON, nullable=True)
     recovery_estimate_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
