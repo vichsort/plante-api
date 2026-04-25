@@ -11,7 +11,7 @@ class GetPlantDetailsUseCase:
     def __init__(self, user_plant_repo: IUserPlantRepository):
         self.user_plant_repo = user_plant_repo
 
-    def execute(self, dto: GetPlantDetailsInputDTO) -> dict:
+    async def execute(self, dto: GetPlantDetailsInputDTO) -> dict:
         # Traz um dicionário gordo com JOINs (UserPlant + PlantSpecies + CareSchedule)
         plant_view = self.user_plant_repo.get_plant_details_view(dto.user_plant_id, dto.user_id)
         
