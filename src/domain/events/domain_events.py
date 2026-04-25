@@ -84,3 +84,23 @@ class UserRegisteredEvent(DomainEvent):
             user_id=user_id,
             email=email,
         )
+
+@dataclass(frozen=True)
+class SubscriptionUpgradedEvent(DomainEvent):
+    user_id: int
+    plan_name: str
+    expires_at: datetime
+
+    @classmethod
+    def create(
+        cls,
+        user_id: int,
+        plan_name: str,
+        expires_at: datetime,
+    ) -> "SubscriptionUpgradedEvent":
+        return cls(
+            occurred_on=datetime.now(timezone.utc),
+            user_id=user_id,
+            plan_name=plan_name,
+            expires_at=expires_at,
+        )

@@ -6,9 +6,8 @@ class ListUserAchievementsInputDTO:
     user_id: int
 
 class ListUserAchievementsUseCase:
-    def __init__(self, achievement_repo: IAchievementRepository):
+    def __init__(self, achievement_repo: IAchievementRepository) -> None:
         self.achievement_repo = achievement_repo
 
-    def execute(self, dto: ListUserAchievementsInputDTO) -> list[dict]:
-        # Devolve a lista formatada: [{"badge": "FIRST_BLOOM", "unlocked_at": "2024-05-10T10:00:00Z"}]
-        return self.achievement_repo.get_user_achievements_view(dto.user_id)
+    async def execute(self, dto: ListUserAchievementsInputDTO) -> list[dict]:
+        return await self.achievement_repo.get_user_achievements_view(dto.user_id)

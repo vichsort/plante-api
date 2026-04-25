@@ -44,8 +44,7 @@ class ChangeEmailUseCase:
             raise EmailAlreadyInUseError(dto.new_email)
 
         # Gera o código OTP usando o VO para garantir formato e checksum
-        raw_code = _generate_otp_code()
-        VerificationCode(raw_code)  # valida antes de persistir
+        raw_code = VerificationCode.generate().raw_code
 
         user.change_email(new_email=dto.new_email)
         await self.user_repo.save(user)

@@ -225,6 +225,7 @@ class Container(containers.DeclarativeContainer):
     upgrade_subscription_use_case = providers.Factory(
         UpgradeSubscriptionUseCase,
         user_repo=user_repository,
+        publisher=domain_publisher
     )
 
     update_location_fallback_use_case = providers.Factory(
