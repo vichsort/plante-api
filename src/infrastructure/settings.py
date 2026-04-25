@@ -40,9 +40,8 @@ class Settings(BaseSettings):
     plantnet_api_key: str | None = None
 
     # Auth
-    jwt_secret_key: str
+    secret_key: str
     jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 60
 
     # Aws
     aws_region: str = "us-east-1"
