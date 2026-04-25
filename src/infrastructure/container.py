@@ -288,6 +288,7 @@ class Container(containers.DeclarativeContainer):
         user_repo=user_repository,
         health_record_repo=health_record_repository,
         health_sample_repo=health_identification_sample_repository,
+        health_raw_repo=health_raw_response_repository,
         storage=image_storage,
         publisher=domain_publisher,
     )

@@ -1,9 +1,7 @@
 from datetime import datetime
-
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import Enum as SAEnum
-
 from src.adapters.persistence.models.base import Base
 from src.domain.entities.health_identification_sample import HealthSampleStatus
 
@@ -16,11 +14,11 @@ class HealthIdentificationSampleModel(Base):
         ForeignKey("health_records.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
-        unique=True, # 1 sample por health_record
+        unique=True,   # 1 sample por health_record
     )
     scientific_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     user_image_key: Mapped[str] = mapped_column(String(500), nullable=False)
-    reference_image_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    reference_image_keys: Mapped[list] = mapped_column(JSON, nullable=False)  # lista de storage keys
     vitality_score: Mapped[float] = mapped_column(Float, nullable=False)
     issues_detected: Mapped[list] = mapped_column(JSON, nullable=False)
     treatment_plan: Mapped[list] = mapped_column(JSON, nullable=False)
