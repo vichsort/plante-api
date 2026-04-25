@@ -15,6 +15,7 @@ from src.adapters.persistence.repositories.plant_reference_image_repository impo
 from src.adapters.persistence.repositories.health_record_repository import HealthRecordRepository
 from src.adapters.persistence.repositories.identification_sample_repository import IdentificationSampleRepository
 from src.adapters.persistence.repositories.achievement_repository import AchievementRepository
+from src.adapters.persistence.repositories.health_identification_sample_repository import HealthIdentificationSampleRepository
 
 # Use cases
 from src.domain.use_cases.change_email_use_case import ChangeEmailUseCase
@@ -37,6 +38,8 @@ from src.domain.use_cases.refresh_token_use_case import RefreshTokenUseCase
 from src.domain.use_cases.logout_use_case import LogoutUseCase
 from src.domain.use_cases.diagnose_health_use_case import DiagnoseHealthUseCase
 from src.domain.use_cases.get_health_history_use_case import GetHealthHistoryUseCase
+from src.domain.use_cases.confirm_plant_identification_use_case import ConfirmPlantIdentificationUseCase
+from src.domain.use_cases.confirm_health_diagnosis_use_case import ConfirmHealthDiagnosisUseCase
 
 # Adapters
 from src.adapters.security.bcrypt_hasher import BcryptHasher
@@ -81,6 +84,16 @@ class Container(containers.DeclarativeContainer):
 
     user_plant_repository = providers.Factory(
         UserPlantRepository,
+        session=session,
+    )
+
+    health_record_repository = providers.Factory(
+        HealthRecordRepository,
+        session=session,
+    )
+
+    health_identification_sample_repository = providers.Factory(
+        HealthIdentificationSampleRepository,
         session=session,
     )
 
@@ -255,6 +268,22 @@ class Container(containers.DeclarativeContainer):
         user_plant_repo=user_plant_repository,
         species_repo=plant_species_repository,
         sample_repo=identification_sample_repository,
+    )
+
+    confirm_plant_identification = providers.Factory(
+        ConfirmPlantIdentificationUseCase,
+        user_repo=user_repository,
+        sample_repo=identification_sample_repository,
+        publisher=domain_publisher,
+    )
+
+    confirm_health_diagnosis = providers.Factory(
+        ConfirmHealthDiagnosisUseCase,
+        user_repo=user_repository,
+        health_record_repo=health_record_repository,
+        health_sample_repo=health_identification_sample_repository,
+        storage=image_storage,
+        publisher=domain_publisher,
     )
 
     delete_user_plant_use_case = providers.Factory(

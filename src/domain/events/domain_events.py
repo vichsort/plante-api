@@ -104,3 +104,57 @@ class SubscriptionUpgradedEvent(DomainEvent):
             plan_name=plan_name,
             expires_at=expires_at,
         )
+
+@dataclass(frozen=True)
+class PlantIdentificationConfirmedEvent:
+    """
+    Emitido quando o usuário confirma que a identificação botânica estava correta.
+    Dispara a transição da PlantIdentificationSample de PENDING para CONFIRMED.
+    """
+    occurred_on: datetime
+    user_id: int
+    sample_id: int
+    scientific_name: str
+ 
+    @classmethod
+    def create(
+        cls,
+        user_id: int,
+        sample_id: int,
+        scientific_name: str,
+    ) -> "PlantIdentificationConfirmedEvent":
+        return cls(
+            occurred_on=datetime.now(timezone.utc),
+            user_id=user_id,
+            sample_id=sample_id,
+            scientific_name=scientific_name,
+        )
+ 
+ 
+@dataclass(frozen=True)
+class HealthDiagnosisConfirmedEvent:
+    """
+    Emitido quando o usuário confirma que a planta está doente.
+    Cria a HealthIdentificationSample e re-hospeda a imagem similar do Kindwise.
+    """
+    occurred_on: datetime
+    user_id: int
+    health_record_id: int
+    sample_id: int
+    scientific_name: str
+ 
+    @classmethod
+    def create(
+        cls,
+        user_id: int,
+        health_record_id: int,
+        sample_id: int,
+        scientific_name: str,
+    ) -> "HealthDiagnosisConfirmedEvent":
+        return cls(
+            occurred_on=datetime.now(timezone.utc),
+            user_id=user_id,
+            health_record_id=health_record_id,
+            sample_id=sample_id,
+            scientific_name=scientific_name,
+        )
