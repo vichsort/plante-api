@@ -13,6 +13,7 @@ class HealthSeverity(Enum):
 class HealthRecord:
     id: int
     user_plant_id: int
+    scientific_name: str
     diagnosed_at: datetime
     vitality_score: float           # 0.0 a 1.0
     severity: HealthSeverity

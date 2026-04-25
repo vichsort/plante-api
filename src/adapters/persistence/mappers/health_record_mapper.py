@@ -7,6 +7,7 @@ class HealthRecordMapper:
         return HealthRecord(
             id=model.id,
             user_plant_id=model.user_plant_id,
+            scientific_name=model.scientific_name,
             diagnosed_at=model.diagnosed_at,
             vitality_score=model.vitality_score,
             severity=HealthSeverity(model.severity),
@@ -22,6 +23,7 @@ class HealthRecordMapper:
         return HealthRecordModel(
             id=entity.id,
             user_plant_id=entity.user_plant_id,
+            scientific_name=entity.scientific_name,
             diagnosed_at=entity.diagnosed_at,
             vitality_score=entity.vitality_score,
             severity=entity.severity.value,

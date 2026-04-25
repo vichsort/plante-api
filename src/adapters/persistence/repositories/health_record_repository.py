@@ -16,6 +16,12 @@ class HealthRecordRepository(IHealthRecordRepository):
         await self._session.flush()
         return HealthRecordMapper.to_domain(model)
 
+    async def get_by_id(self, record_id: int) -> HealthRecord | None:
+        stmt = select(HealthRecordModel).where(HealthRecordModel.id == record_id)
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return HealthRecordMapper.to_domain(model) if model else None
+
     async def get_latest_by_plant(self, user_plant_id: int) -> HealthRecord | None:
         stmt = (
             select(HealthRecordModel)

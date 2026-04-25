@@ -7,6 +7,11 @@ class IHealthRecordRepository(ABC):
         ...
 
     @abstractmethod
+    async def get_by_id(self, record_id: int) -> HealthRecord | None:
+        """Busca um diagnóstico pelo id — usado no use case de confirmação."""
+        ...
+
+    @abstractmethod
     async def get_latest_by_plant(self, user_plant_id: int) -> HealthRecord | None:
         """Diagnóstico mais recente — usado na tela principal da planta."""
         ...

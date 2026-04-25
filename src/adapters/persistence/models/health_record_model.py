@@ -9,6 +9,7 @@ class HealthRecordModel(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_plant_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    scientific_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     diagnosed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     vitality_score: Mapped[float] = mapped_column(Float, nullable=False)
     severity: Mapped[str] = mapped_column(

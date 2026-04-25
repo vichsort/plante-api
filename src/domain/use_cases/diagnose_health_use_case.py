@@ -86,6 +86,7 @@ class DiagnoseHealthUseCase:
         record = await self._health_repo.save(HealthRecord(
             id=None,
             user_plant_id=dto.user_plant_id,
+            scientific_name=user_plant.scientific_name,
             diagnosed_at=now,
             vitality_score=vitality,
             severity=severity,
