@@ -19,6 +19,14 @@ class LowConfidenceError(PlantEError):
             code="LOW_CONFIDENCE",
         )
 
+class IdentificationNotFoundError(PlantEError):
+    """A identificação solicitada não existe ou não pertence ao usuário."""
+    def __init__(self, identification_id: int):
+        super().__init__(
+            message=f"Identification {identification_id} not found.",
+            code="IDENTIFICATION_NOT_FOUND",
+        )
+
 class InvalidImageError(PlantEError):
     """A imagem enviada é inválida ou não contém uma planta."""
     def __init__(self, message: str = "Invalid image or unindentifiable plant."):
@@ -106,4 +114,21 @@ class ExternalServiceError(PlantEError):
         super().__init__(
             message=f"External service '{service}' unavailable. {message}".strip(),
             code="EXTERNAL_SERVICE_ERROR",
+        )
+
+# Saúde / Diagnóstico
+class HealthRecordNotFoundError(PlantEError):
+    """O health record solicitado não existe ou não pertence ao usuário."""
+    def __init__(self, record_id: int):
+        super().__init__(
+            message=f"Health record {record_id} not found.",
+            code="HEALTH_RECORD_NOT_FOUND",
+        )
+
+class RawResponseExpiredError(PlantEError):
+    """Raw response do Kindwise expirou no Redis (TTL 24h)."""
+    def __init__(self, record_id: int):
+        super().__init__(
+            message=f"Raw response for health record {record_id} has expired. Please run a new diagnosis.",
+            code="RAW_RESPONSE_EXPIRED",
         )
