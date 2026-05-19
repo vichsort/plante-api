@@ -9,7 +9,7 @@ class IImageStorage(ABC):
     @abstractmethod
     async def upload_identification_image(
         self,
-        image_b64: str,
+        image_bytes: bytes,
         scientific_name: str,
         confidence_value: float,
         user_id: int,

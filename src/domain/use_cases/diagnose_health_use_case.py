@@ -27,7 +27,7 @@ def _map_severity(vitality: float) -> HealthSeverity:
 class DiagnoseHealthInputDTO:
     user_id: int
     user_plant_id: int
-    image_b64: str
+    image_bytes: bytes
 
 class DiagnoseHealthUseCase:
     def __init__(
@@ -92,7 +92,7 @@ class DiagnoseHealthUseCase:
             diagnosed_at=now,
             vitality_score=vitality,
             severity=severity,
-            source="kindwise" if not gemini_data else "gemini",
+            source="kindwise" if not gemini_data else "kindwise+gemini",
             image_key=image_key,
             issues_detected=tuple(issues),
             treatment_plan=tuple(gemini_data.get("treatment_plan", [])),

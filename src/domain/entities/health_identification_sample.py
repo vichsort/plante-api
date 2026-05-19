@@ -22,11 +22,11 @@ class HealthIdentificationSample:
     health_record_id: int
     scientific_name: str
     user_image_key: str
-    reference_image_keys: tuple[str, ...]   # todas as imagens similares do Kindwise
+    reference_image_keys: tuple[str, ...] = () # todas as imagens similares do Kindwise
     vitality_score: float
     issues_detected: tuple[str, ...]
     treatment_plan: tuple[str, ...]
-    identification_source: str              # "kindwise" | "kindwise+gemini"
+    identification_source: str                 # "kindwise" | "kindwise+gemini"
     raw_response: dict
     status: HealthSampleStatus
     created_at: datetime

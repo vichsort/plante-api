@@ -13,7 +13,7 @@ class IdentificationResult:
     scientific_name: str
     confidence: float
     source: str
-    kindwise_entity_id: str | None = None
+    provider_entity_id: str | None = None # kindwise | plantnet
     gbif_id: str | None = None
     family: str | None = None
     genus: str | None = None
@@ -24,9 +24,4 @@ class IPlantIdentifier(ABC):
     @abstractmethod
     async def identify(self, image_bytes: bytes) -> IdentificationResult:
         """Identifica uma planta a partir de bytes de imagem."""
-        ...
-
-    @abstractmethod
-    async def search_by_name(self, scientific_name: str) -> IdentificationResult | None:
-        """Busca dados de uma espécie pelo nome científico."""
         ...

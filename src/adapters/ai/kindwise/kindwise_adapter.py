@@ -1,4 +1,5 @@
 import httpx
+import base64
 from src.domain.ports.health_analyzer import IHealthAnalyzer, HealthAssessmentResult, DiseaseHint
 
 _BASE_URL = "https://plant.id/api/v3/"
@@ -7,7 +8,8 @@ class KindwiseAdapter(IHealthAnalyzer):
     def __init__(self, api_key: str) -> None:
         self._headers = {"Api-Key": api_key}
 
-    async def assess_health(self, image_b64: str) -> HealthAssessmentResult:
+    async def assess_health(self, image_bytes: bytes) -> HealthAssessmentResult:
+        image_b64 = base64.b64encode(image_bytes).decode()
         payload = {
             "images": [image_b64],
             "similar_images": True,
