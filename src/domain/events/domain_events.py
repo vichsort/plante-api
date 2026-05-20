@@ -158,3 +158,27 @@ class HealthDiagnosisConfirmedEvent:
             sample_id=sample_id,
             scientific_name=scientific_name,
         )
+
+@dataclass(frozen=True)
+class PlantWateredEvent(DomainEvent):
+    """
+    Emitido quando um usuário rega uma planta.
+    Usado para atualizar streak e verificar conquistas.
+    """
+    user_id: int
+    user_plant_id: int
+    current_streak: int
+
+    @classmethod
+    def create(
+        cls, 
+        user_id: int, 
+        user_plant_id: int, 
+        current_streak: int
+    ) -> 'PlantWateredEvent':
+        return cls(
+            occurred_on=datetime.now(timezone.utc),
+            user_id=user_id,
+            user_plant_id=user_plant_id,
+            current_streak=current_streak,
+        )
