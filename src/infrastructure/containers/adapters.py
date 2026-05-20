@@ -14,7 +14,7 @@ from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.ai.gemini.gemini_adapter import GeminiAdapter
 from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
 from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
-
+from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
 
 class AdaptersContainer(containers.DeclarativeContainer):
     settings = providers.Dependency()
@@ -63,7 +63,18 @@ class AdaptersContainer(containers.DeclarativeContainer):
         credentials_path=settings.provided.google_application_credentials,
     )
 
+    kindwise_identifier = providers.Singleton(
+        KindwiseAdapter,
+        api_key=settings.provided.plant_id_api_key,
+    )
+
+    plantnet_identifier = providers.Singleton(
+        PlantNetAdapter,
+        api_key=settings.provided.plantnet_api_key,
+    )
+
     plant_identifier = providers.Singleton(
+        # AQUI será consensus.
         KindwiseAdapter,
         api_key=settings.provided.plant_id_api_key,
     )
