@@ -11,7 +11,7 @@ class PlantReferenceImageModel(Base):
     scientific_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
     source: Mapped[str] = mapped_column(
-        SAEnum(ImageSource, values_callable=lambda e: [x.value for x in e]),
+        SAEnum(ImageSource, values_callable=lambda e: [x.value for x in e], name="imageSource"),
         nullable=False,
     )
     user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)

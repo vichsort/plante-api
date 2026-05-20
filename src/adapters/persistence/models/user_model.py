@@ -17,9 +17,9 @@ class UserModel(Base):
 
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     subscription: Mapped[str] = mapped_column(
-        SAEnum(SubscriptionTier, values_callable=lambda e: [x.value for x in e]),
+        SAEnum(SubscriptionTier, values_callable=lambda e: [x.plan_name for x in e], name="subscriptionTier"),
         nullable=False,
-        default=SubscriptionTier.FREE.value,
+        default=SubscriptionTier.FREE.plan_name,
     )
     tokens_used_today: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     garden_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

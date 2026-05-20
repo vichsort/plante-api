@@ -25,7 +25,7 @@ class HealthIdentificationSampleModel(Base):
     identification_source: Mapped[str] = mapped_column(String(50), nullable=False)
     raw_response: Mapped[dict] = mapped_column(JSON, nullable=False)
     status: Mapped[str] = mapped_column(
-        SAEnum(HealthSampleStatus, values_callable=lambda e: [x.value for x in e]),
+        SAEnum(HealthSampleStatus, values_callable=lambda e: [x.value for x in e], name="healthSampleStatus"),
         nullable=False,
         index=True,
     )

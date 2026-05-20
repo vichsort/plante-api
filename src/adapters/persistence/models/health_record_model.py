@@ -18,7 +18,7 @@ class HealthRecordModel(Base):
     diagnosed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     vitality_score: Mapped[float] = mapped_column(Float, nullable=False)
     severity: Mapped[str] = mapped_column(
-        SAEnum(HealthSeverity, values_callable=lambda e: [x.value for x in e]),
+        SAEnum(HealthSeverity, values_callable=lambda e: [x.value for x in e], name="healthSeverity"),
         nullable=False,
     )
     source: Mapped[str] = mapped_column(String(50), nullable=False)

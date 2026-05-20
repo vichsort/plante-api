@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: b2360e1d958c
+Revision ID: f90d8237dd07
 Revises: 
-Create Date: 2026-05-20 09:55:25.266388
+Create Date: 2026-05-20 15:35:50.710473
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b2360e1d958c'
+revision: str = 'f90d8237dd07'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -27,7 +27,7 @@ def upgrade() -> None:
     sa.Column('user_image_key', sa.String(length=500), nullable=False),
     sa.Column('identification_confidence', sa.Float(), nullable=False),
     sa.Column('identification_source', sa.String(length=50), nullable=False),
-    sa.Column('raw_response', sa.Enum(), nullable=False),
+    sa.Column('raw_response', sa.JSON(), nullable=False),
     sa.Column('status', sa.String(length=50), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
@@ -45,7 +45,7 @@ def upgrade() -> None:
     sa.Column('tea_preparation', sa.String(length=1000), nullable=True),
     sa.Column('tea_benefits', sa.String(length=1000), nullable=True),
     sa.Column('food_recipe_name', sa.String(length=255), nullable=True),
-    sa.Column('food_recipe_ingredients', sa.Enum(), nullable=True),
+    sa.Column('food_recipe_ingredients', sa.JSON(), nullable=True),
     sa.Column('medicinal_uses', sa.String(length=1000), nullable=True),
     sa.Column('seasoning_pairings', sa.String(length=500), nullable=True),
     sa.Column('enriched_at', sa.DateTime(timezone=True), nullable=True),
@@ -55,7 +55,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('scientific_name', sa.String(length=255), nullable=False),
     sa.Column('storage_key', sa.String(length=500), nullable=False),
-    sa.Column('source', sa.Enum('kindwise_similar', 'user_confirmed', name='imagesource'), nullable=False),
+    sa.Column('source', sa.Enum('kindwise_similar', 'user_confirmed', name='imageSource'), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.PrimaryKeyConstraint('id')
@@ -64,7 +64,7 @@ def upgrade() -> None:
     op.create_table('plant_species',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('scientific_name', sa.String(length=255), nullable=False),
-    sa.Column('enrichment_status', sa.Enum('pending', 'enriched', 'failed', name='enrichmentstatus'), nullable=False),
+    sa.Column('enrichment_status', sa.Enum('pending', 'enriched', 'failed', name='enrichmentStatus'), nullable=False),
     sa.Column('family', sa.String(length=100), nullable=True),
     sa.Column('genus', sa.String(length=100), nullable=True),
     sa.Column('order', sa.String(length=100), nullable=True),
@@ -74,13 +74,13 @@ def upgrade() -> None:
     sa.Column('gbif_id', sa.String(length=100), nullable=True),
     sa.Column('is_edible', sa.Boolean(), nullable=True),
     sa.Column('water_frequency_per_week', sa.Integer(), nullable=True),
-    sa.Column('light_requirement', sa.Enum('low', 'indirect', 'direct', 'full_sun', name='lightrequirement'), nullable=True),
-    sa.Column('soil_type', sa.Enum('sandy', 'clay', 'loamy', 'well_draining', name='soiltype'), nullable=True),
+    sa.Column('light_requirement', sa.Enum('low', 'indirect', 'direct', 'full_sun', name='lightRequirement'), nullable=True),
+    sa.Column('soil_type', sa.Enum('sandy', 'clay', 'loamy', 'well_draining', name='soilType'), nullable=True),
     sa.Column('best_planting_season', sa.String(length=50), nullable=True),
     sa.Column('origin_country', sa.String(length=100), nullable=True),
     sa.Column('habitat', sa.String(length=255), nullable=True),
     sa.Column('enriched_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('enrichment_source', sa.Enum('gemini', 'kindwise', 'plantnet', name='enrichmentsource'), nullable=True),
+    sa.Column('enrichment_source', sa.Enum('gemini', 'kindwise', 'plantnet', name='enrichmentSource'), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_plant_species_enrichment_status'), 'plant_species', ['enrichment_status'], unique=False)
@@ -98,8 +98,8 @@ def upgrade() -> None:
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('scientific_name', sa.String(length=255), nullable=False),
     sa.Column('identification_confidence', sa.Float(), nullable=False),
-    sa.Column('identification_source', sa.Enum('kindwise', 'plantnet', 'consensus', name='identificationsource'), nullable=False),
-    sa.Column('status', sa.Enum('pending_enrichment', 'identified', 'enriched', name='identificationstatus'), nullable=False),
+    sa.Column('identification_source', sa.Enum('kindwise', 'plantnet', 'consensus', name='identificationSource'), nullable=False),
+    sa.Column('status', sa.Enum('pending_enrichment', 'identified', 'enriched', name='identificationStatus'), nullable=False),
     sa.Column('added_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('nickname', sa.String(length=100), nullable=True),
     sa.Column('primary_image_url', sa.String(length=500), nullable=True),
@@ -123,7 +123,7 @@ def upgrade() -> None:
     sa.Column('location_country', sa.String(length=2), nullable=False),
     sa.Column('location_state', sa.String(length=100), nullable=False),
     sa.Column('is_verified', sa.Boolean(), nullable=False),
-    sa.Column('subscription', sa.Enum(('FREE', 3, 3), ('PRO', 50, 30), name='subscriptiontier'), nullable=False),
+    sa.Column('subscription', sa.Enum('FREE', 'PRO', name='subscriptionTier'), nullable=False),
     sa.Column('tokens_used_today', sa.Integer(), nullable=False),
     sa.Column('garden_count', sa.Integer(), nullable=False),
     sa.Column('fcm_token', sa.String(length=255), nullable=True),
@@ -141,7 +141,7 @@ def upgrade() -> None:
     sa.Column('scientific_name', sa.String(length=255), nullable=False),
     sa.Column('diagnosed_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('vitality_score', sa.Float(), nullable=False),
-    sa.Column('severity', sa.Enum('healthy', 'low', 'moderate', 'high', 'critical', name='healthseverity'), nullable=False),
+    sa.Column('severity', sa.Enum('healthy', 'low', 'moderate', 'high', 'critical', name='healthSeverity'), nullable=False),
     sa.Column('source', sa.String(length=50), nullable=False),
     sa.Column('image_key', sa.String(length=500), nullable=True),
     sa.Column('issues_detected', sa.JSON(), nullable=True),
@@ -164,7 +164,7 @@ def upgrade() -> None:
     sa.Column('treatment_plan', sa.JSON(), nullable=False),
     sa.Column('identification_source', sa.String(length=50), nullable=False),
     sa.Column('raw_response', sa.JSON(), nullable=False),
-    sa.Column('status', sa.Enum('pending', 'confirmed', 'rejected', name='healthsamplestatus'), nullable=False),
+    sa.Column('status', sa.Enum('pending', 'confirmed', 'rejected', name='healthSampleStatus'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('confirmed_at', sa.DateTime(timezone=True), nullable=True),

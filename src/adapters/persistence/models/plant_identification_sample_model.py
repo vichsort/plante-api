@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Integer, Float, DateTime, Boolean, Enum as JSON
+from sqlalchemy import String, Integer, Float, DateTime, Boolean, JSON
 from .base import Base
 from datetime import datetime
 

@@ -10,7 +10,7 @@ class PlantSpeciesModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     scientific_name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     enrichment_status: Mapped[str] = mapped_column(
-        SAEnum(EnrichmentStatus, values_callable=lambda e: [x.value for x in e]),
+        SAEnum(EnrichmentStatus, values_callable=lambda e: [x.value for x in e], name="enrichmentStatus"),
         nullable=False,
         default=EnrichmentStatus.PENDING.value,
         index=True,
@@ -28,11 +28,11 @@ class PlantSpeciesModel(Base):
     is_edible: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     water_frequency_per_week: Mapped[int | None] = mapped_column(Integer, nullable=True)
     light_requirement: Mapped[str | None] = mapped_column(
-        SAEnum(LightRequirement, values_callable=lambda e: [x.value for x in e]),
+        SAEnum(LightRequirement, values_callable=lambda e: [x.value for x in e], name="lightRequirement"),
         nullable=True,
     )
     soil_type: Mapped[str | None] = mapped_column(
-        SAEnum(SoilType, values_callable=lambda e: [x.value for x in e]),
+        SAEnum(SoilType, values_callable=lambda e: [x.value for x in e], name="soilType"),
         nullable=True,
     )
     best_planting_season: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -41,6 +41,6 @@ class PlantSpeciesModel(Base):
 
     enriched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     enrichment_source: Mapped[str | None] = mapped_column(
-        SAEnum(EnrichmentSource, values_callable=lambda e: [x.value for x in e]),
+        SAEnum(EnrichmentSource, values_callable=lambda e: [x.value for x in e], name="enrichmentSource"),
         nullable=True,
     )
