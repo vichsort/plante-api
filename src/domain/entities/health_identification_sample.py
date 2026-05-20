@@ -22,7 +22,6 @@ class HealthIdentificationSample:
     health_record_id: int
     scientific_name: str
     user_image_key: str
-    reference_image_keys: tuple[str, ...] = () # todas as imagens similares do Kindwise
     vitality_score: float
     issues_detected: tuple[str, ...]
     treatment_plan: tuple[str, ...]
@@ -31,6 +30,7 @@ class HealthIdentificationSample:
     status: HealthSampleStatus
     created_at: datetime
 
+    reference_image_keys: tuple[str, ...] = () # todas as imagens similares do Kindwise
     user_id: int | None = None
     confirmed_at: datetime | None = None
     rejected_at: datetime | None = None

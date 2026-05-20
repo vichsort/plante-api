@@ -3,9 +3,9 @@ from datetime import datetime
 from enum import Enum
 
 class EnrichmentStatus(Enum):
-    PENDING = "pending"         # só tem o básico do Kindwise/PlantNet
-    ENRICHED = "enriched"       # Gemini já enriqueceu
-    FAILED = "failed"           # tentou enriquecer, falhou
+    PENDING = "pending"
+    ENRICHED = "enriched"
+    FAILED = "failed"
 
 class LightRequirement(Enum):
     LOW = "low"
@@ -27,8 +27,8 @@ class EnrichmentSource(Enum):
 @dataclass(frozen=True)
 class PlantSpecies:
     scientific_name: str
-    id: int | None = None
     enrichment_status: EnrichmentStatus
+    id: int | None = None
 
     # Taxonomia — vem do PlantNet/Kindwise na identificação
     family: str | None = None
@@ -37,11 +37,11 @@ class PlantSpecies:
     plant_class: str | None = None
     common_names: tuple[str, ...] = field(default_factory=tuple)
 
-    # IDs externos — pra cruzamento futuro
-    kindwise_entity_id: str | None = None
+    # IDs externos
+    provider_entity_id: str | None = None
     gbif_id: str | None = None
 
-    # Cuidados — vem do Gemini (enriquecimento)
+    # Cuidados — vem do Gemini
     is_edible: bool | None = None
     water_frequency_per_week: int | None = None
     light_requirement: LightRequirement | None = None
@@ -64,5 +64,4 @@ class PlantSpecies:
 
     @property
     def has_basic_taxonomy(self) -> bool:
-        """Retorna True se tem o mínimo pra exibir pro usuário."""
         return self.family is not None and self.genus is not None
