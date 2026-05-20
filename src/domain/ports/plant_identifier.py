@@ -20,6 +20,7 @@ class IdentificationResult:
     genus: str | None = None
     common_names: tuple[str, ...] = ()
     similar_images: tuple[SimilarImage, ...] = ()
+    low_confidence: bool = False
 
 class IPlantIdentifier(ABC):
     @abstractmethod
