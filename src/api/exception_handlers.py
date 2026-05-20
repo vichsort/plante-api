@@ -7,6 +7,7 @@ from src.domain.exceptions import (
     PlantNotFoundError,
     SubscriptionRequiredError,
     ExternalServiceError,
+    LowConfidenceError,
 )
 from src.api.response import ApiResponse
 
@@ -24,6 +25,7 @@ def _status_for(error: PlantEError) -> int:
         PlantNotFoundError: 404,
         SubscriptionRequiredError: 403,
         ExternalServiceError: 502,
+        LowConfidenceError: 422,
     }
     return mapping.get(type(error), 400)
 
