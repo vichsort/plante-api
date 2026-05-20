@@ -1,109 +1,217 @@
-# PlantE - Mais que no solo!
-Exemplo de retornos
+<div align="center">
 
-A imagem trafega como multipart/form-data. O router entrega bytes. Tudo downstream fala bytes. Base64 existe apenas dentro dos adapters de IA.
+<img src="assets/logo.svg" alt="PlantE Logo" width="120" />
 
-GBIF no futuro
+# PlantE API
 
-```json
-// sucesso
-{
-  "success": true,
-  "data": { ... },
-  "error": null
-}
+**Identificação botânica inteligente para o cultivo residencial.**  
+Transformando uma câmera em um tutor completo de saúde vegetal.
 
-// erro
-{
-  "success": false,
-  "data": null,
-  "error": {
-    "code": "PLANT_NOT_FOUND",
-    "message": "Planta 42 não encontrada."
-  }
-}
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org)
+[![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis&logoColor=white)](https://redis.io)
+[![Celery](https://img.shields.io/badge/Celery-5.4-37814A?style=flat-square&logo=celery&logoColor=white)](https://docs.celeryq.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
+[![Issues](https://img.shields.io/github/issues/vichsort/plante-api?style=flat-square&color=f59e0b)](https://github.com/vichsort/plante-api/issues)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-22c55e?style=flat-square)](https://github.com/vichsort/plante-api/pulls)
+
+</div>
+
+---
+
+## Sobre o projeto
+
+PlantE é um sistema de identificação e gestão botânica focado em cultivo residencial. O objetivo é democratizar a jardinagem através de tecnologia - transformando uma simples foto em um diagnóstico completo de saúde vegetal, com lembretes inteligentes, alertas climáticos e tratamentos guiados passo a passo.
+
+Ao inserir uma imagem, você estará contribuindo para a construção de uma base de dados de botânica brasileira doméstica, que poderá ser referenciada por artigos acadêmicos, instituições ESG no futuro! Para melhor entender, acesse o site oficial do [PlantE](https://www.planteai.org)!
+
+Este repositório contém o **backend da plataforma**, construído com arquitetura hexagonal para garantir máxima testabilidade e independência de infraestrutura.
+
+### Funcionalidades
+
+- 🌿 **Identificação de espécies** via foto com consensus engine (PlantNet + Kindwise)
+- 🔬 **Diagnóstico de saúde** e detecção de pragas/doenças
+- 💧 **Lembretes inteligentes** de rega e poda por worker assíncrono
+- 🌦️ **Alertas climáticos** integrados via Open-Meteo
+- 🔔 **Notificações push** via Firebase Cloud Messaging
+- 🏆 **Sistema de conquistas** para engajamento do usuário
+
+---
+
+## Arquitetura
+
+O projeto segue **Arquitetura Hexagonal (Ports & Adapters)**, garantindo que o domínio de negócio nunca dependa de infraestrutura.
+
+```
+src/
+├── domain/          # Regras de negócio puras — zero dependências externas
+│   ├── entities/    # Plant, HealthRecord, UserPlant...
+│   ├── use_cases/   # IdentifyPlant, DiagnoseHealth, ScheduleCare...
+│   ├── ports/       # Interfaces ABC (IPlantIdentifier, IRepository...)
+│   └── policies/    # SubscriptionPolicy, ConsensusPolicy
+├── adapters/        # Implementações concretas das ports
+│   ├── ai/          # Gemini, PlantNet, Kindwise, Consensus Engine
+│   ├── persistence/ # SQLAlchemy models + repositories
+│   ├── storage/     # S3
+│   ├── weather/     # Open-Meteo + Nominatim
+│   └── notifications/ # Firebase FCM
+├── api/             # Routers FastAPI + schemas Pydantic
+├── workers/         # Tasks Celery por domínio
+└── infrastructure/  # Container DI, settings, engine async
 ```
 
-## Estrutura que teremos...
-```markdown
-plante-api/
-├── src/
-│   ├── domain/                         ← zero dependências externas
-│   │   ├── entities/
-│   │   │   ├── plant.py                # dataclass pura
-│   │   │   ├── user_plant.py
-│   │   │   ├── health_record.py
-│   │   │   └── care_schedule.py
-│   │   ├── value_objects/
-│   │   │   ├── confidence_score.py     # 0.0–1.0 com validação
-│   │   │   ├── subscription_tier.py    # FREE | PRO
-│   │   │   └── plant_profile.py
-│   │   ├── ports/
-│   │   │   ├── plant_identifier.py     # IPlantIdentifier (ABC)
-│   │   │   ├── health_analyzer.py      # IHealthAnalyzer
-│   │   │   ├── weather_service.py      # IWeatherService
-│   │   │   ├── notification_sender.py  # INotificationSender
-│   │   │   └── plant_repository.py     # IPlantRepository
-│   │   └── use_cases/
-│   │       ├── identify_plant.py
-│   │       ├── diagnose_health.py
-│   │       ├── schedule_care.py
-│   │       └── get_plant_details.py
-│   │
-│   ├── adapters/
-│   │   ├── ai/
-│   │   │   ├── gemini/
-│   │   │   │   ├── adapter.py
-│   │   │   │   ├── prompt_builder.py
-│   │   │   │   └── response_parser.py
-│   │   │   └── consensus_engine.py     # fase 2
-│   │   ├── persistence/
-│   │   │   ├── sqlalchemy/
-│   │   │   │   ├── models.py           # ORM models (≠ entidades)
-│   │   │   │   ├── plant_repo.py
-│   │   │   │   └── user_repo.py
-│   │   │   └── redis/
-│   │   │       └── cache_repo.py
-│   │   ├── notifications/
-│   │   │   └── firebase_adapter.py
-│   │   └── weather/
-│   │       └── openmeteo_adapter.py    # grátis, sem chave
-│   │
-│   ├── api/                            ← FastAPI (só HTTP, sem lógica)
-│   │   ├── routers/
-│   │   │   ├── identify.py             # POST /v1/identify
-│   │   │   ├── garden.py               # GET/POST /v1/garden
-│   │   │   ├── health.py               # GET /v1/plants/{id}/health
-│   │   │   ├── care.py                 # GET /v1/plants/{id}/care
-│   │   │   └── auth.py
-│   │   ├── schemas/                    # Pydantic request/response
-│   │   │   ├── identify_schema.py
-│   │   │   └── plant_schema.py
-│   │   ├── dependencies.py             # injeção de dependências
-│   │   └── middleware.py               # rate limit, logging
-│   │
-│   ├── workers/                        ← Celery, separado por domínio
-│   │   ├── __init__.py
-│   │   ├── care_tasks.py               # lembretes de rega/poda
-│   │   ├── weather_tasks.py            # sync clima a cada 6h
-│   │   └── notification_tasks.py       # envio push
-│   │
-│   └── infrastructure/
-│       ├── database.py                 # engine async SQLAlchemy 2
-│       ├── container.py                # dependency injection
-│       └── settings.py                 # pydantic-settings
-│
-├── tests/
-│   ├── unit/                           # sem I/O, testa domínio puro
-│   ├── integration/                    # testa adapters com DB real
-│   └── conftest.py
-│
-├── migrations/                         # Alembic (mantém do MVP)
-├── docker/
-│   ├── Dockerfile
-│   ├── docker-compose.yml              # api + worker + beat + db + redis
-│   └── docker-compose.prod.yml
-├── .env.example
-├── pyproject.toml                      # substitui requirements.txt
-└── README.md
+**MUITO IMPORTANTE:** dependências sempre apontam para dentro. Adapters conhecem o domínio. O domínio nunca conhece adapters.
+
+---
+
+## Stack
+
+| Camada | Tecnologia |
+|---|---|
+| Runtime | Python 3.12 + FastAPI + Uvicorn (ASGI) |
+| Banco de dados | PostgreSQL 16 + SQLAlchemy 2 (async) + Alembic |
+| Cache / Broker | Redis 7 |
+| Workers | Celery 5 + Celery Beat |
+| IA principal | Google Gemini API |
+| IA consensus | PlantNet + Kindwise |
+| Push notifications | Firebase Cloud Messaging |
+| Clima | Open-Meteo (gratuita) |
+| Storage | AWS S3 |
+| E-mail | AWS SES |
+| Logs | structlog (JSON estruturado) |
+| Gerenciador de pacotes | uv |
+
+---
+
+## Pré-requisitos
+
+- [Python 3.12+](https://python.org)
+- [uv](https://docs.astral.sh/uv/) — gerenciador de pacotes
+- [Docker](https://docker.com/products/docker-desktop) — para rodar PostgreSQL e Redis localmente
+
+---
+
+## Instalação
+
+### 1. Clone o repositório
+
+```bash
+git clone https://github.com/vichsort/plante-api.git
+cd plante-api
 ```
+
+### 2. Instale as dependências
+
+```bash
+uv sync --extra dev
+```
+
+### 3. Configure as variáveis de ambiente
+
+```bash
+cp .env.example .env
+# Edite o .env com suas credenciais
+```
+
+### 4. Suba a infraestrutura local
+
+```bash
+docker compose up -d
+```
+
+Isso sobe PostgreSQL e Redis em containers. A API e os workers rodam diretamente na sua máquina com `uv run`.
+
+### 5. Rode as migrations
+
+```bash
+uv run alembic upgrade head
+```
+
+### 6. Inicie a API
+
+```bash
+uv run uvicorn src.main:app --reload
+```
+
+A API estará disponível em `http://localhost:8000`.  
+Documentação interativa: `http://localhost:8000/docs`
+
+---
+
+## Comandos úteis
+
+```bash
+# Subir infra (postgres + redis)
+docker compose up -d
+
+# Derrubar infra
+docker compose down
+
+# Reset total (apaga volumes)
+docker compose down -v
+
+# Gerar nova migration após alterar um model
+uv run alembic revision --autogenerate -m "descricao_da_mudanca"
+
+# Aplicar migrations
+uv run alembic upgrade head
+
+# Reverter última migration
+uv run alembic downgrade -1
+
+# Rodar testes
+uv run pytest
+
+# Instalar nova dependência
+uv add nome-da-lib
+```
+
+---
+
+## Variáveis de ambiente
+
+Copie `.env.example` para `.env` e preencha:
+
+| Variável | Descrição |
+|---|---|
+| `DB_HOST` | Host do PostgreSQL |
+| `DB_USER` | Usuário do banco |
+| `DB_PASSWORD` | Senha do banco |
+| `DB_NAME` | Nome do banco |
+| `REDIS_ENDPOINT` | Host do Redis |
+| `REDIS_PASSWORD` | Senha do Redis (deixe vazio para dev local) |
+| `GEMINI_API_KEY` | Chave da API do Google Gemini |
+| `KINDWISE_API_KEY` | Chave da API da Kindwise |
+| `PLANTNET_API_KEY` | Chave da API do PlantNet |
+| `SECRET_KEY` | Chave secreta para JWT |
+| `AWS_ACCESS_KEY_ID` | Credencial AWS (S3 + SES) |
+| `AWS_SECRET_ACCESS_KEY` | Credencial AWS |
+| `SES_SENDER_EMAIL` | E-mail remetente cadastrado no SES |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Caminho para o JSON do Firebase |
+
+---
+
+## Contribuindo
+
+Contribuições são muito bem-vindas! O projeto foi estruturado para facilitar a entrada de novos colaboradores.
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feat/minha-feature`)
+3. Respeite a arquitetura hexagonal — domínio nunca importa infraestrutura
+4. Escreva testes para o que foi adicionado
+5. Abra um Pull Request descrevendo o que foi feito
+
+Para dúvidas sobre a arquitetura, abra uma [issue](https://github.com/vichsort/plante-api/issues) antes de implementar.
+
+---
+
+## Licença
+
+Distribuído sob a licença MIT. Veja [LICENSE](LICENSE) para mais informações.
+
+---
+
+<div align="center">
+  <sub>Para você 🌱 plantar mais que no solo!</sub>
+</div>
