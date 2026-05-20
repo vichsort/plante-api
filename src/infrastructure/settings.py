@@ -55,6 +55,7 @@ class Settings(BaseSettings):
 
     # App
     debug: bool = False
+    consensus_enabled: bool = True
 
 @lru_cache
 def get_settings() -> Settings:
