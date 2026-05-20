@@ -1,6 +1,6 @@
 import httpx
 import structlog
-from src.domain.exceptions import ExternalServiceError
+from src.domain.exceptions import ExternalServiceError, GeocodingError
 from src.domain.value_objects.user_location import UserLocation
 from src.domain.value_objects.geo_coordinates import GeoCoordinates
 
