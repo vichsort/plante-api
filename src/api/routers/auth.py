@@ -22,7 +22,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @inject
 async def register(
     body: RegisterRequest,
-    use_case: RegisterUserUseCase = Depends(Provide[Container.register_user_use_case]),
+    use_case: RegisterUserUseCase = Depends(Provide[Container.use_cases.provided.register_user_use_case]),
 ) -> ApiResponse:
     result = await use_case.execute(RegisterUserInputDTO(
         email=body.email,
@@ -36,7 +36,7 @@ async def register(
 @inject
 async def verify_email(
     body: VerifyEmailRequest,
-    use_case: VerifyEmailUseCase = Depends(Provide[Container.verify_email_use_case]),
+    use_case: VerifyEmailUseCase = Depends(Provide[Container.use_cases.provided.verify_email_use_case]),
 ) -> ApiResponse:
     result = await use_case.execute(VerifyEmailInputDTO(
         user_id=body.user_id,
@@ -48,7 +48,7 @@ async def verify_email(
 @inject
 async def login(
     body: LoginRequest,
-    use_case: LoginUseCase = Depends(Provide[Container.login_use_case]),
+    use_case: LoginUseCase = Depends(Provide[Container.use_cases.provided.login_use_case]),
 ) -> ApiResponse:
     result = await use_case.execute(
         email=body.email,
@@ -60,7 +60,7 @@ async def login(
 @inject
 async def refresh(
     body: RefreshRequest,
-    use_case: RefreshTokenUseCase = Depends(Provide[Container.refresh_token_use_case]),
+    use_case: RefreshTokenUseCase = Depends(Provide[Container.use_cases.provided.refresh_token_use_case]),
 ) -> ApiResponse:
     result = await use_case.execute(refresh_token=body.refresh_token)
     return ApiResponse.ok(result)
@@ -68,7 +68,7 @@ async def refresh(
 @router.post("/logout", status_code=200)
 @inject
 async def logout(
-    use_case: LogoutUseCase = Depends(Provide[Container.logout_use_case]),
+    use_case: LogoutUseCase = Depends(Provide[Container.use_cases.provided.logout_use_case]),
     user_id: int = Depends(get_current_user_id),
 ) -> ApiResponse:
     await use_case.execute(user_id=user_id)

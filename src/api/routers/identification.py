@@ -18,7 +18,7 @@ async def identify_plant(
     longitude: float | None = Form(None),
     country: str | None = Form(None),
     state: str | None = Form(None),
-    use_case: IdentifyPlantUseCase = Depends(Provide[Container.identify_plant_use_case]),
+    use_case: IdentifyPlantUseCase = Depends(Provide[Container.use_cases.provided.identify_plant_use_case]),
     user_id: int = Depends(get_current_user_id),
 ) -> ApiResponse:
     raw = await image.read()
