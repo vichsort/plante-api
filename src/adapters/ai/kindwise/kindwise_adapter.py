@@ -1,12 +1,79 @@
 import httpx
 import base64
 from src.domain.ports.health_analyzer import IHealthAnalyzer, HealthAssessmentResult, DiseaseHint
+from src.domain.ports.plant_identifier import IPlantIdentifier, IdentificationResult, SimilarImage
 
 _BASE_URL = "https://plant.id/api/v3/"
+_DETAILS = "common_names,taxonomy,gbif_id,image,edible_parts,watering"
 
-class KindwiseAdapter(IHealthAnalyzer):
+class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
     def __init__(self, api_key: str) -> None:
         self._headers = {"Api-Key": api_key}
+
+    # ------------------------------------------------------------------ #
+    # IPlantIdentifier                                                   #
+    # ------------------------------------------------------------------ #
+
+    async def identify(self, image_bytes: bytes) -> IdentificationResult:
+        image_b64 = base64.b64encode(image_bytes).decode()
+        payload = {
+            "images": [image_b64],
+            "similar_images": True,
+        }
+        params = {
+            "details": _DETAILS,
+            "language": "pt",
+        }
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{_BASE_URL}identification",
+                headers=self._headers,
+                params=params,
+                json=payload,
+            )
+            r.raise_for_status()
+            data = r.json()
+            return self._parse_identification(data)
+
+    def _parse_identification(self, data: dict) -> IdentificationResult:
+        suggestions = (
+            data.get("result", {})
+            .get("classification", {})
+            .get("suggestions", [])
+        )
+        if not suggestions:
+            raise ValueError("Kindwise returned no identification suggestions.")
+
+        best = suggestions[0]
+        details = best.get("details", {})
+        taxonomy = details.get("taxonomy", {})
+
+        similar_images = tuple(
+            SimilarImage(
+                url=img.get("url", ""),
+                similarity=img.get("similarity", 0.0),
+                url_small=img.get("url_small"),
+                license_name=img.get("license_name"),
+            )
+            for img in best.get("similar_images", [])
+            if img.get("url")
+        )
+
+        return IdentificationResult(
+            scientific_name=best.get("name", ""),
+            confidence=best.get("probability", 0.0),
+            source="kindwise",
+            provider_entity_id=details.get("entity_id"),
+            gbif_id=str(details["gbif_id"]) if details.get("gbif_id") else None,
+            family=taxonomy.get("family"),
+            genus=taxonomy.get("genus"),
+            common_names=tuple(details.get("common_names") or []),
+            similar_images=similar_images,
+        )
+
+    # ------------------------------------------------------------------ #
+    # IHealthAnalyzer                                                    #
+    # ------------------------------------------------------------------ #
 
     async def assess_health(self, image_bytes: bytes) -> HealthAssessmentResult:
         image_b64 = base64.b64encode(image_bytes).decode()
