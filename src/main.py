@@ -17,7 +17,8 @@ async def lifespan(app: FastAPI):
     yield
 
     await container.shutdown_resources()
-    await container.weather_http().aclose()
+    await container.adapters().weather_http().aclose()
+
     log.info("plante.shutdown")
 
 
