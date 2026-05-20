@@ -1,0 +1,94 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "plante-api"
+version = "0.1.0"
+description = "PlantE - Sistema de identificação e gestão botânica"
+requires-python = ">=3.12"
+
+dependencies = [
+    # --- Web ---
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.30.6",
+    "python-multipart==0.0.29",
+
+    # --- Banco de dados ---
+    "sqlalchemy==2.0.35",
+    "alembic==1.13.3",
+    "psycopg[binary]==3.2.4",
+
+    # --- Cache / Broker ---
+    "redis==5.0.8",
+
+    # --- Workers ---
+    "celery==5.4.0",
+    "celery-pool-asyncio==0.2.0",
+
+    # --- Config / Validação ---
+    "pydantic==2.9.2",
+    "pydantic-settings==2.5.2",
+    "python-dotenv==1.2.2",
+
+    # --- Auth ---
+    "bcrypt==5.0.0",
+    "python-jose==3.3.0",
+    "PyJWT==2.12.1",
+    "passlib==1.7.4",
+    "email-validator==2.3.0",
+
+    # --- AWS (S3 + SES) ---
+    "aioboto3==15.5.0",
+    "boto3==1.40.61",
+
+    # --- IA ---
+    "google-genai==2.4.0",
+    "httpx==0.28.1",
+
+    # --- Firebase (FCM) ---
+    "firebase-admin==6.5.0",
+
+    # --- Storage async ---
+    "aiofiles==25.1.0",
+
+    # --- Logs ---
+    "structlog==24.4.0",
+
+    # --- Resiliência ---
+    "tenacity==9.1.4",
+
+    # --- Injeção de dependência ---
+    "dependency-injector==4.49.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.3",
+    "pytest-asyncio==0.24.0",
+    "httpx==0.28.1",  # TestClient do FastAPI
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+# ---------------------------------------------------------------------------
+# Ruff (linter + formatter — substitui flake8/black/isort)
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]  # pycodestyle, pyflakes, isort, pyupgrade
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
