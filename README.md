@@ -3,6 +3,8 @@ Exemplo de retornos
 
 A imagem trafega como multipart/form-data. O router entrega bytes. Tudo downstream fala bytes. Base64 existe apenas dentro dos adapters de IA.
 
+GBIF no futuro
+
 ```json
 // sucesso
 {

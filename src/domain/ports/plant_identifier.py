@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from src.domain.value_objects.confidence_score import ConfidenceScore
 
 @dataclass(frozen=True)
 class SimilarImage:
@@ -11,7 +12,7 @@ class SimilarImage:
 @dataclass(frozen=True)
 class IdentificationResult:
     scientific_name: str
-    confidence: float
+    confidence: ConfidenceScore
     source: str
     provider_entity_id: str | None = None # kindwise | plantnet
     gbif_id: str | None = None
@@ -22,6 +23,11 @@ class IdentificationResult:
 
 class IPlantIdentifier(ABC):
     @abstractmethod
-    async def identify(self, image_bytes: bytes) -> IdentificationResult:
+    async def identify(
+        self, 
+        image_bytes: bytes,
+        latitude: float | None = None,
+        longitude: float | None = None,
+        ) -> IdentificationResult:
         """Identifica uma planta a partir de bytes de imagem."""
         ...

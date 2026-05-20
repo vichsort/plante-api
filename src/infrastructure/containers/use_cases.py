@@ -37,6 +37,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
     health_raw_response_repository = providers.Dependency()
     plant_nutritional_repository = providers.Dependency()
     achievement_repository = providers.Dependency()
+    plant_reference_image_repository = providers.Dependency()
 
     password_hasher = providers.Dependency()
     email_sender = providers.Dependency()
@@ -158,6 +159,10 @@ class UseCasesContainer(containers.DeclarativeContainer):
         species_repo=plant_species_repository,
         sample_repo=identification_sample_repository,
         plant_identifier=plant_identifier,
+        user_plant_repo=user_plant_repository,
+        reference_image_repo=plant_reference_image_repository,
+        storage=image_storage,
+        publisher=domain_publisher,
     )
 
     enrich_plant_species_use_case = providers.Factory(

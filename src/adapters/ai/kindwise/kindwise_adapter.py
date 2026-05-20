@@ -2,6 +2,7 @@ import httpx
 import base64
 from src.domain.ports.health_analyzer import IHealthAnalyzer, HealthAssessmentResult, DiseaseHint
 from src.domain.ports.plant_identifier import IPlantIdentifier, IdentificationResult, SimilarImage
+from src.domain.value_objects.confidence_score import ConfidenceScore
 
 _BASE_URL = "https://plant.id/api/v3/"
 _DETAILS = "common_names,taxonomy,gbif_id,image,edible_parts,watering"
@@ -14,12 +15,20 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
     # IPlantIdentifier                                                   #
     # ------------------------------------------------------------------ #
 
-    async def identify(self, image_bytes: bytes) -> IdentificationResult:
+    async def identify(
+        self, 
+        image_bytes: bytes,
+        latitude: float | None = None,
+        longitude: float | None = None,
+    ) -> IdentificationResult:
         image_b64 = base64.b64encode(image_bytes).decode()
         payload = {
             "images": [image_b64],
             "similar_images": True,
         }
+        if latitude is not None and longitude is not None:
+            payload["latitude"] = latitude
+            payload["longitude"] = longitude
         params = {
             "details": _DETAILS,
             "language": "pt",
@@ -61,7 +70,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
 
         return IdentificationResult(
             scientific_name=best.get("name", ""),
-            confidence=best.get("probability", 0.0),
+            confidence=ConfidenceScore(best.get("probability", 0.0)),
             source="kindwise",
             provider_entity_id=details.get("entity_id"),
             gbif_id=str(details["gbif_id"]) if details.get("gbif_id") else None,

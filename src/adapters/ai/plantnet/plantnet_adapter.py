@@ -1,6 +1,7 @@
 import base64
 import httpx
 from src.domain.ports.plant_identifier import IPlantIdentifier, IdentificationResult, SimilarImage
+from src.domain.value_objects.confidence_score import ConfidenceScore
 
 _BASE_URL = "https://my-api.plantnet.org/v2/identify"
 _PROJECT = "all"
@@ -10,7 +11,13 @@ class PlantNetAdapter(IPlantIdentifier):
     def __init__(self, api_key: str) -> None:
         self._api_key = api_key
 
-    async def identify(self, image_bytes: bytes) -> IdentificationResult:
+    async def identify(
+        self, 
+        image_bytes: bytes,
+        # sim, a gente só pega sem usar por que o plantnet não tem param pra isso
+        latitude: float | None = None,
+        longitude: float | None = None,
+    ) -> IdentificationResult:
         image_b64 = base64.b64encode(image_bytes).decode()
         params = {
             "api-key": self._api_key,
@@ -56,7 +63,7 @@ class PlantNetAdapter(IPlantIdentifier):
 
         return IdentificationResult(
             scientific_name=species.get("scientificNameWithoutAuthor", ""),
-            confidence=best.get("score", 0.0),
+            confidence=ConfidenceScore(best.get("score", 0.0)),
             source="plantnet",
             provider_entity_id=str(taxonomy.get("gbif", {}).get("id")) if taxonomy.get("gbif") else None,
             gbif_id=str(taxonomy.get("gbif", {}).get("id")) if taxonomy.get("gbif") else None,

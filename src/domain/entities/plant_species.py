@@ -65,3 +65,24 @@ class PlantSpecies:
     @property
     def has_basic_taxonomy(self) -> bool:
         return self.family is not None and self.genus is not None
+
+    @classmethod
+    def create_skeleton(
+        cls,
+        scientific_name: str,
+        family: str | None = None,
+        genus: str | None = None,
+        common_names: tuple[str, ...] = (),
+        provider_entity_id: str | None = None,
+        gbif_id: str | None = None,
+    ) -> "PlantSpecies":
+        """Cria uma espécie com dados mínimos vindos da identificação. Aguarda enriquecimento pelo Gemini."""
+        return cls(
+            scientific_name=scientific_name,
+            enrichment_status=EnrichmentStatus.PENDING,
+            family=family,
+            genus=genus,
+            common_names=common_names,
+            provider_entity_id=provider_entity_id,
+            gbif_id=gbif_id,
+        )

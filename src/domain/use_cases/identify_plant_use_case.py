@@ -17,14 +17,13 @@ from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
 
+
 @dataclass(frozen=True)
 class IdentifyPlantInputDTO:
     user_id: int
-    image_b64: str
+    image_bytes: bytes
     latitude: float | None = None
     longitude: float | None = None
-    country: str | None = None
-    state: str | None = None
 
 
 class IdentifyPlantUseCase:
@@ -35,7 +34,7 @@ class IdentifyPlantUseCase:
         user_plant_repo: IUserPlantRepository,
         reference_image_repo: IPlantReferenceImageRepository,
         sample_repo: IIdentificationSampleRepository,
-        identifier: IPlantIdentifier,
+        plant_identifier: IPlantIdentifier,
         storage: IImageStorage,
         publisher: IDomainPublisher,
     ) -> None:
@@ -44,7 +43,7 @@ class IdentifyPlantUseCase:
         self.user_plant_repo = user_plant_repo
         self.reference_image_repo = reference_image_repo
         self.sample_repo = sample_repo
-        self.identifier = identifier
+        self.plant_identifier = plant_identifier
         self.storage = storage
         self.publisher = publisher
 
@@ -57,29 +56,26 @@ class IdentifyPlantUseCase:
 
         SubscriptionPolicy.enforce_can_identify_plant(user)
 
-        result = await self.identifier.identify(
-            image_b64=dto.image_b64,
-            lat=dto.latitude,
-            lon=dto.longitude,
-            country=dto.country,
-            state=dto.state,
+        result = await self.plant_identifier.identify(
+            image_bytes=dto.image_bytes,
+            latitude=dto.latitude,
+            longitude=dto.longitude,
         )
 
         if result.confidence.is_rejected():
             raise LowConfidenceError(confidence=result.confidence.value)
 
-        # Upload da foto do usuário
         user_image_key = await self.storage.upload_identification_image(
-            image_b64=dto.image_b64,
+            image_bytes=dto.image_bytes,
             scientific_name=result.scientific_name,
             confidence_value=result.confidence.value,
             user_id=user.id,
         )
 
-        # Re-hospeda imagens similares do Kindwise
-        for external_url in result.similar_images_urls:
+        # Re-hospeda imagens similares
+        for similar in result.similar_images:
             key = await self.storage.download_and_rehost(
-                external_url=external_url,
+                external_url=similar.url,
                 scientific_name=result.scientific_name,
             )
             await self.reference_image_repo.save(PlantReferenceImage(
@@ -97,11 +93,13 @@ class IdentifyPlantUseCase:
             species = PlantSpecies.create_skeleton(
                 scientific_name=result.scientific_name,
                 family=result.family,
+                genus=result.genus,
                 common_names=result.common_names,
+                provider_entity_id=result.provider_entity_id,
+                gbif_id=result.gbif_id,
             )
             species = await self.species_repo.save(species)
 
-        # Cria UserPlant — ainda não está no jardim, aguarda AddPlantToGardenUseCase
         user_plant = await self.user_plant_repo.save(UserPlant.create_new(
             user_id=user.id,
             scientific_name=result.scientific_name,
@@ -111,7 +109,6 @@ class IdentifyPlantUseCase:
             added_at=now,
         ))
 
-        # Cria sample de treino — status PENDING até usuário confirmar
         sample = await self.sample_repo.save(PlantIdentificationSample.create(
             scientific_name=result.scientific_name,
             species_id=species.id,
@@ -123,14 +120,13 @@ class IdentifyPlantUseCase:
             created_at=now,
         ))
 
-        # Consome token
         user.consume_identify_token()
         await self.user_repo.save(user)
 
         await self.publisher.publish(PlantIdentifiedEvent.create(
             user_id=user.id,
             species_id=species.id,
-            is_first_plant=False,  # só confirmado no AddPlantToGardenUseCase
+            is_first_plant=False,
         ))
 
         return {
