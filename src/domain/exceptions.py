@@ -88,6 +88,11 @@ class UnauthorizedError(PlantEError):
     def __init__(self, message: str = "Authentication required."):
         super().__init__(message=message, code="UNAUTHORIZED")
 
+class InvalidCredentialsError(PlantEError):
+    """Dados inseridos errados."""
+    def __init__(self, message: str = "Wrong credentials inserted."):
+        super().__init__(message=message, code="WRONG_CREDENTIALS")
+
 class EmailAlreadyInUseError(PlantEError):
     """O email já está em uso por outro usuário."""
     def __init__(self, message: str = "Email already in use."):
@@ -107,6 +112,10 @@ class InvalidVerificationCodeError(PlantEError):
     def __init__(self, message: str = "Invalid verification code."):
         super().__init__(message=message, code="INVALID_VERIFICATION_CODE")
 
+class UserNotFoundError(PlantEError):
+    def __init__(self, message: str = "User not found."):
+        super().__init__(message=message, code="USER_NOT_FOUND")
+
 # Externos
 class ExternalServiceError(PlantEError):
     """Uma API externa (Gemini, Firebase, clima) falhou."""
@@ -114,6 +123,14 @@ class ExternalServiceError(PlantEError):
         super().__init__(
             message=f"External service '{service}' unavailable. {message}".strip(),
             code="EXTERNAL_SERVICE_ERROR",
+        )
+
+class GeocodingError(PlantEError):
+    """O geocoding falhou."""
+    def __init__(self, message: str = ""):
+        super().__init__(
+            message=f"Geocoding error. {message}".strip(),
+            code="GEOCODING_ERROR",
         )
 
 # Saúde / Diagnóstico
