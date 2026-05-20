@@ -3,7 +3,7 @@ from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.events.domain_events import StreakBrokenEvent
 
-class BreakStreaksCronUseCase:
+class BreakStreakCronUseCase:
     def __init__(
         self,
         user_plant_repo: IUserPlantRepository,
