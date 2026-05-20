@@ -25,6 +25,6 @@ class HealthAssessmentResult:
 
 class IHealthAnalyzer(ABC):
     @abstractmethod
-    async def assess_health(self, image_b64: str) -> HealthAssessmentResult:
+    async def assess_health(self, image_bytes: bytes) -> HealthAssessmentResult:
         """Avalia saúde da planta via imagem. Retorna score + doenças detectadas."""
         ...

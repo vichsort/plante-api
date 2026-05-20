@@ -62,7 +62,7 @@ class DiagnoseHealthUseCase:
         user.consume_identify_token()
 
         # Kindwise — avaliação de saúde
-        assessment = await self._health_analyzer.assess_health(dto.image_b64)
+        assessment = await self._health_analyzer.assess_health(dto.image_bytes)
 
         issues = [d.name for d in assessment.diseases]
         gemini_data: dict = {}
@@ -79,7 +79,7 @@ class DiagnoseHealthUseCase:
         severity = _map_severity(vitality)
 
         image_key = await self._storage.upload_identification_image(
-            image_b64=dto.image_b64,
+            image_bytes=dto.image_bytes,
             scientific_name=user_plant.scientific_name,
             confidence_value=vitality,
             user_id=dto.user_id,

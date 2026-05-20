@@ -1,6 +1,4 @@
-import base64
 import uuid
-from io import BytesIO
 import aioboto3
 import httpx
 from structlog import get_logger
@@ -55,16 +53,15 @@ class S3ImageStorage(IImageStorage):
 
     async def upload_identification_image(
         self,
-        image_b64: str,
+        image_bytes: bytes,
         scientific_name: str,
         confidence_value: float,
         user_id: int,
     ) -> str:
         """
-        Faz upload de uma imagem base64 para o bucket.
+        Faz upload de uma imagem em bytes para o bucket.
         Retorna a URL pública permanente do objeto.
         """
-        image_bytes = base64.b64decode(image_b64)
         key = _build_identification_key(scientific_name)
 
         await self._put_object(
