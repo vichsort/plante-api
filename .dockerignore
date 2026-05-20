@@ -1,0 +1,42 @@
+# Ambiente virtual local
+.venv/
+
+# Variáveis de ambiente
+.env
+.env.*
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# Testes (não vão para produção)
+tests/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Celery runtime
+celerybeat-schedule
+celerybeat-schedule.db
+celerybeat.pid
+
+# Logs
+*.log
