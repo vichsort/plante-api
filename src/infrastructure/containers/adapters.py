@@ -15,6 +15,7 @@ from src.adapters.ai.gemini.gemini_adapter import GeminiAdapter
 from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
 from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
 from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
+from src.adapters.ai.consensus.consensus_adapter import ConsensusIdentifier
 
 class AdaptersContainer(containers.DeclarativeContainer):
     settings = providers.Dependency()
@@ -73,10 +74,16 @@ class AdaptersContainer(containers.DeclarativeContainer):
         api_key=settings.provided.plantnet_api_key,
     )
 
-    plant_identifier = providers.Singleton(
-        # AQUI será consensus.
-        KindwiseAdapter,
-        api_key=settings.provided.plant_id_api_key,
+    consensus_identifier = providers.Singleton(
+        ConsensusIdentifier,
+        kindwise=kindwise_identifier,
+        plantnet=plantnet_identifier,
+    )
+
+    plant_identifier = providers.Selector(
+        settings.provided.consensus_enabled,
+        true=consensus_identifier,
+        false=kindwise_identifier,
     )
 
     health_analyzer = providers.Singleton(
