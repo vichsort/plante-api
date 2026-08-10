@@ -1,9 +1,12 @@
+from datetime import UTC, datetime, timedelta
+
 from celery import shared_task
-from datetime import datetime, timezone, timedelta
 from structlog import get_logger
 
-logger = get_logger()
+from src.infrastructure.container import Container
+from src.workers.async_runner import run_async
 
+logger = get_logger()
 RETENTION_DAYS = 30
 
 @shared_task(
@@ -13,18 +16,17 @@ RETENTION_DAYS = 30
     retry_backoff=True,
     acks_late=True,
 )
-def anonymize_confirmed_samples() -> dict:
+@run_async
+async def anonymize_confirmed_samples(container: Container | None = None) -> dict:
     """
     Anonimiza samples confirmadas há mais de RETENTION_DAYS dias.
     Idempotente: rodar duas vezes não causa efeito colateral.
     """
-    from src.infrastructure.container import get_sample_repository
+    cnt = container or Container()
+    sample_repo = cnt.repositories.identification_sample_repository()
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)
-    sample_repo = get_sample_repository()
-
-    import asyncio
-    samples = asyncio.run(sample_repo.get_confirmed_before(cutoff=cutoff))
+    cutoff = datetime.now(UTC) - timedelta(days=RETENTION_DAYS)
+    samples = await sample_repo.get_confirmed_before(cutoff=cutoff)
 
     anonymized = 0
     failed = 0
@@ -32,12 +34,12 @@ def anonymize_confirmed_samples() -> dict:
     for sample in samples:
         try:
             if sample.user_id is None:
-                continue  # já anonimizado
+                continue
             updated = sample.anonymize()
-            asyncio.run(sample_repo.save(updated))
+            await sample_repo.save(updated)
             anonymized += 1
         except Exception as e:
-            logger.error("anonymization_failed", sample_id=sample.id, error=str(e))
+            logger.error("anonymization_failed", sample_id=str(sample.id), error=str(e))
             failed += 1
 
     logger.info("anonymization_done", anonymized=anonymized, failed=failed)

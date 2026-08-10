@@ -1,14 +1,25 @@
+import os
+
+from celery import Celery
 from celery.schedules import crontab
 
-# Um problema com esse worker: Celery é síncrono por natureza mas o 
-# repositório é async. O asyncio.run() funciona mas é feio. Quando for 
-# implementar o adapter concreto do repositório, podemos considerar uso uso
-# de celery-pool-asyncio ou criar uma versão síncrona do método 
-# get_confirmed_before só para o worker.
+broker_url = os.getenv("REDIS_ENDPOINT", "redis://localhost:6379/0")
+if not broker_url.startswith("redis://"):
+    pwd = os.getenv("REDIS_PASSWORD", "")
+    host = os.getenv("REDIS_ENDPOINT", "localhost")
+    port = os.getenv("REDIS_PORT", "6379")
+    auth = f":{pwd}@" if pwd else ""
+    broker_url = f"redis://{auth}{host}:{port}/0"
 
-beat_schedule = {
+celery_app = Celery(
+    "plante",
+    broker=broker_url,
+    backend=broker_url,
+)
+
+celery_app.conf.beat_schedule = {
     "anonymize-confirmed-samples-daily": {
         "task": "workers.anonymize_confirmed_samples",
-        "schedule": crontab(hour=3, minute=0),  # toda madrugada às 03h00 UTC
+        "schedule": crontab(hour=3, minute=0),
     },
 }
