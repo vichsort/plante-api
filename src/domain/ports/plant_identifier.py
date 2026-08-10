@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from src.domain.value_objects.confidence_score import ConfidenceScore
 
@@ -16,13 +16,14 @@ class IdentificationResult:
     scientific_name: str
     confidence: ConfidenceScore
     source: str
-    provider_entity_id: str | None = None # kindwise | plantnet
+    provider_entity_id: str | None = None
     gbif_id: str | None = None
     family: str | None = None
     genus: str | None = None
     common_names: tuple[str, ...] = ()
     similar_images: tuple[SimilarImage, ...] = ()
     low_confidence: bool = False
+    raw_response: dict = field(default_factory=dict)
 
 class IPlantIdentifier(ABC):
     @abstractmethod
@@ -31,6 +32,6 @@ class IPlantIdentifier(ABC):
         image_bytes: bytes,
         latitude: float | None = None,
         longitude: float | None = None,
-        ) -> IdentificationResult:
+    ) -> IdentificationResult:
         """Identifica uma planta a partir de bytes de imagem."""
         ...

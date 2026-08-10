@@ -11,11 +11,11 @@ class Settings(BaseSettings):
     )
 
     # Banco
-    db_host: str
+    db_host: str = "localhost"
     db_port: int = 5432
-    db_user: str
-    db_password: str
-    db_name: str
+    db_user: str = "postgres"
+    db_password: str = "postgres"
+    db_name: str = "plante"
 
     @property
     def database_url(self) -> str:
@@ -26,35 +26,35 @@ class Settings(BaseSettings):
 
     # Redis
     redis_user: str = "default"
-    redis_password: str
-    redis_endpoint: str
-    redis_port: int
+    redis_password: str = ""
+    redis_endpoint: str = "localhost"
+    redis_port: int = 6379
 
     @property
     def redis_url(self) -> str:
-        return (
-            f"redis://{self.redis_user}:{self.redis_password}"
-            f"@{self.redis_endpoint}:{self.redis_port}"
-        )
+        if self.redis_password:
+            return f"redis://{self.redis_user}:{self.redis_password}@{self.redis_endpoint}:{self.redis_port}"
+        return f"redis://{self.redis_endpoint}:{self.redis_port}"
 
     # IA
     gemini_api_key: str | None = None
     kindwise_api_key: str | None = None
     plantnet_api_key: str | None = None
+    plant_id_api_key: str | None = None
 
     # Auth
-    secret_key: str
+    secret_key: str = "dev_secret_key_change_in_production"
     jwt_algorithm: str = "HS256"
 
     # Aws
     aws_region: str = "us-east-1"
     s3_bucket: str = "plante-bucket-name"
-    aws_access_key_id: str
-    aws_secret_access_key: str
-    ses_sender_email: str
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    ses_sender_email: str = "noreply@plante.app"
 
     # Firebase
-    google_application_credentials: str
+    google_application_credentials: str = ""
 
     # App
     debug: bool = False

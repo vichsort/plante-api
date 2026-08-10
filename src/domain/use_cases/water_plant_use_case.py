@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from src.domain.events.domain_events import PlantWateredEvent
 from src.domain.exceptions import ForbiddenError, PlantNotFoundError
@@ -9,8 +10,8 @@ from src.domain.ports.user_plant_repository import IUserPlantRepository
 
 @dataclass(frozen=True)
 class WaterPlantInputDTO:
-    user_id: int
-    user_plant_id: int
+    user_id: Any
+    user_plant_id: Any
 
 class WaterPlantUseCase:
     def __init__(
@@ -26,18 +27,14 @@ class WaterPlantUseCase:
         if not plant:
             raise PlantNotFoundError(dto.user_plant_id)
 
-        # Garante que o usuário não está regando a planta do vizinho
-        if plant.user_id != dto.user_id:
+        if str(plant.user_id) != str(dto.user_id):
             raise ForbiddenError("Você não tem permissão para regar esta planta.")
 
-        # Regra de Negócio: Delega a rega para a Entidade
         now_utc = datetime.now(UTC)
         plant.water(now_utc)
 
-        # Salva a planta atualizada
         await self.user_plant_repo.save(plant)
 
-        # Publica o evento
         event = PlantWateredEvent.create(
             user_id=dto.user_id,
             user_plant_id=plant.id,
@@ -45,7 +42,6 @@ class WaterPlantUseCase:
         )
         await self.publisher.publish(event)
 
-        # Retorna os dados para a UI atualizar o botão e a ofensiva
         return {
             "user_plant_id": plant.id,
             "last_watered_at": plant.last_watered_at.isoformat() if plant.last_watered_at else None,

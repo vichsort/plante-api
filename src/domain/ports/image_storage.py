@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class IImageStorage(ABC):
@@ -13,7 +14,7 @@ class IImageStorage(ABC):
         image_bytes: bytes,
         scientific_name: str,
         confidence_value: float,
-        user_id: int,
+        user_id: Any,
     ) -> str:
         """Retorna o storage_key da imagem salva."""
         ...

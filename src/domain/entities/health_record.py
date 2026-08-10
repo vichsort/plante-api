@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 
 class HealthSeverity(Enum):
@@ -12,14 +13,15 @@ class HealthSeverity(Enum):
 
 @dataclass(frozen=True)
 class HealthRecord:
-    id: int
-    user_plant_id: int
+    id: Any
+    user_plant_id: Any
     scientific_name: str
-    diagnosed_at: datetime
-    vitality_score: float           # 0.0 a 1.0
+    vitality_score: float
     severity: HealthSeverity
-    source: str                     # "gemini" | "kindwise"
+    source: str
     image_key: str
+    diagnosed_at: datetime | None = None
+    user_id: Any = None
     issues_detected: tuple[str, ...] = field(default_factory=tuple)
     treatment_plan: tuple[str, ...] = field(default_factory=tuple)
     recovery_estimate_days: int | None = None

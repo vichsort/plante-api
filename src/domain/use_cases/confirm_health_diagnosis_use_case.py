@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from src.domain.entities.health_identification_sample import (
     HealthIdentificationSample,
@@ -23,8 +24,8 @@ from src.domain.ports.user_repository import IUserRepository
 
 @dataclass(frozen=True)
 class ConfirmHealthDiagnosisInputDTO:
-    user_id: int
-    health_record_id: int
+    user_id: Any
+    health_record_id: Any
 
 
 class ConfirmHealthDiagnosisUseCase:
@@ -49,7 +50,7 @@ class ConfirmHealthDiagnosisUseCase:
 
         user = await self._user_repo.get_by_id(dto.user_id)
         if user is None:
-            raise UserNotFoundError(dto.user_id)
+            raise UserNotFoundError(user_id=dto.user_id)
 
         record = await self._health_record_repo.get_by_id(dto.health_record_id)
         if record is None:
@@ -59,7 +60,6 @@ class ConfirmHealthDiagnosisUseCase:
         if raw_response is None:
             raise RawResponseExpiredError(dto.health_record_id)
 
-        # Re-hospeda todas as imagens similares do Kindwise no S3
         reference_keys: list[str] = []
         for disease in raw_response.get("result", {}).get("disease", {}).get("suggestions", []):
             for img in disease.get("similar_images", []):
@@ -92,7 +92,6 @@ class ConfirmHealthDiagnosisUseCase:
 
         saved = await self._health_sample_repo.save(sample)
 
-        # Remove raw_response do Redis — não é mais necessário
         await self._health_raw_repo.delete(dto.health_record_id)
 
         await self._publisher.publish(
@@ -109,5 +108,5 @@ class ConfirmHealthDiagnosisUseCase:
             "health_record_id": record.id,
             "scientific_name": record.scientific_name,
             "status": saved.status.value,
-            "confirmed_at": saved.confirmed_at.isoformat(),
+            "confirmed_at": saved.confirmed_at.isoformat() if saved.confirmed_at else None,
         }

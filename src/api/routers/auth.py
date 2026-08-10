@@ -65,7 +65,13 @@ async def login(
         email=body.email,
         password=body.password,
     )
-    return ApiResponse.success(TokenResponse(**result))
+    if isinstance(result, dict):
+        return ApiResponse.success(TokenResponse(**result))
+    return ApiResponse.success(TokenResponse(
+        access_token=result.access_token,
+        refresh_token=result.refresh_token,
+        token_type=result.token_type,
+    ))
 
 @router.post("/refresh", status_code=200, response_model=ApiResponse[TokenResponse])
 @inject
@@ -74,7 +80,13 @@ async def refresh(
     use_case: RefreshTokenUseCase = Depends(Provide[Container.use_cases.refresh_token_use_case]),
 ) -> ApiResponse[TokenResponse]:
     result = await use_case.execute(refresh_token=body.refresh_token)
-    return ApiResponse.success(TokenResponse(**result))
+    if isinstance(result, dict):
+        return ApiResponse.success(TokenResponse(**result))
+    return ApiResponse.success(TokenResponse(
+        access_token=result.access_token,
+        refresh_token=result.refresh_token,
+        token_type=result.token_type,
+    ))
 
 @router.post("/logout", status_code=200, response_model=ApiResponse[MessageResponse])
 @inject

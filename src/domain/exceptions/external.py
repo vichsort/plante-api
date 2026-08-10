@@ -6,9 +6,9 @@ class ExternalServiceError(PlantEError):
     code = "PLANTE_5001_EXTERNAL_SERVICE_ERROR"
     status_code = 502
 
-    def __init__(self, service: str, message: str = ""):
+    def __init__(self, message: str = "External service unavailable.", service: str = "External"):
         super().__init__(
-            message=f"External service '{service}' unavailable. {message}".strip(),
+            message=f"External service '{service}' unavailable. {message}".strip() if service else message,
         )
 
 

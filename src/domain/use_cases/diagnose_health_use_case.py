@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from src.domain.entities.health_record import HealthRecord, HealthSeverity
 from src.domain.exceptions import PlantNotFoundError, UserNotFoundError
@@ -26,8 +27,8 @@ def _map_severity(vitality: float) -> HealthSeverity:
 
 @dataclass(frozen=True)
 class DiagnoseHealthInputDTO:
-    user_id: int
-    user_plant_id: int
+    user_id: Any
+    user_plant_id: Any
     image_bytes: bytes
 
 class DiagnoseHealthUseCase:
@@ -54,7 +55,7 @@ class DiagnoseHealthUseCase:
 
         user = await self._user_repo.get_by_id(dto.user_id)
         if not user:
-            raise UserNotFoundError(dto.user_id)
+            raise UserNotFoundError(user_id=dto.user_id)
 
         user_plant = await self._user_plant_repo.get_by_id(dto.user_plant_id, dto.user_id)
         if not user_plant:
@@ -62,13 +63,11 @@ class DiagnoseHealthUseCase:
 
         user.consume_identify_token()
 
-        # Kindwise — avaliação de saúde
         assessment = await self._health_analyzer.assess_health(dto.image_bytes)
 
         issues = [d.name for d in assessment.diseases]
         gemini_data: dict = {}
 
-        # Gemini — só se Kindwise detectar problema
         if assessment.health_probability < SubscriptionPolicy.health_unhealthy_threshold():
             user.consume_identify_token()
             gemini_data = await self._plant_enricher.diagnose_health(
@@ -89,6 +88,7 @@ class DiagnoseHealthUseCase:
         record = await self._health_repo.save(HealthRecord(
             id=None,
             user_plant_id=dto.user_plant_id,
+            user_id=dto.user_id,
             scientific_name=user_plant.scientific_name,
             diagnosed_at=now,
             vitality_score=vitality,
@@ -103,7 +103,6 @@ class DiagnoseHealthUseCase:
 
         await self._user_repo.save(user)
 
-        # Persiste raw_response no Redis — consumido pelo confirm_health_diagnosis_use_case
         await self._health_raw_repo.save(record.id, assessment.raw_response)
 
         return {

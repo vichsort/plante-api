@@ -19,6 +19,12 @@ class HealthRecordModel(Base, AuditMixin):
         nullable=False,
         index=True,
     )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     scientific_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     diagnosed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     vitality_score: Mapped[float] = mapped_column(Float, nullable=False)

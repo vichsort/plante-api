@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from src.domain.events.domain_events import PlantAddedToGardenEvent
 from src.domain.exceptions import (
@@ -21,9 +22,9 @@ from src.domain.ports.user_repository import IUserRepository
 
 @dataclass(frozen=True)
 class AddPlantToGardenInputDTO:
-    user_id: int
-    user_plant_id: int
-    sample_id: int  # retornado pelo IdentifyPlantUseCase
+    user_id: Any
+    user_plant_id: Any
+    sample_id: Any
 
 class AddPlantToGardenUseCase:
     def __init__(
@@ -45,13 +46,13 @@ class AddPlantToGardenUseCase:
 
         user = await self.user_repo.get_by_id(dto.user_id)
         if user is None:
-            raise UserNotFoundError(dto.user_id)
+            raise UserNotFoundError(user_id=dto.user_id)
 
         user_plant = await self.user_plant_repo.get_by_id(dto.user_plant_id)
         if user_plant is None:
             raise PlantNotFoundError(dto.user_plant_id)
 
-        if user_plant.user_id != dto.user_id:
+        if str(user_plant.user_id) != str(dto.user_id):
             raise ForbiddenError("Você não tem permissão para adicionar esta planta.")
 
         species = await self.species_repo.get_by_scientific_name(user_plant.scientific_name)

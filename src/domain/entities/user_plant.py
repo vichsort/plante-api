@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
+from typing import Any
 
 from src.domain.entities.care_schedule import CareSchedule
 from src.domain.exceptions import PlantNotReadyForWateringError
@@ -19,14 +20,14 @@ class IdentificationSource(Enum):
 
 @dataclass(slots=True)
 class UserPlant:
-    id: int | None
-    user_id: int
+    id: Any
+    user_id: Any
     scientific_name: str
     identification_confidence: float
     identification_source: IdentificationSource
     status: IdentificationStatus
-    added_at: datetime
     care_schedule: CareSchedule
+    added_at: datetime | None = None
 
     nickname: str | None = None
     primary_image_url: str | None = None

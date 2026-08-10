@@ -10,6 +10,6 @@ class IDomainPublisher(ABC):
     """
     
     @abstractmethod
-    def publish(self, event: DomainEvent) -> None:
+    async def publish(self, event: DomainEvent) -> None:
         """Publica um evento para ser consumido pelos listeners interessados."""
         ...

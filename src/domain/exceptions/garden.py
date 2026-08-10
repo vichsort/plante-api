@@ -19,10 +19,10 @@ class PlantLimitExceededError(PlantEError):
     code = "PLANTE_4005_FREE_TIER_PLANT_LIMIT"
     status_code = 403
 
-    def __init__(self, limit: int):
+    def __init__(self, limit: int | float):
         super().__init__(
             message=f"Limit of {limit} plants reached. Subscribe to the Pro Plan to add more.",
-            details={"current_count": limit, "max_allowed": limit},
+            details={"current_count": str(limit), "max_allowed": str(limit)},
         )
 
 

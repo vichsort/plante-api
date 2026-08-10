@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from src.domain.exceptions import PlantNotFoundError
 from src.domain.ports.user_plant_repository import IUserPlantRepository
@@ -6,8 +7,8 @@ from src.domain.ports.user_plant_repository import IUserPlantRepository
 
 @dataclass(frozen=True)
 class GetPlantDetailsInputDTO:
-    user_id: int
-    user_plant_id: int
+    user_id: Any
+    user_plant_id: Any
 
 class GetPlantDetailsUseCase:
     def __init__(self, user_plant_repo: IUserPlantRepository):

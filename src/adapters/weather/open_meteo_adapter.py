@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Any
 
 import httpx
 import structlog
@@ -17,17 +18,15 @@ log = structlog.get_logger()
 
 _FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 
-# WMO Weather Interpretation Codes
-# https://open-meteo.com/en/docs#weathervariables
 _CRITICAL_CODES = frozenset({
-    71, 73, 75, 77,          # neve moderada/intensa
-    85, 86,                  # neve em rajadas
-    95, 96, 99,              # tempestades com granizo
+    71, 73, 75, 77,
+    85, 86,
+    95, 96, 99,
 })
 _ATTENTION_CODES = frozenset({
-    51, 53, 55,              # garoa
-    61, 63, 65,              # chuva moderada/forte
-    80, 81, 82,              # pancadas
+    51, 53, 55,
+    61, 63, 65,
+    80, 81, 82,
 })
 
 def _wmo_to_severity(code: int) -> WeatherSeverity:
@@ -38,6 +37,9 @@ def _wmo_to_severity(code: int) -> WeatherSeverity:
     return WeatherSeverity.NORMAL
 
 class OpenMeteoAdapter(IWeatherService):
+    _client: httpx.AsyncClient
+    _geocoder: NominatimGeocoder
+
     def __init__(
         self,
         client: httpx.AsyncClient,
@@ -79,7 +81,7 @@ class OpenMeteoAdapter(IWeatherService):
     async def _fetch_forecast(
         self, coords: GeoCoordinates, forecast_days: int
     ) -> dict:
-        params = {
+        params: dict[str, Any] = {
             "latitude": coords.latitude,
             "longitude": coords.longitude,
             "daily": [

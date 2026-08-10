@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from src.domain.exceptions import (
     ForbiddenError,
@@ -16,9 +17,9 @@ from src.domain.ports.user_repository import IUserRepository
 
 @dataclass(frozen=True)
 class DeleteUserPlantInputDTO:
-    user_id: int
-    user_plant_id: int
-    sample_id: int
+    user_id: Any
+    user_plant_id: Any
+    sample_id: Any
 
 class DeleteUserPlantUseCase:
     def __init__(
@@ -38,12 +39,12 @@ class DeleteUserPlantUseCase:
         if plant is None:
             raise PlantNotFoundError(dto.user_plant_id)
 
-        if plant.user_id != dto.user_id:
+        if str(plant.user_id) != str(dto.user_id):
             raise ForbiddenError("Você não tem permissão para remover esta planta.")
 
         user = await self.user_repo.get_by_id(dto.user_id)
         if user is None:
-            raise UserNotFoundError(dto.user_id)
+            raise UserNotFoundError(user_id=dto.user_id)
 
         sample = await self.sample_repo.get_by_id(dto.sample_id)
         if sample is None:
@@ -55,7 +56,3 @@ class DeleteUserPlantUseCase:
         await self.user_plant_repo.delete(user_plant_id=dto.user_plant_id, user_id=dto.user_id)
         await self.user_repo.save(user)
         await self.sample_repo.save(rejected_sample)
-
-        # NOTA ARQUITETURAL:
-        # Não chamamos storage.delete_image() — imagem permanece no bucket para treino.
-        # sample rejeitada é sinal negativo válido para o pipeline de ML.

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from src.domain.exceptions import PlantNotFoundError
 from src.domain.ports.health_record_repository import IHealthRecordRepository
@@ -7,8 +8,8 @@ from src.domain.ports.user_plant_repository import IUserPlantRepository
 
 @dataclass(frozen=True)
 class GetHealthHistoryInputDTO:
-    user_id: int
-    user_plant_id: int
+    user_id: Any
+    user_plant_id: Any
     limit: int = 20
 
 class GetHealthHistoryUseCase:
@@ -33,8 +34,8 @@ class GetHealthHistoryUseCase:
         return [
             {
                 "health_record_id": r.id,
-                "diagnosed_at": r.diagnosed_at.isoformat(),
-                "severity": r.severity.value,
+                "diagnosed_at": r.diagnosed_at.isoformat() if r.diagnosed_at else None,
+                "severity": r.severity.value if hasattr(r.severity, "value") else r.severity,
                 "vitality_score": r.vitality_score,
                 "is_healthy": r.is_healthy,
                 "issues_detected": list(r.issues_detected),

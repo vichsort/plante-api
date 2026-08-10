@@ -1,13 +1,12 @@
 from enum import Enum
 
+_CODE_INDEX: dict[str, "AchievementBadge"] = {}
 
 class AchievementBadge(Enum):
     """
     Catálogo central e imutável de conquistas.
     Cada membro do Enum encapsula seu código, título, descrição e ícone.
     """
-    
-    # Assinatura
     PREMIUM_USER = (
         "premium_user", 
         "Apoiador Premium", 
@@ -33,7 +32,6 @@ class AchievementBadge(Enum):
         "military_tech"
     )
     
-    # Tempo de app
     USER_3_MONTHS = (
         "user_3_months", 
         "Jardineiro Dedicado", 
@@ -53,7 +51,6 @@ class AchievementBadge(Enum):
         "cake"
     )
 
-    # Streak de rega
     STREAK_1_MONTH = (
         "streak_1_month", 
         "Mão Verde", 
@@ -79,7 +76,6 @@ class AchievementBadge(Enum):
         "spa"
     )
     
-    # Identificações
     FIRST_PLANT = (
         "first_plant", 
         "Primeira Folha", 
@@ -107,6 +103,7 @@ class AchievementBadge(Enum):
 
     @classmethod
     def from_code(cls, code: str) -> 'AchievementBadge | None':
-        if not hasattr(cls, '_code_index'):
-            cls._code_index = {badge.code: badge for badge in cls}
-        return cls._code_index.get(code)
+        if not _CODE_INDEX:
+            for badge in cls:
+                _CODE_INDEX[badge.code] = badge
+        return _CODE_INDEX.get(code)

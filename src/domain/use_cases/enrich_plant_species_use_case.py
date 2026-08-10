@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from src.domain.exceptions import (
     ExternalServiceError,
@@ -13,8 +14,8 @@ from src.domain.ports.user_repository import IUserRepository
 
 @dataclass(frozen=True)
 class EnrichPlantInputDTO:
-    user_id: int
-    species_id: int
+    user_id: Any
+    species_id: Any
 
 class EnrichPlantSpeciesUseCase:
     def __init__(
@@ -28,45 +29,30 @@ class EnrichPlantSpeciesUseCase:
         self.enricher = enricher
 
     async def execute(self, dto: EnrichPlantInputDTO) -> dict:
-        user = self.user_repo.get_by_id(dto.user_id)
+        user = await self.user_repo.get_by_id(dto.user_id)
         if not user:
-            raise UserNotFoundError(dto.user_id)
+            raise UserNotFoundError(user_id=dto.user_id)
 
-        species = self.species_repo.get_by_id(dto.species_id)
+        species = await self.species_repo.get_by_id(dto.species_id)
         if not species:
             raise PlantNotFoundError(dto.species_id)
 
-        # Política de Assinatura: Barra se não tiver 2 tokens para Análise Profunda
         SubscriptionPolicy.enforce_can_deep_analyze(user)
 
-        # Verifica o Cache
-        if not species.is_fully_enriched():
-            # A planta é só um esqueleto. Vamos chamar o Gemini.
-            # O 'enricher' já faz os 3 retries internamente e retorna um DTO tipado.
+        if not species.is_enriched:
             try:
-                enriched_data = self.enricher.enrich_botanical_data(species.scientific_name)
+                await self.enricher.enrich_species(species.scientific_name)
             except Exception:
-                # Se após 3 tentativas o Gemini falhar ou der timeout, abortamos a transação.
-                raise ExternalServiceError(message="Nossos botânicos de IA estão indisponíveis no momento. Tente novamente mais tarde.", code="AI_UNAVAILABLE")
+                raise ExternalServiceError(message="Nossos botânicos de IA estão indisponíveis no momento. Tente novamente mais tarde.")
             
-            # Atualiza a Entidade Global com os novos VOs e salva
-            species.apply_enrichment(enriched_data)
-            self.species_repo.save(species)
+            await self.species_repo.save(species)
 
-        # Desconta os 2 tokens (independente de ter usado cache ou não)
         user.consume_deep_analysis_token()
-        self.user_repo.save(user)
+        await self.user_repo.save(user)
 
-        # Retorna os dados completos (agora garantidamente enriquecidos)
         return {
             "scientific_name": species.scientific_name,
-            "common_names": species.common_names,
-            "description": species.description,
+            "common_names": list(species.common_names),
             "is_edible": species.is_edible,
-            "care_schedule": {
-                "watering_frequency_days": species.care_schedule.watering_frequency.days,
-                "sunlight_level": species.care_schedule.sunlight_level,
-                "ideal_soil": species.care_schedule.ideal_soil
-            },
-            "taxonomy": species.taxonomy
+            "habitat": species.habitat,
         }

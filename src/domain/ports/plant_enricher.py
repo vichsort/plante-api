@@ -53,3 +53,10 @@ class IPlantEnricher(ABC):
     ) -> DiseaseAnalysisResult:
         """Analisa uma doença específica diagnosticada numa planta."""
         ...
+
+    @abstractmethod
+    async def diagnose_health(
+        self, scientific_name: str, issues: list[str]
+    ) -> dict:
+        """Enriquece o diagnóstico de saúde de uma planta."""
+        ...

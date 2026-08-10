@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +20,12 @@ class PlantSpeciesRepository(IPlantSpeciesRepository):
         await self._session.flush()
         return PlantSpeciesMapper.to_domain(model)
 
+    async def get_by_id(self, species_id: Any) -> PlantSpecies | None:
+        stmt = select(PlantSpeciesModel).where(PlantSpeciesModel.id == species_id)
+        result = await self._session.execute(stmt)
+        model = result.scalar_one_or_none()
+        return PlantSpeciesMapper.to_domain(model) if model else None
+
     async def get_by_scientific_name(self, scientific_name: str) -> PlantSpecies | None:
         stmt = select(PlantSpeciesModel).where(
             PlantSpeciesModel.scientific_name == scientific_name
@@ -32,9 +39,9 @@ class PlantSpeciesRepository(IPlantSpeciesRepository):
         scientific_name: str,
         status: EnrichmentStatus,
     ) -> None:
-        values = {"enrichment_status": status.value}
+        values: dict[str, Any] = {"enrichment_status": status.value}
         if status == EnrichmentStatus.ENRICHED:
-            values["enriched_at"] = datetime.now()
+            values["enriched_at"] = datetime.now(UTC)
         stmt = (
             update(PlantSpeciesModel)
             .where(PlantSpeciesModel.scientific_name == scientific_name)

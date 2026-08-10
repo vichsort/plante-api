@@ -1,4 +1,3 @@
-# src/domain/policies/consensus_policy.py
 from src.domain.ports.plant_identifier import IdentificationResult
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.consensus_result import ConsensusReason, ConsensusResult
@@ -16,7 +15,6 @@ class ConsensusPolicy:
         plantnet: IdentificationResult | None,
     ) -> ConsensusResult:
 
-        # Um falhou — fallback para o outro
         if kindwise is None and plantnet is not None:
             return ConsensusPolicy._from_single(plantnet, "plantnet", ConsensusReason.SINGLE_SOURCE)
         if plantnet is None and kindwise is not None:
@@ -24,7 +22,9 @@ class ConsensusPolicy:
         if kindwise is None and plantnet is None:
             raise ValueError("Both identifiers failed — cannot resolve consensus.")
 
-        # Cenário A — acordo exato
+        assert kindwise is not None
+        assert plantnet is not None
+
         if kindwise.scientific_name == plantnet.scientific_name:
             score = (
                 kindwise.confidence.value * _KINDWISE_WEIGHT
@@ -44,7 +44,6 @@ class ConsensusPolicy:
                 gbif_id=kindwise.gbif_id,
             )
 
-        # Cenário B — acordo de gênero
         if kindwise.genus and plantnet.genus and kindwise.genus == plantnet.genus:
             winner = (
                 kindwise if kindwise.confidence.value >= plantnet.confidence.value
@@ -54,7 +53,7 @@ class ConsensusPolicy:
                 scientific_name=winner.scientific_name,
                 confidence=winner.confidence,
                 reason=ConsensusReason.GENUS_MATCH,
-                low_confidence=True,  # sempre low_confidence no acordo parcial
+                low_confidence=True,
                 source="consensus_partial",
                 family=winner.family,
                 genus=winner.genus,
@@ -63,7 +62,6 @@ class ConsensusPolicy:
                 gbif_id=winner.gbif_id,
             )
 
-        # Cenário C — desacordo total
         plantnet_dominates = (
             plantnet.confidence.value - kindwise.confidence.value >= _PLANTNET_OVERRIDE_THRESHOLD
         )
@@ -80,7 +78,7 @@ class ConsensusPolicy:
             scientific_name=winner.scientific_name,
             confidence=winner.confidence,
             reason=reason,
-            low_confidence=True,  # desacordo total é sempre low_confidence
+            low_confidence=True,
             source=source,
             family=winner.family,
             genus=winner.genus,

@@ -21,13 +21,14 @@ class UserPlantRepository(IUserPlantRepository):
         await self._session.flush()
         return UserPlantMapper.to_domain(model)
 
-    async def get_by_id(self, user_plant_id: Any, user_id: Any) -> UserPlant | None:
+    async def get_by_id(self, user_plant_id: Any, user_id: Any | None = None) -> UserPlant | None:
         stmt = (
             select(UserPlantModel)
             .where(UserPlantModel.id == user_plant_id)
-            .where(UserPlantModel.user_id == user_id)
             .where(UserPlantModel.deleted_at.is_(None))
         )
+        if user_id is not None:
+            stmt = stmt.where(UserPlantModel.user_id == user_id)
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return UserPlantMapper.to_domain(model) if model else None
@@ -121,8 +122,8 @@ class UserPlantRepository(IUserPlantRepository):
             "needs_watering": domain.needs_watering,
             "watering_streak": domain.watering_streak.current_count,
             "care_schedule": {
-                "care_type": domain.care_schedule.care_type,
-                "interval_days": domain.care_schedule.interval_days,
+                "care_type": domain.care_schedule.care_type.value if hasattr(domain.care_schedule.care_type, "value") else str(domain.care_schedule.care_type),
+                "interval_days": domain.care_schedule.interval.days,
                 "is_active": domain.care_schedule.is_active,
                 "next_due_at": domain.care_schedule.next_due_at.isoformat() if domain.care_schedule.next_due_at else None,
             },
@@ -137,3 +138,12 @@ class UserPlantRepository(IUserPlantRepository):
                 "habitat": species_model.habitat if species_model else None,
             } if species_model else None,
         }
+
+    async def get_overdue_plants(self, current_time: datetime) -> list[UserPlant]:
+        stmt = (
+            select(UserPlantModel)
+            .where(UserPlantModel.care_next_due_at < current_time)
+            .where(UserPlantModel.deleted_at.is_(None))
+        )
+        result = await self._session.execute(stmt)
+        return [UserPlantMapper.to_domain(m) for m in result.scalars().all()]

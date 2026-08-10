@@ -14,37 +14,27 @@ class BreakStreakCronUseCase:
         self.user_plant_repo = user_plant_repo
         self.publisher = publisher
 
-    def execute(self) -> dict:
-        """
-        Varre plantas atrasadas e reseta ofensivas. 
-        Idealmente executado logo após o fim da carência (ex: 08:01 AM).
-        """
+    async def execute(self) -> dict:
         now = datetime.now(UTC)
         
-        # O repositório deve implementar uma busca eficiente por plantas atrasadas
-        # que ainda possuem streak > 1.
-        overdue_plants = self.user_plant_repo.find_plants_with_overdue_streaks(now)
+        overdue_plants = await self.user_plant_repo.get_overdue_plants(now)
         
         counts = {"processed": 0, "broken": 0}
 
         for plant in overdue_plants:
             counts["processed"] += 1
             
-            # Guardamos o valor antigo para o evento
-            old_streak = plant.streak.current_count
+            old_streak = plant.watering_streak.current_count
             
-            # Regra de negócio na Entidade: resetar se estiver atrasado
-            # A Entidade UserPlant decide se deve resetar com base no tempo atual
             if plant.check_and_reset_streak(now):
                 counts["broken"] += 1
-                self.user_plant_repo.save(plant)
+                await self.user_plant_repo.save(plant)
                 
-                # Dispara notificação para tentar recuperar o usuário
                 event = StreakBrokenEvent.create(
                     user_id=plant.user_id,
                     user_plant_id=plant.id,
                     last_count=old_streak
                 )
-                self.publisher.publish(event)
+                await self.publisher.publish(event)
 
         return counts

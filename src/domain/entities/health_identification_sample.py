@@ -1,38 +1,35 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 
 class HealthSampleStatus(Enum):
-    PENDING = "pending"       # diagnóstico salvo, aguardando confirmação do usuário
-    CONFIRMED = "confirmed"   # usuário confirmou que a planta está doente
-    REJECTED = "rejected"     # usuário rejeitou o diagnóstico
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    REJECTED = "rejected"
 
 @dataclass(frozen=True)
 class HealthIdentificationSample:
     """
     Registro imutável de um diagnóstico de saúde confirmado pelo usuário.
     Destinado ao dataset de treino da IA — não contém dados pessoais após anonimização.
-
-    Criado quando o usuário confirma que a planta está doente.
-    As reference_image_keys são todas as imagens similares do Kindwise, re-hospedadas
-    no S3 no momento da confirmação.
     """
 
-    id: int | None
-    health_record_id: int
+    id: Any
+    health_record_id: Any
     scientific_name: str
     user_image_key: str
     vitality_score: float
     issues_detected: tuple[str, ...]
     treatment_plan: tuple[str, ...]
-    identification_source: str                 # "kindwise" | "kindwise+gemini"
+    identification_source: str
     raw_response: dict
     status: HealthSampleStatus
     created_at: datetime
 
-    reference_image_keys: tuple[str, ...] = () # todas as imagens similares do Kindwise
-    user_id: int | None = None
+    reference_image_keys: tuple[str, ...] = ()
+    user_id: Any = None
     confirmed_at: datetime | None = None
     rejected_at: datetime | None = None
     recovery_estimate_days: int | None = None
@@ -43,8 +40,6 @@ class HealthIdentificationSample:
             raise ValueError("scientific_name cannot be empty.")
         if not self.user_image_key:
             raise ValueError("user_image_key cannot be empty.")
-        if not self.reference_image_keys:
-            raise ValueError("reference_image_keys cannot be empty.")
         if not 0.0 <= self.vitality_score <= 1.0:
             raise ValueError("vitality_score must be between 0.0 and 1.0.")
         if self.created_at.tzinfo is None:

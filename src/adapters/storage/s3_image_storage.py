@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 import aioboto3
 import httpx
@@ -13,7 +14,6 @@ _REFERENCES_PREFIX = "species/references"
 _DEFAULT_CONTENT_TYPE = "image/jpeg"
 
 def _sanitize(scientific_name: str) -> str:
-    """Converte 'Monstera deliciosa' → 'monstera_deliciosa' para uso em chaves S3."""
     return scientific_name.lower().replace(" ", "_")
 
 def _build_identification_key(scientific_name: str) -> str:
@@ -23,19 +23,9 @@ def _build_reference_key(scientific_name: str) -> str:
     return f"{_REFERENCES_PREFIX}/{_sanitize(scientific_name)}/{uuid.uuid4()}.jpg"
 
 class S3ImageStorage(IImageStorage):
-    """
-    Adapter de saída — armazenamento de imagens no S3.
-
-    Bucket público (sem CloudFront). Objetos são gravados com
-    ACL public-read, portanto a URL permanente é:
-        https://{bucket}.s3.{region}.amazonaws.com/{key}
-
-    Variáveis de ambiente necessárias (via Settings):
-        S3_BUCKET_NAME
-        S3_REGION
-        AWS_ACCESS_KEY_ID
-        AWS_SECRET_ACCESS_KEY
-    """
+    _bucket: str
+    _region: str
+    _session: Any
 
     def __init__(
         self,
@@ -57,12 +47,8 @@ class S3ImageStorage(IImageStorage):
         image_bytes: bytes,
         scientific_name: str,
         confidence_value: float,
-        user_id: int,
+        user_id: Any,
     ) -> str:
-        """
-        Faz upload de uma imagem em bytes para o bucket.
-        Retorna a URL pública permanente do objeto.
-        """
         key = _build_identification_key(scientific_name)
 
         await self._put_object(
@@ -85,11 +71,6 @@ class S3ImageStorage(IImageStorage):
         external_url: str,
         scientific_name: str,
     ) -> str:
-        """
-        Baixa uma imagem de URL externa (ex: Kindwise) e re-hospeda no bucket
-        no prefixo species/references/{scientific_name}/.
-        Retorna a URL pública permanente do objeto.
-        """
         image_bytes = await self._fetch_external(external_url)
         key = _build_reference_key(scientific_name)
 

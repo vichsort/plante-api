@@ -84,5 +84,6 @@ known-first-party = ["src"]
 [dependency-groups]
 dev = [
     "aiosqlite>=0.22.1",
+    "mypy>=2.3.0",
     "ruff>=0.6.0",
 ]

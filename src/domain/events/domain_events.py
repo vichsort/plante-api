@@ -1,6 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -10,16 +11,12 @@ class DomainEvent(ABC):
 
 @dataclass(frozen=True)
 class PlantIdentifiedEvent(DomainEvent):
-    """
-    Emitido quando um usuário identifica com sucesso uma planta.
-    É um 'Evento Gordo' para poupar consultas futuras ao banco.
-    """
-    user_id: int
-    species_id: int
+    user_id: Any
+    species_id: Any
     is_first_plant: bool
     
     @classmethod
-    def create(cls, user_id: int, species_id: int, is_first_plant: bool) -> 'PlantIdentifiedEvent':
+    def create(cls, user_id: Any, species_id: Any, is_first_plant: bool) -> 'PlantIdentifiedEvent':
         return cls(
             occurred_on=datetime.now(UTC),
             user_id=user_id,
@@ -29,16 +26,12 @@ class PlantIdentifiedEvent(DomainEvent):
 
 @dataclass(frozen=True)
 class StreakBrokenEvent(DomainEvent):
-    """
-    Emitido quando um usuário perde a ofensiva de uma planta.
-    Útil para disparar Push Notifications de 'recuperação'.
-    """
-    user_id: int
-    user_plant_id: int
+    user_id: Any
+    user_plant_id: Any
     last_streak_count: int
 
     @classmethod
-    def create(cls, user_id: int, user_plant_id: int, last_count: int) -> 'StreakBrokenEvent':
+    def create(cls, user_id: Any, user_plant_id: Any, last_count: int) -> 'StreakBrokenEvent':
         return cls(
             occurred_on=datetime.now(UTC),
             user_id=user_id,
@@ -48,21 +41,17 @@ class StreakBrokenEvent(DomainEvent):
 
 @dataclass(frozen=True)
 class PlantAddedToGardenEvent(DomainEvent):
-    """
-    Emitido quando o usuário confirma e salva a planta no jardim.
-    Separado do PlantIdentifiedEvent — nem toda identificação vira jardim.
-    """
-    user_id: int
-    user_plant_id: int
-    species_id: int
+    user_id: Any
+    user_plant_id: Any
+    species_id: Any
     is_first_plant: bool
 
     @classmethod
     def create(
         cls,
-        user_id: int,
-        user_plant_id: int,
-        species_id: int,
+        user_id: Any,
+        user_plant_id: Any,
+        species_id: Any,
         is_first_plant: bool,
     ) -> "PlantAddedToGardenEvent":
         return cls(
@@ -75,11 +64,11 @@ class PlantAddedToGardenEvent(DomainEvent):
 
 @dataclass(frozen=True)
 class UserRegisteredEvent(DomainEvent):
-    user_id: int
+    user_id: Any
     email: str
 
     @classmethod
-    def create(cls, user_id: int, email: str) -> "UserRegisteredEvent":
+    def create(cls, user_id: Any, email: str) -> "UserRegisteredEvent":
         return cls(
             occurred_on=datetime.now(UTC),
             user_id=user_id,
@@ -88,14 +77,14 @@ class UserRegisteredEvent(DomainEvent):
 
 @dataclass(frozen=True)
 class SubscriptionUpgradedEvent(DomainEvent):
-    user_id: int
+    user_id: Any
     plan_name: str
     expires_at: datetime
 
     @classmethod
     def create(
         cls,
-        user_id: int,
+        user_id: Any,
         plan_name: str,
         expires_at: datetime,
     ) -> "SubscriptionUpgradedEvent":
@@ -107,21 +96,16 @@ class SubscriptionUpgradedEvent(DomainEvent):
         )
 
 @dataclass(frozen=True)
-class PlantIdentificationConfirmedEvent:
-    """
-    Emitido quando o usuário confirma que a identificação botânica estava correta.
-    Dispara a transição da PlantIdentificationSample de PENDING para CONFIRMED.
-    """
-    occurred_on: datetime
-    user_id: int
-    sample_id: int
+class PlantIdentificationConfirmedEvent(DomainEvent):
+    user_id: Any
+    sample_id: Any
     scientific_name: str
- 
+
     @classmethod
     def create(
         cls,
-        user_id: int,
-        sample_id: int,
+        user_id: Any,
+        sample_id: Any,
         scientific_name: str,
     ) -> "PlantIdentificationConfirmedEvent":
         return cls(
@@ -130,26 +114,20 @@ class PlantIdentificationConfirmedEvent:
             sample_id=sample_id,
             scientific_name=scientific_name,
         )
- 
- 
+
 @dataclass(frozen=True)
-class HealthDiagnosisConfirmedEvent:
-    """
-    Emitido quando o usuário confirma que a planta está doente.
-    Cria a HealthIdentificationSample e re-hospeda a imagem similar do Kindwise.
-    """
-    occurred_on: datetime
-    user_id: int
-    health_record_id: int
-    sample_id: int
+class HealthDiagnosisConfirmedEvent(DomainEvent):
+    user_id: Any
+    health_record_id: Any
+    sample_id: Any
     scientific_name: str
- 
+
     @classmethod
     def create(
         cls,
-        user_id: int,
-        health_record_id: int,
-        sample_id: int,
+        user_id: Any,
+        health_record_id: Any,
+        sample_id: Any,
         scientific_name: str,
     ) -> "HealthDiagnosisConfirmedEvent":
         return cls(
@@ -162,19 +140,15 @@ class HealthDiagnosisConfirmedEvent:
 
 @dataclass(frozen=True)
 class PlantWateredEvent(DomainEvent):
-    """
-    Emitido quando um usuário rega uma planta.
-    Usado para atualizar streak e verificar conquistas.
-    """
-    user_id: int
-    user_plant_id: int
+    user_id: Any
+    user_plant_id: Any
     current_streak: int
 
     @classmethod
     def create(
         cls, 
-        user_id: int, 
-        user_plant_id: int, 
+        user_id: Any, 
+        user_plant_id: Any, 
         current_streak: int
     ) -> 'PlantWateredEvent':
         return cls(

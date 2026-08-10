@@ -8,11 +8,11 @@ class IPasswordHasher(ABC):
     """
 
     @abstractmethod
-    async def hash(self, plain_password: str) -> str:
+    def hash(self, plain_password: str) -> str:
         """Gera um hash seguro a partir da senha em texto puro."""
         ...
 
     @abstractmethod
-    async def verify(self, plain_password: str, hashed_password: str) -> bool:
+    def verify(self, plain_password: str, hashed_password: str) -> bool:
         """Retorna True se a senha plain corresponde ao hash armazenado."""
         ...

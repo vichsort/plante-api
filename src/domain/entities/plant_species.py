@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 
 class EnrichmentStatus(Enum):
@@ -29,20 +30,17 @@ class EnrichmentSource(Enum):
 class PlantSpecies:
     scientific_name: str
     enrichment_status: EnrichmentStatus
-    id: int | None = None
+    id: Any = None
 
-    # Taxonomia — vem do PlantNet/Kindwise na identificação
     family: str | None = None
     genus: str | None = None
     order: str | None = None
     plant_class: str | None = None
     common_names: tuple[str, ...] = field(default_factory=tuple)
 
-    # IDs externos
     provider_entity_id: str | None = None
     gbif_id: str | None = None
 
-    # Cuidados — vem do Gemini
     is_edible: bool | None = None
     water_frequency_per_week: int | None = None
     light_requirement: LightRequirement | None = None
@@ -51,7 +49,6 @@ class PlantSpecies:
     origin_country: str | None = None
     habitat: str | None = None
 
-    # Controle de enriquecimento
     enriched_at: datetime | None = None
     enrichment_source: EnrichmentSource | None = None
 
@@ -77,7 +74,6 @@ class PlantSpecies:
         provider_entity_id: str | None = None,
         gbif_id: str | None = None,
     ) -> "PlantSpecies":
-        """Cria uma espécie com dados mínimos vindos da identificação. Aguarda enriquecimento pelo Gemini."""
         return cls(
             scientific_name=scientific_name,
             enrichment_status=EnrichmentStatus.PENDING,

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import UTC
+from datetime import UTC, datetime
 
 from src.domain.entities.user import User
 from src.domain.events.domain_events import UserRegisteredEvent
@@ -7,6 +7,7 @@ from src.domain.exceptions import EmailAlreadyInUseError
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.user_location import UserLocation
 
 
 @dataclass(frozen=True)
@@ -32,10 +33,6 @@ class RegisterUserUseCase:
             raise EmailAlreadyInUseError()
 
         hashed_pw = self.hasher.hash(dto.password)
-
-        from datetime import datetime
-
-        from src.domain.value_objects.user_location import UserLocation
 
         now = datetime.now(UTC)
         user = User.create_new(

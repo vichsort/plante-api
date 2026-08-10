@@ -1,3 +1,5 @@
+from typing import Any
+
 import httpx
 import structlog
 
@@ -17,11 +19,13 @@ class GeocodingError(ExternalServiceError):
 
 
 class NominatimGeocoder:
+    _client: httpx.AsyncClient
+
     def __init__(self, client: httpx.AsyncClient) -> None:
         self._client = client
 
     async def resolve(self, location: UserLocation) -> GeoCoordinates:
-        params = {
+        params: dict[str, Any] = {
             "q": f"{location.state}, {location.country}",
             "format": "json",
             "limit": 1,
@@ -35,7 +39,7 @@ class NominatimGeocoder:
 
         results = response.json()
         if not results:
-            raise GeocodingError(f"No results for location: {location}")
+            raise GeocodingError(message=f"No results for location: {location}")
 
         first = results[0]
         coords = GeoCoordinates(

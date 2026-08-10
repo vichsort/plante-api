@@ -28,7 +28,7 @@ from src.adapters.persistence.repositories.user_repository import UserRepository
 
 
 class RepositoriesContainer(containers.DeclarativeContainer):
-    session = providers.Dependency()
+    session: providers.Dependency = providers.Dependency()
     
     user_repository = providers.Factory(
         UserRepository,
@@ -62,11 +62,6 @@ class RepositoriesContainer(containers.DeclarativeContainer):
 
     plant_reference_image_repository = providers.Factory(
         PlantReferenceImageRepository,
-        session=session,
-    )
-
-    health_record_repository = providers.Factory(
-        HealthRecordRepository,
         session=session,
     )
 

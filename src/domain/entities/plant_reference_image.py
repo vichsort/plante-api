@@ -1,21 +1,22 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 
 class ImageSource(Enum):
-    KINDWISE_SIMILAR = "kindwise_similar"   # URL retornada pela Kindwise como imagem similar
-    USER_CONFIRMED = "user_confirmed"       # Foto de usuário que confirmou a identificação
+    KINDWISE_SIMILAR = "kindwise_similar"
+    USER_CONFIRMED = "user_confirmed"
 
 @dataclass(frozen=True)
 class PlantReferenceImage:
-    id: int | None
+    id: Any
     scientific_name: str
-    storage_key: str        # caminho no bucket: "references/aloe_vera/user_confirmed_xyz.jpg"
+    storage_key: str
     source: ImageSource
     created_at: datetime
 
-    user_id: int | None = None      # None se vier do Kindwise
+    user_id: Any = None
 
     def __post_init__(self) -> None:
         if not self.scientific_name:

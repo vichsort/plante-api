@@ -1,10 +1,16 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
+from src.domain.entities.care_schedule import CareSchedule, CareType
 from src.domain.entities.plant_identification_sample import PlantIdentificationSample
 from src.domain.entities.plant_reference_image import ImageSource, PlantReferenceImage
 from src.domain.entities.plant_species import PlantSpecies
-from src.domain.entities.user_plant import UserPlant
+from src.domain.entities.user_plant import (
+    IdentificationSource,
+    IdentificationStatus,
+    UserPlant,
+)
 from src.domain.events.domain_events import PlantIdentifiedEvent
 from src.domain.exceptions import LowConfidenceError, UserNotFoundError
 from src.domain.policies.subscription_policy import SubscriptionPolicy
@@ -20,11 +26,12 @@ from src.domain.ports.plant_reference_image_repository import (
 from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.care_interval import CareInterval
 
 
 @dataclass(frozen=True)
 class IdentifyPlantInputDTO:
-    user_id: int
+    user_id: Any
     image_bytes: bytes
     latitude: float | None = None
     longitude: float | None = None
@@ -56,7 +63,7 @@ class IdentifyPlantUseCase:
 
         user = await self.user_repo.get_by_id(dto.user_id)
         if user is None:
-            raise UserNotFoundError(dto.user_id)
+            raise UserNotFoundError(user_id=dto.user_id)
 
         SubscriptionPolicy.enforce_can_identify_plant(user)
 
@@ -76,7 +83,6 @@ class IdentifyPlantUseCase:
             user_id=user.id,
         )
 
-        # Re-hospeda imagens similares
         for similar in result.similar_images:
             key = await self.storage.download_and_rehost(
                 external_url=similar.url,
@@ -91,7 +97,6 @@ class IdentifyPlantUseCase:
                 created_at=now,
             ))
 
-        # Catálogo global
         species = await self.species_repo.get_by_scientific_name(result.scientific_name)
         if species is None:
             species = PlantSpecies.create_skeleton(
@@ -104,11 +109,23 @@ class IdentifyPlantUseCase:
             )
             species = await self.species_repo.save(species)
 
-        user_plant = await self.user_plant_repo.save(UserPlant.create_new(
+        care_schedule = CareSchedule(
+            id=None,
+            user_plant_id=None,
+            care_type=CareType.WATER,
+            interval=CareInterval(days=7),
+            is_active=True,
+            created_at=now,
+        )
+
+        user_plant = await self.user_plant_repo.save(UserPlant(
+            id=None,
             user_id=user.id,
             scientific_name=result.scientific_name,
             identification_confidence=result.confidence.value,
-            identification_source=result.source,
+            identification_source=IdentificationSource.KINDWISE if result.source == "kindwise" else IdentificationSource.CONSENSUS,
+            status=IdentificationStatus.IDENTIFIED,
+            care_schedule=care_schedule,
             primary_image_url=user_image_key,
             added_at=now,
         ))

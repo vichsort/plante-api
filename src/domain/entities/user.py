@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
@@ -16,13 +17,13 @@ class User:
     Todas as mutações de estado passam por métodos — nunca por atribuição direta.
     """
 
-    id: int | None
+    id: Any
     email: str
     hashed_password: str
     location: UserLocation
     is_verified: bool
     subscription: SubscriptionTier
-    created_at: datetime
+    created_at: datetime | None = None
     tokens_used_today: int = 0
     garden_count: int = 0
     fcm_token: str | None = None
@@ -84,13 +85,12 @@ class User:
         self.tokens_used_today = 0
 
     def update_location(self, new_location: UserLocation) -> None:
-        # validação já aconteceu no __post_init__ do VO
         self.location = new_location
 
     def change_email(self, new_email: str) -> None:
         self._assert_valid_email(new_email)
         self.email = new_email
-        self.is_verified = False  # exige nova verificação
+        self.is_verified = False
 
     def change_password(self, new_hashed_password: str) -> None:
         if not new_hashed_password:

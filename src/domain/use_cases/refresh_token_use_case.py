@@ -14,6 +14,7 @@ _ACCESS_TTL = timedelta(minutes=15)
 @dataclass(frozen=True)
 class RefreshResult:
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
 
 class RefreshTokenUseCase:
@@ -42,7 +43,7 @@ class RefreshTokenUseCase:
         if payload.get("type") != "refresh":
             raise UnauthorizedError("Invalid token type.")
 
-        user_id = int(payload["sub"])
+        user_id = str(payload["sub"])
 
         stored = await self._token_repo.get_refresh_token(user_id)
         if stored != refresh_token:
@@ -51,7 +52,7 @@ class RefreshTokenUseCase:
         now = datetime.now(UTC)
         access_token = jwt.encode(
             {
-                "sub": str(user_id),
+                "sub": user_id,
                 "type": "access",
                 "iat": now,
                 "exp": now + _ACCESS_TTL,
@@ -61,4 +62,4 @@ class RefreshTokenUseCase:
         )
 
         log.info("token.refreshed", user_id=user_id)
-        return RefreshResult(access_token=access_token)
+        return RefreshResult(access_token=access_token, refresh_token=refresh_token)

@@ -25,7 +25,7 @@ class ApiResponse(BaseModel, Generic[T]):
         return cls(ok=True, data=data, meta=meta or ApiMeta())
 
     @classmethod
-    def fail(cls, code: str, message: str, details: dict[str, Any] | None = None) -> "ApiResponse[None]":
+    def fail(cls, code: str, message: str, details: dict[str, Any] | None = None) -> "ApiResponse[Any]":
         return cls(
             ok=False,
             data=None,

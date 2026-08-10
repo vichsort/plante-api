@@ -1,11 +1,12 @@
 from dataclasses import dataclass
+from typing import Any
 
 from src.domain.ports.achievement_repository import IAchievementRepository
 
 
 @dataclass(frozen=True)
 class ListUserAchievementsInputDTO:
-    user_id: int
+    user_id: Any
 
 class ListUserAchievementsUseCase:
     def __init__(self, achievement_repo: IAchievementRepository) -> None:

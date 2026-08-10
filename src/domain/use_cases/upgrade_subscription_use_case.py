@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from src.domain.events.domain_events import SubscriptionUpgradedEvent
 from src.domain.exceptions import UserNotFoundError
@@ -9,7 +10,7 @@ from src.domain.ports.user_repository import IUserRepository
 
 @dataclass(frozen=True)
 class UpgradeSubscriptionInputDTO:
-    user_id: int
+    user_id: Any
     plan_duration_days: int
 
 class UpgradeSubscriptionUseCase:
@@ -24,12 +25,12 @@ class UpgradeSubscriptionUseCase:
     async def execute(self, dto: UpgradeSubscriptionInputDTO) -> dict:
         user = await self.user_repo.get_by_id(dto.user_id)
         if not user:
-            raise UserNotFoundError(dto.user_id)
+            raise UserNotFoundError(user_id=dto.user_id)
 
         now = datetime.now(UTC)
         expires_at = now + timedelta(days=dto.plan_duration_days)
 
-        user.upgrade_to_pro(expires_at=expires_at)
+        user.upgrade_to_pro(expires_at=expires_at, current_time=now)
         await self.user_repo.save(user)
 
         event = SubscriptionUpgradedEvent.create(
@@ -37,7 +38,7 @@ class UpgradeSubscriptionUseCase:
             plan_name="PRO",
             expires_at=expires_at,
         )
-        self.publisher.publish(event)
+        await self.publisher.publish(event)
 
         return {
             "user_id": user.id,

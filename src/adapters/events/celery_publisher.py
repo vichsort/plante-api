@@ -7,7 +7,7 @@ log = structlog.get_logger()
 
 
 class CeleryPublisher(IDomainPublisher):
-    def publish(self, event: DomainEvent) -> None:
+    async def publish(self, event: DomainEvent) -> None:
         log.info("event.published", event_type=type(event).__name__)
 
         if isinstance(event, UserRegisteredEvent):

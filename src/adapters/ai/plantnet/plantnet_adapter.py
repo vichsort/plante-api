@@ -1,4 +1,5 @@
 import base64
+from typing import Any
 
 import httpx
 
@@ -14,18 +15,19 @@ _PROJECT = "all"
 _NB_RESULTS = 5
 
 class PlantNetAdapter(IPlantIdentifier):
+    _api_key: str
+
     def __init__(self, api_key: str) -> None:
         self._api_key = api_key
 
     async def identify(
         self, 
         image_bytes: bytes,
-        # sim, a gente só pega sem usar por que o plantnet não tem param pra isso
         latitude: float | None = None,
         longitude: float | None = None,
     ) -> IdentificationResult:
         image_b64 = base64.b64encode(image_bytes).decode()
-        params = {
+        params: dict[str, Any] = {
             "api-key": self._api_key,
             "include-related-images": "true",
             "nb-results": _NB_RESULTS,
@@ -77,4 +79,5 @@ class PlantNetAdapter(IPlantIdentifier):
             genus=taxonomy.get("genus"),
             common_names=common_names,
             similar_images=similar_images,
+            raw_response=data,
         )

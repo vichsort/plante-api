@@ -21,7 +21,7 @@ from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
 
 
 class AdaptersContainer(containers.DeclarativeContainer):
-    settings = providers.Dependency()
+    settings: providers.Dependency = providers.Dependency()
 
     weather_http = providers.Singleton(httpx.AsyncClient)
     password_hasher = providers.Singleton(BcryptHasher)
@@ -56,7 +56,7 @@ class AdaptersContainer(containers.DeclarativeContainer):
 
     image_storage = providers.Singleton(
         S3ImageStorage,
-        bucket=settings.provided.s3_bucket,
+        bucket_name=settings.provided.s3_bucket,
         region=settings.provided.aws_region,
         aws_access_key_id=settings.provided.aws_access_key_id,
         aws_secret_access_key=settings.provided.aws_secret_access_key,

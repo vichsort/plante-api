@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from src.domain.entities.plant_species import EnrichmentStatus, PlantSpecies
 
@@ -6,6 +7,10 @@ from src.domain.entities.plant_species import EnrichmentStatus, PlantSpecies
 class IPlantSpeciesRepository(ABC):
     @abstractmethod
     async def save(self, species: PlantSpecies) -> PlantSpecies:
+        ...
+
+    @abstractmethod
+    async def get_by_id(self, species_id: Any) -> PlantSpecies | None:
         ...
 
     @abstractmethod
@@ -22,5 +27,4 @@ class IPlantSpeciesRepository(ABC):
 
     @abstractmethod
     async def list_pending_enrichment(self, limit: int = 50) -> list[PlantSpecies]:
-        """Usado pelo Celery pra buscar espécies que ainda precisam de enriquecimento."""
         ...

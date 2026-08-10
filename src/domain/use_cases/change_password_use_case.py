@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from src.domain.exceptions import (
     InvalidCredentialsError,
@@ -13,7 +14,7 @@ _MIN_PASSWORD_LENGTH = 8
 
 @dataclass(frozen=True)
 class ChangePasswordInputDTO:
-    user_id: int
+    user_id: Any
     current_password: str
     new_password: str
 
@@ -32,7 +33,7 @@ class ChangePasswordUseCase:
     async def execute(self, dto: ChangePasswordInputDTO) -> None:
         user = await self.user_repo.get_by_id(dto.user_id)
         if user is None:
-            raise UserNotFoundError(dto.user_id)
+            raise UserNotFoundError(user_id=dto.user_id)
 
         if not self.hasher.verify(dto.current_password, user.hashed_password):
             raise InvalidCredentialsError()

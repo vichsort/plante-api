@@ -18,12 +18,10 @@ _BASE_URL = "https://plant.id/api/v3/"
 _DETAILS = "common_names,taxonomy,gbif_id,image,edible_parts,watering"
 
 class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
+    _headers: dict[str, str]
+
     def __init__(self, api_key: str) -> None:
         self._headers = {"Api-Key": api_key}
-
-    # ------------------------------------------------------------------ #
-    # IPlantIdentifier                                                   #
-    # ------------------------------------------------------------------ #
 
     async def identify(
         self, 
@@ -88,11 +86,8 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             genus=taxonomy.get("genus"),
             common_names=tuple(details.get("common_names") or []),
             similar_images=similar_images,
+            raw_response=data,
         )
-
-    # ------------------------------------------------------------------ #
-    # IHealthAnalyzer                                                    #
-    # ------------------------------------------------------------------ #
 
     async def assess_health(self, image_bytes: bytes) -> HealthAssessmentResult:
         image_b64 = base64.b64encode(image_bytes).decode()

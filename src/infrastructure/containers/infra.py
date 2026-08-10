@@ -8,7 +8,7 @@ def build_session_instance(session_factory: async_sessionmaker[AsyncSession]) ->
     return session_factory()
 
 class InfraContainer(containers.DeclarativeContainer):
-    settings = providers.Dependency()
+    settings: providers.Dependency = providers.Dependency()
 
     session_factory = providers.Singleton(
         build_session_factory,

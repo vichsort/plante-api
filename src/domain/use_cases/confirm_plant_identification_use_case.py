@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from src.domain.events.domain_events import PlantIdentificationConfirmedEvent
 from src.domain.exceptions import SampleNotFoundError, UserNotFoundError
@@ -12,8 +13,8 @@ from src.domain.ports.user_repository import IUserRepository
 
 @dataclass(frozen=True)
 class ConfirmPlantIdentificationInputDTO:
-    user_id: int
-    sample_id: int
+    user_id: Any
+    sample_id: Any
 
 class ConfirmPlantIdentificationUseCase:
     def __init__(
@@ -31,10 +32,10 @@ class ConfirmPlantIdentificationUseCase:
 
         user = await self._user_repo.get_by_id(dto.user_id)
         if user is None:
-            raise UserNotFoundError(dto.user_id)
+            raise UserNotFoundError(user_id=dto.user_id)
 
         sample = await self._sample_repo.get_by_id(dto.sample_id)
-        if sample is None or sample.user_id != dto.user_id:
+        if sample is None or str(sample.user_id) != str(dto.user_id):
             raise SampleNotFoundError(dto.sample_id)
 
         confirmed = sample.confirm(confirmed_at=now)
@@ -52,5 +53,5 @@ class ConfirmPlantIdentificationUseCase:
             "sample_id": confirmed.id,
             "scientific_name": confirmed.scientific_name,
             "status": confirmed.status.value,
-            "confirmed_at": confirmed.confirmed_at.isoformat(),
+            "confirmed_at": confirmed.confirmed_at.isoformat() if confirmed.confirmed_at else None,
         }

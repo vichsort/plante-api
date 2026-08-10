@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 
 class SampleStatus(Enum):
-    PENDING     = "pending"      # identificada, aguardando confirmação do usuário
-    CONFIRMED   = "confirmed"    # usuário adicionou ao jardim — ground truth válido
-    REJECTED    = "rejected"     # usuário descartou — sinal negativo para treino
+    PENDING     = "pending"
+    CONFIRMED   = "confirmed"
+    REJECTED    = "rejected"
 
 @dataclass(frozen=True)
 class PlantIdentificationSample:
@@ -14,21 +15,20 @@ class PlantIdentificationSample:
     Registro imutável de uma identificação para uso futuro em treino de IA.
     Não contém dados pessoais — user_id é anonimizado após confirmação.
     """
-    id: int | None
+    id: Any
     scientific_name: str
-    species_id: int
-    user_image_key: str             # storage_key da foto enviada pelo usuário
+    species_id: Any
+    user_image_key: str
     identification_confidence: float
-    identification_source: str      # "kindwise" | "plantnet" | "consensus"
-    raw_response: dict              # JSON bruto retornado pela IA — preserva tudo
+    identification_source: str
+    raw_response: dict
     status: SampleStatus
     created_at: datetime
 
-    user_id: int | None = None      # anonimizado (None) após confirmed + 30 dias
+    user_id: Any = None
     confirmed_at: datetime | None = None
     rejected_at: datetime | None = None
 
-    # Enriquecimentos opcionais — preenchidos progressivamente
     has_deep_analysis: bool = False
     has_nutritional_analysis: bool = False
 
@@ -50,12 +50,12 @@ class PlantIdentificationSample:
     def create(
         cls,
         scientific_name: str,
-        species_id: int,
+        species_id: Any,
         user_image_key: str,
         identification_confidence: float,
         identification_source: str,
         raw_response: dict,
-        user_id: int,
+        user_id: Any,
         created_at: datetime,
     ) -> "PlantIdentificationSample":
         return cls(
@@ -72,7 +72,6 @@ class PlantIdentificationSample:
         )
 
     def confirm(self, confirmed_at: datetime) -> "PlantIdentificationSample":
-        """Usuário adicionou ao jardim — ground truth positivo."""
         if confirmed_at.tzinfo is None:
             raise ValueError("confirmed_at must be timezone-aware.")
         return self._replace(
@@ -81,7 +80,6 @@ class PlantIdentificationSample:
         )
 
     def reject(self, rejected_at: datetime) -> "PlantIdentificationSample":
-        """Usuário descartou a identificação — sinal negativo."""
         if rejected_at.tzinfo is None:
             raise ValueError("rejected_at must be timezone-aware.")
         return self._replace(
@@ -96,12 +94,10 @@ class PlantIdentificationSample:
         return self._replace(has_nutritional_analysis=True)
 
     def anonymize(self) -> "PlantIdentificationSample":
-        """Remove user_id após janela de retenção (chamado pelo worker de 30 dias)."""
         return self._replace(user_id=None)
 
     @property
     def is_complete_for_training(self) -> bool:
-        """Objeto completo: confirmado + deep + nutritional."""
         return (
             self.status == SampleStatus.CONFIRMED
             and self.has_deep_analysis
@@ -109,6 +105,5 @@ class PlantIdentificationSample:
         )
 
     def _replace(self, **changes) -> "PlantIdentificationSample":
-        """Retorna nova instância com campos alterados — padrão para frozen dataclass."""
         from dataclasses import replace
         return replace(self, **changes)
