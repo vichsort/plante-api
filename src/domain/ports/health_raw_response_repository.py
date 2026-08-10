@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class IHealthRawResponseRepository(ABC):
     @abstractmethod
     async def save(self, health_record_id: int, raw_response: dict) -> None:

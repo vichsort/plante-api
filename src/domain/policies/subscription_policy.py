@@ -1,6 +1,7 @@
 from src.domain.entities.user import User
-from src.domain.value_objects.subscription_tier import FeatureCost
 from src.domain.exceptions import PlantLimitExceededError, SubscriptionRequiredError
+from src.domain.value_objects.subscription_tier import FeatureCost
+
 
 class SubscriptionPolicy:
     """
@@ -17,11 +18,11 @@ class SubscriptionPolicy:
         Avalia tanto o limite do jardim quanto o saldo de tokens diários.
         """
         # Verifica limite de plantas no jardim (apenas Free tem limite)
-        if not user.subscription_tier.can_add_plant(user.garden_count):
-            raise PlantLimitExceededError(limit=user.subscription_tier.max_plants)
+        if not user.subscription.can_add_plant(user.garden_count):
+            raise PlantLimitExceededError(limit=user.subscription.max_plants)
 
         # Verifica se tem tokens suficientes para a identificação
-        if not user.subscription_tier.can_consume(FeatureCost.IDENTIFY, user.tokens_used_today):
+        if not user.subscription.can_consume(FeatureCost.IDENTIFY, user.tokens_used_today):
             raise SubscriptionRequiredError(feature="Mais identificações diárias")
 
     @staticmethod
@@ -29,7 +30,7 @@ class SubscriptionPolicy:
         """
         Garante que o usuário tem saldo/plano para uma análise profunda.
         """
-        if not user.subscription_tier.can_consume(FeatureCost.DEEP_ANALYSIS, user.tokens_used_today):
+        if not user.subscription.can_consume(FeatureCost.DEEP_ANALYSIS, user.tokens_used_today):
             raise SubscriptionRequiredError(feature="Análise Profunda com IA")
 
     @staticmethod
@@ -38,8 +39,8 @@ class SubscriptionPolicy:
         Garante que o usuário pode adicionar uma planta ao jardim.
         Tokens não são verificados aqui — já foram consumidos na identificação.
         """
-        if not user.subscription_tier.can_add_plant(user.garden_count):
-            raise PlantLimitExceededError(limit=user.subscription_tier.max_plants)
+        if not user.subscription.can_add_plant(user.garden_count):
+            raise PlantLimitExceededError(limit=user.subscription.max_plants)
 
     @staticmethod
     def health_unhealthy_threshold() -> float:

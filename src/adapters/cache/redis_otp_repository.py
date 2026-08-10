@@ -1,5 +1,7 @@
 from redis.asyncio import Redis
+
 from src.domain.ports.otp_repository import IOtpRepository
+
 
 class RedisOtpRepository(IOtpRepository):
     _KEY_PREFIX = "otp:"

@@ -1,6 +1,7 @@
-from dataclasses import dataclass
-from datetime import datetime, timezone
 from abc import ABC
+from dataclasses import dataclass
+from datetime import UTC, datetime
+
 
 @dataclass(frozen=True)
 class DomainEvent(ABC):
@@ -20,7 +21,7 @@ class PlantIdentifiedEvent(DomainEvent):
     @classmethod
     def create(cls, user_id: int, species_id: int, is_first_plant: bool) -> 'PlantIdentifiedEvent':
         return cls(
-            occurred_on=datetime.now(timezone.utc),
+            occurred_on=datetime.now(UTC),
             user_id=user_id,
             species_id=species_id,
             is_first_plant=is_first_plant
@@ -39,7 +40,7 @@ class StreakBrokenEvent(DomainEvent):
     @classmethod
     def create(cls, user_id: int, user_plant_id: int, last_count: int) -> 'StreakBrokenEvent':
         return cls(
-            occurred_on=datetime.now(timezone.utc),
+            occurred_on=datetime.now(UTC),
             user_id=user_id,
             user_plant_id=user_plant_id,
             last_streak_count=last_count
@@ -65,7 +66,7 @@ class PlantAddedToGardenEvent(DomainEvent):
         is_first_plant: bool,
     ) -> "PlantAddedToGardenEvent":
         return cls(
-            occurred_on=datetime.now(timezone.utc),
+            occurred_on=datetime.now(UTC),
             user_id=user_id,
             user_plant_id=user_plant_id,
             species_id=species_id,
@@ -80,7 +81,7 @@ class UserRegisteredEvent(DomainEvent):
     @classmethod
     def create(cls, user_id: int, email: str) -> "UserRegisteredEvent":
         return cls(
-            occurred_on=datetime.now(timezone.utc),
+            occurred_on=datetime.now(UTC),
             user_id=user_id,
             email=email,
         )
@@ -99,7 +100,7 @@ class SubscriptionUpgradedEvent(DomainEvent):
         expires_at: datetime,
     ) -> "SubscriptionUpgradedEvent":
         return cls(
-            occurred_on=datetime.now(timezone.utc),
+            occurred_on=datetime.now(UTC),
             user_id=user_id,
             plan_name=plan_name,
             expires_at=expires_at,
@@ -124,7 +125,7 @@ class PlantIdentificationConfirmedEvent:
         scientific_name: str,
     ) -> "PlantIdentificationConfirmedEvent":
         return cls(
-            occurred_on=datetime.now(timezone.utc),
+            occurred_on=datetime.now(UTC),
             user_id=user_id,
             sample_id=sample_id,
             scientific_name=scientific_name,
@@ -152,7 +153,7 @@ class HealthDiagnosisConfirmedEvent:
         scientific_name: str,
     ) -> "HealthDiagnosisConfirmedEvent":
         return cls(
-            occurred_on=datetime.now(timezone.utc),
+            occurred_on=datetime.now(UTC),
             user_id=user_id,
             health_record_id=health_record_id,
             sample_id=sample_id,
@@ -177,7 +178,7 @@ class PlantWateredEvent(DomainEvent):
         current_streak: int
     ) -> 'PlantWateredEvent':
         return cls(
-            occurred_on=datetime.now(timezone.utc),
+            occurred_on=datetime.now(UTC),
             user_id=user_id,
             user_plant_id=user_plant_id,
             current_streak=current_streak,

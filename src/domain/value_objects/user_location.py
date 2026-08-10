@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class UserLocation:
     country: str  # ISO 3166-1 alpha-2, ex: "BR"

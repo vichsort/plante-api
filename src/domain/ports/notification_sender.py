@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 
+
 class NotificationType(Enum):
     CARE_REMINDER = "care_reminder"         # lembrete de rega/poda
     WEATHER_ALERT = "weather_alert"         # evento climático crítico

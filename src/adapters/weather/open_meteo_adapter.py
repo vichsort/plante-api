@@ -1,16 +1,17 @@
-import httpx
-import structlog
 from datetime import date
 
+import httpx
+import structlog
+
+from src.adapters.weather.nominatim_geocoder import GeocodingError, NominatimGeocoder
 from src.domain.ports.weather_service import (
-    IWeatherService,
     DailyWeather,
+    IWeatherService,
     WeatherContext,
     WeatherSeverity,
 )
-from src.domain.value_objects.user_location import UserLocation
 from src.domain.value_objects.geo_coordinates import GeoCoordinates
-from src.adapters.weather.nominatim_geocoder import NominatimGeocoder, GeocodingError
+from src.domain.value_objects.user_location import UserLocation
 
 log = structlog.get_logger()
 

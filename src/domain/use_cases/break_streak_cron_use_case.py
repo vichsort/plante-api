@@ -1,7 +1,9 @@
-from datetime import datetime, timezone
-from src.domain.ports.user_plant_repository import IUserPlantRepository
-from src.domain.ports.domain_publisher import IDomainPublisher
+from datetime import UTC, datetime
+
 from src.domain.events.domain_events import StreakBrokenEvent
+from src.domain.ports.domain_publisher import IDomainPublisher
+from src.domain.ports.user_plant_repository import IUserPlantRepository
+
 
 class BreakStreakCronUseCase:
     def __init__(
@@ -17,7 +19,7 @@ class BreakStreakCronUseCase:
         Varre plantas atrasadas e reseta ofensivas. 
         Idealmente executado logo após o fim da carência (ex: 08:01 AM).
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         
         # O repositório deve implementar uma busca eficiente por plantas atrasadas
         # que ainda possuem streak > 1.

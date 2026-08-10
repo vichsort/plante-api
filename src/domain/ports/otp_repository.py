@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class IOtpRepository(ABC):
     """
     Porta de saída para armazenamento de senhas de uso único (OTPs).

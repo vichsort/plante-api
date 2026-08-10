@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class IPasswordHasher(ABC):
     """
     Porta de hashing da senha do usuário.

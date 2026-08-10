@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class IImageStorage(ABC):
     """
     Porta de saída para armazenamento permanente de imagens.

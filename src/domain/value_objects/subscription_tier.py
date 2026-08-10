@@ -1,5 +1,5 @@
 from enum import Enum
-import math
+
 
 class FeatureCost(int, Enum):
     """Mapeia o custo em tokens de cada ação de IA."""

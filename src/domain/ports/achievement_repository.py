@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class IAchievementRepository(ABC):
     """
     Porta para gerenciar e consultar as conquistas (badges) dos usuários.

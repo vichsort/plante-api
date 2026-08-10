@@ -1,5 +1,7 @@
 import json
+
 from redis.asyncio import Redis
+
 from src.domain.ports.health_raw_response_repository import IHealthRawResponseRepository
 
 _KEY_PREFIX = "health_raw:"

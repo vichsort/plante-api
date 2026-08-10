@@ -1,14 +1,31 @@
 from dependency_injector import containers, providers
 
+from src.adapters.persistence.repositories.achievement_repository import (
+    AchievementRepository,
+)
+from src.adapters.persistence.repositories.health_identification_sample_repository import (
+    HealthIdentificationSampleRepository,
+)
+from src.adapters.persistence.repositories.health_record_repository import (
+    HealthRecordRepository,
+)
+from src.adapters.persistence.repositories.identification_sample_repository import (
+    IdentificationSampleRepository,
+)
+from src.adapters.persistence.repositories.plant_nutritional_repository import (
+    PlantNutritionalRepository,
+)
+from src.adapters.persistence.repositories.plant_reference_image_repository import (
+    PlantReferenceImageRepository,
+)
+from src.adapters.persistence.repositories.plant_species_repository import (
+    PlantSpeciesRepository,
+)
+from src.adapters.persistence.repositories.user_plant_repository import (
+    UserPlantRepository,
+)
 from src.adapters.persistence.repositories.user_repository import UserRepository
-from src.adapters.persistence.repositories.user_plant_repository import UserPlantRepository
-from src.adapters.persistence.repositories.plant_species_repository import PlantSpeciesRepository
-from src.adapters.persistence.repositories.plant_nutritional_repository import PlantNutritionalRepository
-from src.adapters.persistence.repositories.plant_reference_image_repository import PlantReferenceImageRepository
-from src.adapters.persistence.repositories.health_record_repository import HealthRecordRepository
-from src.adapters.persistence.repositories.identification_sample_repository import IdentificationSampleRepository
-from src.adapters.persistence.repositories.achievement_repository import AchievementRepository
-from src.adapters.persistence.repositories.health_identification_sample_repository import HealthIdentificationSampleRepository
+
 
 class RepositoriesContainer(containers.DeclarativeContainer):
     session = providers.Dependency()

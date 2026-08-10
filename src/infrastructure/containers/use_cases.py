@@ -1,27 +1,38 @@
 from dependency_injector import containers, providers
 
+from src.domain.use_cases.add_plant_to_garden_use_case import AddPlantToGardenUseCase
+from src.domain.use_cases.break_streak_cron_use_case import BreakStreakCronUseCase
 from src.domain.use_cases.change_email_use_case import ChangeEmailUseCase
 from src.domain.use_cases.change_password_use_case import ChangePasswordUseCase
-from src.domain.use_cases.register_user_use_case import RegisterUserUseCase
-from src.domain.use_cases.verify_email_use_case import VerifyEmailUseCase
-from src.domain.use_cases.upgrade_subscription_use_case import UpgradeSubscriptionUseCase
-from src.domain.use_cases.update_location_fallback_use_case import UpdateLocationFallbackUseCase
-from src.domain.use_cases.add_plant_to_garden_use_case import AddPlantToGardenUseCase
+from src.domain.use_cases.confirm_health_diagnosis_use_case import (
+    ConfirmHealthDiagnosisUseCase,
+)
+from src.domain.use_cases.confirm_plant_identification_use_case import (
+    ConfirmPlantIdentificationUseCase,
+)
 from src.domain.use_cases.delete_user_plant_use_case import DeleteUserPlantUseCase
-from src.domain.use_cases.get_user_garden_use_case import GetUserGardenUseCase
-from src.domain.use_cases.get_plant_details_use_case import GetPlantDetailsUseCase
-from src.domain.use_cases.identify_plant_use_case import IdentifyPlantUseCase
-from src.domain.use_cases.enrich_plant_species_use_case import EnrichPlantSpeciesUseCase
-from src.domain.use_cases.water_plant_use_case import WaterPlantUseCase
-from src.domain.use_cases.break_streak_cron_use_case import BreakStreakCronUseCase
-from src.domain.use_cases.list_user_achievements_use_case import ListUserAchievementsUseCase
-from src.domain.use_cases.login_use_case import LoginUseCase
-from src.domain.use_cases.refresh_token_use_case import RefreshTokenUseCase
-from src.domain.use_cases.logout_use_case import LogoutUseCase
 from src.domain.use_cases.diagnose_health_use_case import DiagnoseHealthUseCase
+from src.domain.use_cases.enrich_plant_species_use_case import EnrichPlantSpeciesUseCase
 from src.domain.use_cases.get_health_history_use_case import GetHealthHistoryUseCase
-from src.domain.use_cases.confirm_plant_identification_use_case import ConfirmPlantIdentificationUseCase
-from src.domain.use_cases.confirm_health_diagnosis_use_case import ConfirmHealthDiagnosisUseCase
+from src.domain.use_cases.get_plant_details_use_case import GetPlantDetailsUseCase
+from src.domain.use_cases.get_user_garden_use_case import GetUserGardenUseCase
+from src.domain.use_cases.identify_plant_use_case import IdentifyPlantUseCase
+from src.domain.use_cases.list_user_achievements_use_case import (
+    ListUserAchievementsUseCase,
+)
+from src.domain.use_cases.login_use_case import LoginUseCase
+from src.domain.use_cases.logout_use_case import LogoutUseCase
+from src.domain.use_cases.refresh_token_use_case import RefreshTokenUseCase
+from src.domain.use_cases.register_user_use_case import RegisterUserUseCase
+from src.domain.use_cases.update_location_fallback_use_case import (
+    UpdateLocationFallbackUseCase,
+)
+from src.domain.use_cases.upgrade_subscription_use_case import (
+    UpgradeSubscriptionUseCase,
+)
+from src.domain.use_cases.verify_email_use_case import VerifyEmailUseCase
+from src.domain.use_cases.water_plant_use_case import WaterPlantUseCase
+
 
 class UseCasesContainer(containers.DeclarativeContainer):
     settings = providers.Dependency()

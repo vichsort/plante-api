@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+
 from src.domain.entities.health_record import HealthRecord
+
 
 class IHealthRecordRepository(ABC):
     @abstractmethod

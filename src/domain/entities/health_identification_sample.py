@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
+
 class HealthSampleStatus(Enum):
     PENDING = "pending"       # diagnóstico salvo, aguardando confirmação do usuário
     CONFIRMED = "confirmed"   # usuário confirmou que a planta está doente

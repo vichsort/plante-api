@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
-from src.domain.entities.plant_species import PlantSpecies, EnrichmentStatus
+
+from src.domain.entities.plant_species import EnrichmentStatus, PlantSpecies
+
 
 class IPlantSpeciesRepository(ABC):
     @abstractmethod

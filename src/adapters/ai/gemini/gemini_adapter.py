@@ -1,7 +1,8 @@
 from google import genai
-from src.domain.ports.plant_enricher import IPlantEnricher
+
 from src.adapters.ai.gemini.prompt_builder import GeminiPromptBuilder
 from src.adapters.ai.gemini.response_parser import GeminiResponseParser
+from src.domain.ports.plant_enricher import IPlantEnricher
 
 _MODEL = "gemini-2.5-flash"
 

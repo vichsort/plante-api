@@ -1,5 +1,6 @@
-from src.domain.entities.plant_species import LightRequirement, SoilType
 from src.domain.entities.health_record import HealthSeverity
+from src.domain.entities.plant_species import LightRequirement, SoilType
+
 
 class GeminiResponseParser:
     @staticmethod

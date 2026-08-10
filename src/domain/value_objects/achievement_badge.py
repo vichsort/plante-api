@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class AchievementBadge(Enum):
     """
     Catálogo central e imutável de conquistas.

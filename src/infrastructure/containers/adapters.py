@@ -1,21 +1,24 @@
-from dependency_injector import containers, providers
 import httpx
+from dependency_injector import containers, providers
 from redis.asyncio import Redis
 
-from src.adapters.security.bcrypt_hasher import BcryptHasher
-from src.adapters.events.celery_publisher import CeleryPublisher
-from src.adapters.cache.redis_health_raw_response_repository import RedisHealthRawResponseRepository
+from src.adapters.ai.consensus.consensus_adapter import ConsensusIdentifier
+from src.adapters.ai.gemini.gemini_adapter import GeminiAdapter
+from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
+from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
+from src.adapters.cache.redis_health_raw_response_repository import (
+    RedisHealthRawResponseRepository,
+)
 from src.adapters.cache.redis_otp_repository import RedisOtpRepository
 from src.adapters.cache.redis_token_repository import RedisTokenRepository
 from src.adapters.email.ses_email_sender import SesEmailSender
-from src.adapters.storage.s3_image_storage import S3ImageStorage
+from src.adapters.events.celery_publisher import CeleryPublisher
 from src.adapters.notifications.firebase_adapter import FirebaseAdapter
-from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
-from src.adapters.ai.gemini.gemini_adapter import GeminiAdapter
+from src.adapters.security.bcrypt_hasher import BcryptHasher
+from src.adapters.storage.s3_image_storage import S3ImageStorage
 from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
 from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
-from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
-from src.adapters.ai.consensus.consensus_adapter import ConsensusIdentifier
+
 
 class AdaptersContainer(containers.DeclarativeContainer):
     settings = providers.Dependency()

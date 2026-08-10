@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 import jwt
 import structlog
 
-from src.domain.ports.token_repository import ITokenRepository
 from src.domain.exceptions import UnauthorizedError
+from src.domain.ports.token_repository import ITokenRepository
 
 log = structlog.get_logger()
 
@@ -47,7 +48,7 @@ class RefreshTokenUseCase:
         if stored != refresh_token:
             raise UnauthorizedError("Refresh token revoked or superseded.")
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         access_token = jwt.encode(
             {
                 "sub": str(user_id),

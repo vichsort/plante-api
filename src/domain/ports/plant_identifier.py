@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+
 from src.domain.value_objects.confidence_score import ConfidenceScore
+
 
 @dataclass(frozen=True)
 class SimilarImage:

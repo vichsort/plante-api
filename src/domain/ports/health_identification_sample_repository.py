@@ -3,6 +3,7 @@ from datetime import datetime
 
 from src.domain.entities.health_identification_sample import HealthIdentificationSample
 
+
 class IHealthIdentificationSampleRepository(ABC):
     @abstractmethod
     async def save(self, sample: HealthIdentificationSample) -> HealthIdentificationSample:

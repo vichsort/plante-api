@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
+
 class SampleStatus(Enum):
     PENDING     = "pending"      # identificada, aguardando confirmação do usuário
     CONFIRMED   = "confirmed"    # usuário adicionou ao jardim — ground truth válido

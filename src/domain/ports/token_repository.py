@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class ITokenRepository(ABC):
     @abstractmethod
     async def save_refresh_token(

@@ -1,5 +1,7 @@
 import boto3
+
 from src.domain.ports.email_sender import IEmailSender
+
 
 class SesEmailSender(IEmailSender):
     def __init__(self, region: str, sender_email: str) -> None:
@@ -16,6 +18,20 @@ class SesEmailSender(IEmailSender):
                 Message={
                     "Subject": {"Data": "Seu código PlantE"},
                     "Body": {"Text": {"Data": f"Seu código de verificação: {code}"}},
+                },
+            ),
+        )
+
+    async def send_password_changed_notice(self, to_email: str) -> None:
+        import asyncio
+        await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: self._client.send_email(
+                Source=self._sender,
+                Destination={"ToAddresses": [to_email]},
+                Message={
+                    "Subject": {"Data": "Sua senha PlantE foi alterada"},
+                    "Body": {"Text": {"Data": "Sua senha do PlantE foi alterada com sucesso."}},
                 },
             ),
         )

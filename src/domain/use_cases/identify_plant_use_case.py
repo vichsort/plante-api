@@ -1,18 +1,22 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.domain.entities.plant_identification_sample import PlantIdentificationSample
-from src.domain.entities.plant_reference_image import PlantReferenceImage, ImageSource
+from src.domain.entities.plant_reference_image import ImageSource, PlantReferenceImage
 from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.user_plant import UserPlant
 from src.domain.events.domain_events import PlantIdentifiedEvent
 from src.domain.exceptions import LowConfidenceError, UserNotFoundError
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.domain_publisher import IDomainPublisher
-from src.domain.ports.identification_sample_repository import IIdentificationSampleRepository
+from src.domain.ports.identification_sample_repository import (
+    IIdentificationSampleRepository,
+)
 from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.plant_identifier import IPlantIdentifier
-from src.domain.ports.plant_reference_image_repository import IPlantReferenceImageRepository
+from src.domain.ports.plant_reference_image_repository import (
+    IPlantReferenceImageRepository,
+)
 from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
@@ -48,7 +52,7 @@ class IdentifyPlantUseCase:
         self.publisher = publisher
 
     async def execute(self, dto: IdentifyPlantInputDTO) -> dict:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         user = await self.user_repo.get_by_id(dto.user_id)
         if user is None:

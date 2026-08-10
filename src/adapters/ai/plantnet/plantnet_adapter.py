@@ -1,6 +1,12 @@
 import base64
+
 import httpx
-from src.domain.ports.plant_identifier import IPlantIdentifier, IdentificationResult, SimilarImage
+
+from src.domain.ports.plant_identifier import (
+    IdentificationResult,
+    IPlantIdentifier,
+    SimilarImage,
+)
 from src.domain.value_objects.confidence_score import ConfidenceScore
 
 _BASE_URL = "https://my-api.plantnet.org/v2/identify"

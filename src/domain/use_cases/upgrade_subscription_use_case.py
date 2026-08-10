@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
-from src.domain.exceptions import UserNotFoundError
-from src.domain.ports.user_repository import IUserRepository
-from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.events.domain_events import SubscriptionUpgradedEvent
+from src.domain.exceptions import UserNotFoundError
+from src.domain.ports.domain_publisher import IDomainPublisher
+from src.domain.ports.user_repository import IUserRepository
+
 
 @dataclass(frozen=True)
 class UpgradeSubscriptionInputDTO:
@@ -25,7 +26,7 @@ class UpgradeSubscriptionUseCase:
         if not user:
             raise UserNotFoundError(dto.user_id)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expires_at = now + timedelta(days=dto.plan_duration_days)
 
         user.upgrade_to_pro(expires_at=expires_at)

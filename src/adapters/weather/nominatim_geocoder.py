@@ -1,14 +1,19 @@
 import httpx
 import structlog
-from src.domain.exceptions import ExternalServiceError, GeocodingError
-from src.domain.value_objects.user_location import UserLocation
+
+from src.domain.exceptions import ExternalServiceError
 from src.domain.value_objects.geo_coordinates import GeoCoordinates
+from src.domain.value_objects.user_location import UserLocation
 
 log = structlog.get_logger()
 
 _NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
-# Obrigatório pelo ToS da OSM — identifica sua aplicação
 _HEADERS = {"User-Agent": "PlantE/2.0 (contact@plante.app)"}
+
+
+class GeocodingError(ExternalServiceError):
+    """Exceção levantada quando ocorre um erro de geocodificação."""
+    pass
 
 
 class NominatimGeocoder:
@@ -30,7 +35,7 @@ class NominatimGeocoder:
 
         results = response.json()
         if not results:
-            raise ExternalServiceError(f"No results for location: {location}")
+            raise GeocodingError(f"No results for location: {location}")
 
         first = results[0]
         coords = GeoCoordinates(

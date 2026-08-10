@@ -1,20 +1,23 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.domain.events.domain_events import PlantAddedToGardenEvent
 from src.domain.exceptions import (
-    UserNotFoundError,
-    PlantNotFoundError,
     ForbiddenError,
-    SpeciesNotFoundError,
+    PlantNotFoundError,
     SampleNotFoundError,
+    SpeciesNotFoundError,
+    UserNotFoundError,
 )
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.domain_publisher import IDomainPublisher
-from src.domain.ports.identification_sample_repository import IIdentificationSampleRepository
+from src.domain.ports.identification_sample_repository import (
+    IIdentificationSampleRepository,
+)
 from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
+
 
 @dataclass(frozen=True)
 class AddPlantToGardenInputDTO:
@@ -38,7 +41,7 @@ class AddPlantToGardenUseCase:
         self.publisher = publisher
 
     async def execute(self, dto: AddPlantToGardenInputDTO) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         user = await self.user_repo.get_by_id(dto.user_id)
         if user is None:

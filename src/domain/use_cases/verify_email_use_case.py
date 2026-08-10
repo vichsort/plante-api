@@ -1,8 +1,10 @@
 from dataclasses import dataclass
-from src.domain.exceptions import UserNotFoundError, InvalidVerificationCodeError
-from src.domain.value_objects.verification_code import VerificationCode
-from src.domain.ports.user_repository import IUserRepository
+
+from src.domain.exceptions import InvalidVerificationCodeError, UserNotFoundError
 from src.domain.ports.otp_repository import IOtpRepository
+from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.verification_code import VerificationCode
+
 
 @dataclass(frozen=True)
 class VerifyEmailInputDTO:

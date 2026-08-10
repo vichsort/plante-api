@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
 from src.domain.exceptions import (
-    UserNotFoundError,
     InvalidCredentialsError,
+    UserNotFoundError,
     WeakPasswordError,
 )
 from src.domain.ports.email_sender import IEmailSender

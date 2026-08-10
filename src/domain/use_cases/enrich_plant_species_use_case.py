@@ -1,9 +1,15 @@
 from dataclasses import dataclass
+
+from src.domain.exceptions import (
+    ExternalServiceError,
+    PlantNotFoundError,
+    UserNotFoundError,
+)
 from src.domain.policies.subscription_policy import SubscriptionPolicy
-from src.domain.exceptions import UserNotFoundError, PlantNotFoundError, ExternalServiceError
-from src.domain.ports.user_repository import IUserRepository
-from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
 from src.domain.ports.plant_enricher import IPlantEnricher
+from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
+from src.domain.ports.user_repository import IUserRepository
+
 
 @dataclass(frozen=True)
 class EnrichPlantInputDTO:
@@ -39,7 +45,7 @@ class EnrichPlantSpeciesUseCase:
             # O 'enricher' já faz os 3 retries internamente e retorna um DTO tipado.
             try:
                 enriched_data = self.enricher.enrich_botanical_data(species.scientific_name)
-            except Exception as e:
+            except Exception:
                 # Se após 3 tentativas o Gemini falhar ou der timeout, abortamos a transação.
                 raise ExternalServiceError(message="Nossos botânicos de IA estão indisponíveis no momento. Tente novamente mais tarde.", code="AI_UNAVAILABLE")
             

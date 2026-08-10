@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta, date, timezone
+from datetime import date, datetime, timedelta
+
 
 @dataclass(frozen=True)
 class Streak:

@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
+
 class EnrichmentStatus(Enum):
     PENDING = "pending"
     ENRICHED = "enriched"

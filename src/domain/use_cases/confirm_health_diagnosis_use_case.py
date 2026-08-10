@@ -1,12 +1,16 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.domain.entities.health_identification_sample import (
     HealthIdentificationSample,
     HealthSampleStatus,
 )
 from src.domain.events.domain_events import HealthDiagnosisConfirmedEvent
-from src.domain.exceptions import HealthRecordNotFoundError, RawResponseExpiredError, UserNotFoundError
+from src.domain.exceptions import (
+    HealthRecordNotFoundError,
+    RawResponseExpiredError,
+    UserNotFoundError,
+)
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.health_identification_sample_repository import (
     IHealthIdentificationSampleRepository,
@@ -15,6 +19,7 @@ from src.domain.ports.health_raw_response_repository import IHealthRawResponseRe
 from src.domain.ports.health_record_repository import IHealthRecordRepository
 from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.user_repository import IUserRepository
+
 
 @dataclass(frozen=True)
 class ConfirmHealthDiagnosisInputDTO:
@@ -40,7 +45,7 @@ class ConfirmHealthDiagnosisUseCase:
         self._publisher = publisher
 
     async def execute(self, dto: ConfirmHealthDiagnosisInputDTO) -> dict:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         user = await self._user_repo.get_by_id(dto.user_id)
         if user is None:

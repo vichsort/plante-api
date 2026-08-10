@@ -1,12 +1,13 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 import jwt
 import structlog
 
-from src.domain.ports.user_repository import IUserRepository
+from src.domain.exceptions import UnauthorizedError
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.token_repository import ITokenRepository
-from src.domain.exceptions import UnauthorizedError
+from src.domain.ports.user_repository import IUserRepository
 
 log = structlog.get_logger()
 
@@ -41,10 +42,10 @@ class LoginUseCase:
         if not user or not self._hasher.verify(password, user.hashed_password):
             raise UnauthorizedError("Invalid email or password.")
 
-        if not user.is_email_verified:
+        if not user.is_verified:
             raise UnauthorizedError("Email not verified.")
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         access_token = jwt.encode(
             {

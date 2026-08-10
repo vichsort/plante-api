@@ -1,8 +1,8 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.domain.entities.health_record import HealthRecord, HealthSeverity
-from src.domain.exceptions import UserNotFoundError, PlantNotFoundError
+from src.domain.exceptions import PlantNotFoundError, UserNotFoundError
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.health_analyzer import IHealthAnalyzer
 from src.domain.ports.health_raw_response_repository import IHealthRawResponseRepository
@@ -11,6 +11,7 @@ from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.plant_enricher import IPlantEnricher
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
+
 
 def _map_severity(vitality: float) -> HealthSeverity:
     if vitality >= 0.85:
@@ -49,7 +50,7 @@ class DiagnoseHealthUseCase:
         self._health_raw_repo = health_raw_repo
 
     async def execute(self, dto: DiagnoseHealthInputDTO) -> dict:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         user = await self._user_repo.get_by_id(dto.user_id)
         if not user:

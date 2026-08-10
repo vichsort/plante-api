@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
+
 class ImageSource(Enum):
     KINDWISE_SIMILAR = "kindwise_similar"   # URL retornada pela Kindwise como imagem similar
     USER_CONFIRMED = "user_confirmed"       # Foto de usuário que confirmou a identificação

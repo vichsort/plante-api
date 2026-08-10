@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+
 from src.domain.entities.plant_reference_image import PlantReferenceImage
+
 
 class IPlantReferenceImageRepository(ABC):
 

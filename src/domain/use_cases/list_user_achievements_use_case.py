@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+
 from src.domain.ports.achievement_repository import IAchievementRepository
+
 
 @dataclass(frozen=True)
 class ListUserAchievementsInputDTO:

@@ -1,7 +1,17 @@
-import httpx
 import base64
-from src.domain.ports.health_analyzer import IHealthAnalyzer, HealthAssessmentResult, DiseaseHint
-from src.domain.ports.plant_identifier import IPlantIdentifier, IdentificationResult, SimilarImage
+
+import httpx
+
+from src.domain.ports.health_analyzer import (
+    DiseaseHint,
+    HealthAssessmentResult,
+    IHealthAnalyzer,
+)
+from src.domain.ports.plant_identifier import (
+    IdentificationResult,
+    IPlantIdentifier,
+    SimilarImage,
+)
 from src.domain.value_objects.confidence_score import ConfidenceScore
 
 _BASE_URL = "https://plant.id/api/v3/"

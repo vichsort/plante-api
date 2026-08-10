@@ -1,9 +1,11 @@
-from datetime import datetime, timezone
-from enum import Enum
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from enum import Enum
+
 from src.domain.entities.care_schedule import CareSchedule
 from src.domain.exceptions import PlantNotReadyForWateringError
 from src.domain.value_objects.streak import Streak
+
 
 class IdentificationStatus(Enum):
     PENDING_ENRICHMENT = "pending_enrichment"
@@ -43,7 +45,7 @@ class UserPlant:
 
     @property
     def needs_watering(self) -> bool:
-        return self.care_schedule.is_overdue(datetime.now(timezone.utc))
+        return self.care_schedule.is_overdue(datetime.now(UTC))
 
     def water(self, action_time: datetime) -> None:
         if (

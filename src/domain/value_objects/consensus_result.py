@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
+
 from src.domain.value_objects.confidence_score import ConfidenceScore
+
 
 class ConsensusReason(Enum):
     EXACT_MATCH = "exact_match"           # scientific_name igual nas duas APIs

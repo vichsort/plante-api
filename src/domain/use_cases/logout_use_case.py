@@ -1,4 +1,5 @@
 import structlog
+
 from src.domain.ports.token_repository import ITokenRepository
 
 log = structlog.get_logger()

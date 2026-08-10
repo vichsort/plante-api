@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from src.domain.exceptions import (
     ForbiddenError,
@@ -7,9 +7,12 @@ from src.domain.exceptions import (
     SampleNotFoundError,
     UserNotFoundError,
 )
-from src.domain.ports.identification_sample_repository import IIdentificationSampleRepository
+from src.domain.ports.identification_sample_repository import (
+    IIdentificationSampleRepository,
+)
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
+
 
 @dataclass(frozen=True)
 class DeleteUserPlantInputDTO:
@@ -29,9 +32,9 @@ class DeleteUserPlantUseCase:
         self.sample_repo = sample_repo
 
     async def execute(self, dto: DeleteUserPlantInputDTO) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
-        plant = await self.user_plant_repo.get_by_id(dto.user_plant_id)
+        plant = await self.user_plant_repo.get_by_id(dto.user_plant_id, dto.user_id)
         if plant is None:
             raise PlantNotFoundError(dto.user_plant_id)
 
@@ -49,7 +52,7 @@ class DeleteUserPlantUseCase:
         user.remove_plant_from_garden()
         rejected_sample = sample.reject(rejected_at=now)
 
-        await self.user_plant_repo.delete(plant)
+        await self.user_plant_repo.delete(user_plant_id=dto.user_plant_id, user_id=dto.user_id)
         await self.user_repo.save(user)
         await self.sample_repo.save(rejected_sample)
 

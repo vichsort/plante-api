@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+
 from src.domain.exceptions import PlantNotFoundError
-from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.health_record_repository import IHealthRecordRepository
+from src.domain.ports.user_plant_repository import IUserPlantRepository
+
 
 @dataclass(frozen=True)
 class GetHealthHistoryInputDTO:

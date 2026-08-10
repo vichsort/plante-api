@@ -1,6 +1,7 @@
 import structlog
-from src.domain.ports.domain_publisher import IDomainPublisher
+
 from src.domain.events.domain_events import DomainEvent, UserRegisteredEvent
+from src.domain.ports.domain_publisher import IDomainPublisher
 
 log = structlog.get_logger()
 

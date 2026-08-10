@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+
 from src.domain.events.domain_events import DomainEvent
+
 
 class IDomainPublisher(ABC):
     """

@@ -1,10 +1,11 @@
 from dependency_injector import containers, providers
 
-from src.infrastructure.settings import Settings
-from src.infrastructure.containers.infra import InfraContainer
 from src.infrastructure.containers.adapters import AdaptersContainer
+from src.infrastructure.containers.infra import InfraContainer
 from src.infrastructure.containers.repositories import RepositoriesContainer
 from src.infrastructure.containers.use_cases import UseCasesContainer
+from src.infrastructure.settings import Settings
+
 
 class Container(containers.DeclarativeContainer):
 

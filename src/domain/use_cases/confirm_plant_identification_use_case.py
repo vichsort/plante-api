@@ -1,12 +1,14 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from src.domain.entities.plant_identification_sample import SampleStatus
 from src.domain.events.domain_events import PlantIdentificationConfirmedEvent
 from src.domain.exceptions import SampleNotFoundError, UserNotFoundError
 from src.domain.ports.domain_publisher import IDomainPublisher
-from src.domain.ports.identification_sample_repository import IIdentificationSampleRepository
+from src.domain.ports.identification_sample_repository import (
+    IIdentificationSampleRepository,
+)
 from src.domain.ports.user_repository import IUserRepository
+
 
 @dataclass(frozen=True)
 class ConfirmPlantIdentificationInputDTO:
@@ -25,7 +27,7 @@ class ConfirmPlantIdentificationUseCase:
         self._publisher = publisher
 
     async def execute(self, dto: ConfirmPlantIdentificationInputDTO) -> dict:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         user = await self._user_repo.get_by_id(dto.user_id)
         if user is None:

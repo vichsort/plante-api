@@ -1,10 +1,11 @@
 from __future__ import annotations
-from dataclasses import dataclass
-from src.domain.value_objects.user_location import UserLocation
-from datetime import datetime
+
 import re
+from dataclasses import dataclass
+from datetime import datetime
 
 from src.domain.value_objects.subscription_tier import SubscriptionTier
+from src.domain.value_objects.user_location import UserLocation
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 

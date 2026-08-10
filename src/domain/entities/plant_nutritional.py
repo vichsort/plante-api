@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 
+
 @dataclass(frozen=True)
 class PlantNutritional:
     scientific_name: str

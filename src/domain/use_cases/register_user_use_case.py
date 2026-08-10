@@ -1,10 +1,13 @@
 from dataclasses import dataclass
-from src.domain.exceptions import EmailAlreadyInUseError
+from datetime import UTC
+
 from src.domain.entities.user import User
-from src.domain.ports.user_repository import IUserRepository
-from src.domain.ports.password_hasher import IPasswordHasher
-from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.events.domain_events import UserRegisteredEvent
+from src.domain.exceptions import EmailAlreadyInUseError
+from src.domain.ports.domain_publisher import IDomainPublisher
+from src.domain.ports.password_hasher import IPasswordHasher
+from src.domain.ports.user_repository import IUserRepository
+
 
 @dataclass(frozen=True)
 class RegisterUserInputDTO:
@@ -30,17 +33,22 @@ class RegisterUserUseCase:
 
         hashed_pw = self.hasher.hash(dto.password)
 
+        from datetime import datetime
+
+        from src.domain.value_objects.user_location import UserLocation
+
+        now = datetime.now(UTC)
         user = User.create_new(
             email=dto.email,
             hashed_password=hashed_pw,
-            country=dto.country,
-            state=dto.state,
+            location=UserLocation(country=dto.country, state=dto.state),
+            current_time=now,
         )
 
         saved_user = await self.user_repo.save(user)
 
         event = UserRegisteredEvent.create(user_id=saved_user.id, email=saved_user.email)
-        self.publisher.publish(event)
+        await self.publisher.publish(event)
 
         return {
             "user_id": saved_user.id,

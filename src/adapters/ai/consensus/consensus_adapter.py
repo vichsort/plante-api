@@ -1,8 +1,12 @@
 import asyncio
+
 import structlog
-from src.domain.ports.plant_identifier import IPlantIdentifier, IdentificationResult, SimilarImage
+
 from src.domain.policies.consensus_policy import ConsensusPolicy
-from src.domain.value_objects.confidence_score import ConfidenceScore
+from src.domain.ports.plant_identifier import (
+    IdentificationResult,
+    IPlantIdentifier,
+)
 
 log = structlog.get_logger()
 
@@ -64,7 +68,7 @@ class ConsensusIdentifier(IPlantIdentifier):
                 identifier.identify(image_bytes, latitude=latitude, longitude=longitude),
                 timeout=_TIMEOUT_SECONDS,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             log.warning("consensus.timeout", source=source)
             return None
         except Exception as e:

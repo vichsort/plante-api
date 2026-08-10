@@ -2,8 +2,10 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date
 from enum import Enum
-from src.domain.value_objects.user_location import UserLocation
+
 from src.domain.value_objects.geo_coordinates import GeoCoordinates
+from src.domain.value_objects.user_location import UserLocation
+
 
 class WeatherSeverity(Enum):
     NORMAL = "normal"

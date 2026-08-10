@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+
 from src.domain.exceptions import UserNotFoundError
 from src.domain.ports.user_repository import IUserRepository
 from src.domain.value_objects.user_location import UserLocation
+
 
 @dataclass(frozen=True)
 class UpdateLocationFallbackInputDTO:

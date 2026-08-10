@@ -2,25 +2,11 @@ import asyncio
 import sys
 from logging.config import fileConfig
 
-from sqlalchemy.ext.asyncio import async_engine_from_config
-from sqlalchemy import pool
-
 from alembic import context
+from sqlalchemy import pool
+from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from src.adapters.persistence.models.base import Base
-from src.adapters.persistence.models import (
-    achievement_model,
-    health_identification_sample_model,
-    health_record_model,
-    plant_identification_sample_model,
-    plant_nutritional_model,
-    plant_reference_image_model,
-    plant_species_model,
-    user_model,
-    user_plant_model,
-)
-
-
 from src.infrastructure.settings import get_settings
 
 settings = get_settings()

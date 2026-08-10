@@ -1,6 +1,7 @@
+import random
 import re
 from dataclasses import dataclass
-import random
+
 
 @dataclass(frozen=True)
 class VerificationCode:
@@ -19,10 +20,10 @@ class VerificationCode:
             raise ValueError("O código de verificação está em um formato inválido.")
             
         # Extraímos as partes
-        prefix = clean_code[0:3] # PLA
-        first_part = clean_code[3:6] # 3 dígitos
-        v_digit = int(clean_code[6]) # O dígito V
-        second_part = clean_code[7:10] # 3 dígitos
+        _prefix = clean_code[0:3]  # PLA
+        first_part = clean_code[3:6]  # 3 dígitos
+        v_digit = int(clean_code[6])  # O dígito V
+        second_part = clean_code[7:10]  # 3 dígitos
 
         # REGRA DE NEGÓCIO: O dígito V é válido? 
         # Exemplo de regra: A soma dos 6 dígitos módulo 10 deve ser igual a V.
@@ -35,8 +36,6 @@ class VerificationCode:
         # Se passou por tudo, podemos salvar a versão limpa.
         # Contornando o frozen=True do dataclass:
         object.__setattr__(self, 'raw_code', clean_code)
-
-    import random
 
     @classmethod
     def generate(cls) -> "VerificationCode":
