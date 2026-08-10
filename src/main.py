@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
-import structlog
 
+import structlog
 from fastapi import FastAPI
-from src.infrastructure.container import Container
+
 from src.api.exception_handlers import register_exception_handlers
+from src.infrastructure.container import Container
 
 log = structlog.get_logger()
 
@@ -27,8 +28,10 @@ def create_app() -> FastAPI:
     container.wire(modules=[
         "src.api.deps",
         "src.api.routers.auth",
+        "src.api.routers.identification",
         "src.api.routers.garden",
         "src.api.routers.plants",
+        "src.api.routers.health",
         "src.api.routers.profile",
     ])
 
@@ -41,15 +44,20 @@ def create_app() -> FastAPI:
 
     app.state.container = container
 
+    from src.api.middleware import AuditMiddleware
+    app.add_middleware(AuditMiddleware)
+
     register_exception_handlers(app)
 
-    from src.api.routers import auth, garden, plants, profile
+    from src.api.routers import auth, garden, health, identification, plants, profile
     app.include_router(auth.router)
+    app.include_router(identification.router)
     app.include_router(garden.router)
     app.include_router(plants.router)
+    app.include_router(health.router)
     app.include_router(profile.router)
 
-    @app.get("/health", tags=["infra"])
+    @app.get("/healthz", tags=["infra"])
     async def health_check():
         return {"status": "ok", "service": "plante-api"}
 

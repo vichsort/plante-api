@@ -1,13 +1,16 @@
+from typing import Any
+
 import jwt
+from dependency_injector.wiring import Provide, inject
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
 from src.domain.exceptions import UnauthorizedError
 from src.infrastructure.container import Container
-from dependency_injector.wiring import Provide, inject
 
 _bearer = HTTPBearer(auto_error=False)
 
-def _decode_access_token(token: str, secret: str, algorithm: str) -> int:
+def _decode_access_token(token: str, secret: str, algorithm: str) -> Any:
     try:
         payload = jwt.decode(token, secret, algorithms=[algorithm])
     except jwt.ExpiredSignatureError:
@@ -18,14 +21,14 @@ def _decode_access_token(token: str, secret: str, algorithm: str) -> int:
     if payload.get("type") != "access":
         raise UnauthorizedError("Invalid token type.")
 
-    return int(payload["sub"])
+    return payload["sub"]
 
 @inject
 async def get_current_user_id(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
-    secret_key: str = Provide[Container.settings.provided.secret_key],
-    algorithm: str = Provide[Container.settings.provided.jwt_algorithm],
-) -> int:
+    secret_key: str = Depends(Provide[Container.settings.provided.secret_key]),
+    algorithm: str = Depends(Provide[Container.settings.provided.jwt_algorithm]),
+) -> Any:
     if not credentials:
-        raise UnauthorizedError()
+        raise UnauthorizedError("Authentication token is missing.")
     return _decode_access_token(credentials.credentials, secret_key, algorithm)

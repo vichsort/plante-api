@@ -1,22 +1,36 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form
+from typing import Any
+
 from dependency_injector.wiring import Provide, inject
-from src.infrastructure.container import Container
+from fastapi import APIRouter, Depends, File, Form, UploadFile
+
 from src.api.deps import get_current_user_id
 from src.api.response import ApiResponse
-from src.api.schemas.identification import IdentifyPlantResponse
-from src.domain.use_cases.identify_plant_use_case import IdentifyPlantUseCase, IdentifyPlantInputDTO
+from src.api.schemas.identification import (
+    ConfirmPlantIdentificationRequest,
+    ConfirmPlantIdentificationResponse,
+    IdentifyPlantResponse,
+)
+from src.domain.use_cases.confirm_plant_identification_use_case import (
+    ConfirmPlantIdentificationInputDTO,
+    ConfirmPlantIdentificationUseCase,
+)
+from src.domain.use_cases.identify_plant_use_case import (
+    IdentifyPlantInputDTO,
+    IdentifyPlantUseCase,
+)
+from src.infrastructure.container import Container
 
 router = APIRouter(prefix="/identify", tags=["identification"])
 
-@router.post("", status_code=200)
+@router.post("", status_code=200, response_model=ApiResponse[IdentifyPlantResponse])
 @inject
 async def identify_plant(
     image: UploadFile = File(...),
     latitude: float | None = Form(None),
     longitude: float | None = Form(None),
-    use_case: IdentifyPlantUseCase = Depends(Provide[Container.use_cases.provided.identify_plant_use_case]),
-    user_id: int = Depends(get_current_user_id),
-) -> ApiResponse:
+    use_case: IdentifyPlantUseCase = Depends(Provide[Container.use_cases.identify_plant_use_case]),
+    user_id: Any = Depends(get_current_user_id),
+) -> ApiResponse[IdentifyPlantResponse]:
     image_bytes = await image.read()
 
     result = await use_case.execute(IdentifyPlantInputDTO(
@@ -26,4 +40,17 @@ async def identify_plant(
         longitude=longitude,
     ))
 
-    return ApiResponse.ok(IdentifyPlantResponse(**result))
+    return ApiResponse.success(IdentifyPlantResponse(**result))
+
+@router.post("/confirm", status_code=200, response_model=ApiResponse[ConfirmPlantIdentificationResponse])
+@inject
+async def confirm_plant_identification(
+    body: ConfirmPlantIdentificationRequest,
+    use_case: ConfirmPlantIdentificationUseCase = Depends(Provide[Container.use_cases.confirm_plant_identification]),
+    user_id: Any = Depends(get_current_user_id),
+) -> ApiResponse[ConfirmPlantIdentificationResponse]:
+    result = await use_case.execute(ConfirmPlantIdentificationInputDTO(
+        user_id=user_id,
+        sample_id=body.sample_id,
+    ))
+    return ApiResponse.success(ConfirmPlantIdentificationResponse(**result))

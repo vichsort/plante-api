@@ -1,83 +1,103 @@
-from fastapi import APIRouter, Depends
-from dependency_injector.wiring import Provide, inject
+from typing import Any
 
-from src.infrastructure.container import Container
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends
+
 from src.api.deps import get_current_user_id
 from src.api.response import ApiResponse
+from src.api.schemas.auth import MessageResponse
 from src.api.schemas.profile import (
+    AchievementItemResponse,
     ChangeEmailRequest,
     ChangePasswordRequest,
     UpdateLocationRequest,
     UpgradeSubscriptionRequest,
+    UpgradeSubscriptionResponse,
 )
-from src.domain.use_cases.change_email_use_case import ChangeEmailUseCase, ChangeEmailInputDTO
-from src.domain.use_cases.change_password_use_case import ChangePasswordUseCase, ChangePasswordInputDTO
-from src.domain.use_cases.update_location_fallback_use_case import UpdateLocationFallbackUseCase, UpdateLocationFallbackInputDTO
-from src.domain.use_cases.upgrade_subscription_use_case import UpgradeSubscriptionUseCase, UpgradeSubscriptionInputDTO
-from src.domain.use_cases.list_user_achievements_use_case import ListUserAchievementsUseCase, ListUserAchievementsInputDTO
+from src.domain.use_cases.change_email_use_case import (
+    ChangeEmailInputDTO,
+    ChangeEmailUseCase,
+)
+from src.domain.use_cases.change_password_use_case import (
+    ChangePasswordInputDTO,
+    ChangePasswordUseCase,
+)
+from src.domain.use_cases.list_user_achievements_use_case import (
+    ListUserAchievementsInputDTO,
+    ListUserAchievementsUseCase,
+)
+from src.domain.use_cases.update_location_fallback_use_case import (
+    UpdateLocationFallbackInputDTO,
+    UpdateLocationFallbackUseCase,
+)
+from src.domain.use_cases.upgrade_subscription_use_case import (
+    UpgradeSubscriptionInputDTO,
+    UpgradeSubscriptionUseCase,
+)
+from src.infrastructure.container import Container
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
-@router.patch("/email", status_code=200)
+@router.patch("/email", status_code=200, response_model=ApiResponse[MessageResponse])
 @inject
 async def change_email(
     body: ChangeEmailRequest,
-    use_case: ChangeEmailUseCase = Depends(Provide[Container.use_cases.provided.change_email_use_case]),
-    user_id: int = Depends(get_current_user_id),
-) -> ApiResponse:
+    use_case: ChangeEmailUseCase = Depends(Provide[Container.use_cases.change_email_use_case]),
+    user_id: Any = Depends(get_current_user_id),
+) -> ApiResponse[MessageResponse]:
     await use_case.execute(ChangeEmailInputDTO(
         user_id=user_id,
         current_password=body.current_password,
         new_email=body.new_email,
     ))
-    return ApiResponse.ok({"message": "Verification code sent to new email."})
+    return ApiResponse.success(MessageResponse(message="Verification code sent to new email."))
 
-@router.patch("/password", status_code=200)
+@router.patch("/password", status_code=200, response_model=ApiResponse[MessageResponse])
 @inject
 async def change_password(
     body: ChangePasswordRequest,
-    use_case: ChangePasswordUseCase = Depends(Provide[Container.use_cases.provided.change_password_use_case]),
-    user_id: int = Depends(get_current_user_id),
-) -> ApiResponse:
+    use_case: ChangePasswordUseCase = Depends(Provide[Container.use_cases.change_password_use_case]),
+    user_id: Any = Depends(get_current_user_id),
+) -> ApiResponse[MessageResponse]:
     await use_case.execute(ChangePasswordInputDTO(
         user_id=user_id,
         current_password=body.current_password,
         new_password=body.new_password,
     ))
-    return ApiResponse.ok({"message": "Password updated successfully."})
+    return ApiResponse.success(MessageResponse(message="Password updated successfully."))
 
-@router.patch("/location", status_code=200)
+@router.patch("/location", status_code=200, response_model=ApiResponse[MessageResponse])
 @inject
 async def update_location(
     body: UpdateLocationRequest,
-    use_case: UpdateLocationFallbackUseCase = Depends(Provide[Container.use_cases.provided.update_location_fallback_use_case]),
-    user_id: int = Depends(get_current_user_id),
-) -> ApiResponse:
+    use_case: UpdateLocationFallbackUseCase = Depends(Provide[Container.use_cases.update_location_fallback_use_case]),
+    user_id: Any = Depends(get_current_user_id),
+) -> ApiResponse[MessageResponse]:
     await use_case.execute(UpdateLocationFallbackInputDTO(
         user_id=user_id,
         country=body.country,
         state=body.state,
     ))
-    return ApiResponse.ok({"message": "Location updated successfully."})
+    return ApiResponse.success(MessageResponse(message="Location updated successfully."))
 
-@router.post("/subscription/upgrade", status_code=200)
+@router.post("/subscription/upgrade", status_code=200, response_model=ApiResponse[UpgradeSubscriptionResponse])
 @inject
 async def upgrade_subscription(
     body: UpgradeSubscriptionRequest,
-    use_case: UpgradeSubscriptionUseCase = Depends(Provide[Container.use_cases.provided.upgrade_subscription_use_case]),
-    user_id: int = Depends(get_current_user_id),
-) -> ApiResponse:
+    use_case: UpgradeSubscriptionUseCase = Depends(Provide[Container.use_cases.upgrade_subscription_use_case]),
+    user_id: Any = Depends(get_current_user_id),
+) -> ApiResponse[UpgradeSubscriptionResponse]:
     result = await use_case.execute(UpgradeSubscriptionInputDTO(
         user_id=user_id,
         plan_duration_days=body.plan_duration_days,
     ))
-    return ApiResponse.ok(result)
+    return ApiResponse.success(UpgradeSubscriptionResponse(**result))
 
-@router.get("/achievements", status_code=200)
+@router.get("/achievements", status_code=200, response_model=ApiResponse[list[AchievementItemResponse]])
 @inject
 async def list_achievements(
-    use_case: ListUserAchievementsUseCase = Depends(Provide[Container.use_cases.provided.list_user_achievements_use_case]),
-    user_id: int = Depends(get_current_user_id),
-) -> ApiResponse:
-    result = await use_case.execute(ListUserAchievementsInputDTO(user_id=user_id))
-    return ApiResponse.ok(result)
+    use_case: ListUserAchievementsUseCase = Depends(Provide[Container.use_cases.list_user_achievements_use_case]),
+    user_id: Any = Depends(get_current_user_id),
+) -> ApiResponse[list[AchievementItemResponse]]:
+    achievements = await use_case.execute(ListUserAchievementsInputDTO(user_id=user_id))
+    return ApiResponse.success([AchievementItemResponse(**a) for a in achievements])
