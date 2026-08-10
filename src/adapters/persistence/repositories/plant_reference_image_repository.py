@@ -1,10 +1,17 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.adapters.persistence.mappers.plant_reference_image_mapper import (
+    PlantReferenceImageMapper,
+)
+from src.adapters.persistence.models.plant_reference_image_model import (
+    PlantReferenceImageModel,
+)
 from src.domain.entities.plant_reference_image import PlantReferenceImage
-from src.domain.ports.plant_reference_image_repository import IPlantReferenceImageRepository
-from src.adapters.persistence.models.plant_reference_image_model import PlantReferenceImageModel
-from src.adapters.persistence.mappers.plant_reference_image_mapper import PlantReferenceImageMapper
+from src.domain.ports.plant_reference_image_repository import (
+    IPlantReferenceImageRepository,
+)
+
 
 class PlantReferenceImageRepository(IPlantReferenceImageRepository):
     def __init__(self, session: AsyncSession) -> None:

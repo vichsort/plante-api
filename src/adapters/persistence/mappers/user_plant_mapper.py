@@ -1,8 +1,13 @@
-from src.domain.entities.user_plant import UserPlant, IdentificationStatus, IdentificationSource
+from src.adapters.persistence.models.user_plant_model import UserPlantModel
 from src.domain.entities.care_schedule import CareSchedule, CareType
+from src.domain.entities.user_plant import (
+    IdentificationSource,
+    IdentificationStatus,
+    UserPlant,
+)
 from src.domain.value_objects.care_interval import CareInterval
 from src.domain.value_objects.streak import Streak
-from src.adapters.persistence.models.user_plant_model import UserPlantModel
+
 
 class UserPlantMapper:
     @staticmethod

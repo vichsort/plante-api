@@ -1,5 +1,6 @@
-from src.domain.entities.plant_nutritional import PlantNutritional
 from src.adapters.persistence.models import PlantNutritionalModel
+from src.domain.entities.plant_nutritional import PlantNutritional
+
 
 class PlantNutritionalMapper:
     @staticmethod

@@ -1,12 +1,12 @@
+from .achievement_model import AchievementModel
 from .base import Base
-from .user_model import UserModel
-from .plant_species_model import PlantSpeciesModel
+from .health_record_model import HealthRecordModel
+from .plant_identification_sample_model import PlantIdentificationSampleModel
 from .plant_nutritional_model import PlantNutritionalModel
 from .plant_reference_image_model import PlantReferenceImageModel
+from .plant_species_model import PlantSpeciesModel
+from .user_model import UserModel
 from .user_plant_model import UserPlantModel
-from .plant_identification_sample_model import PlantIdentificationSampleModel
-from .health_record_model import HealthRecordModel
-from .achievement_model import AchievementModel
 
 # obs: models/care_model.py (para o CareSchedule) é completamente achatado em
 # models/user_plant_model.py, então não tem mais um modelo separado por que sua

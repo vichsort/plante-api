@@ -1,5 +1,6 @@
-from src.domain.entities.plant_reference_image import PlantReferenceImage, ImageSource
 from src.adapters.persistence.models import PlantReferenceImageModel
+from src.domain.entities.plant_reference_image import ImageSource, PlantReferenceImage
+
 
 class PlantReferenceImageMapper:
     @staticmethod

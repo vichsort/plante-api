@@ -1,5 +1,6 @@
-from src.domain.entities.health_record import HealthRecord, HealthSeverity
 from src.adapters.persistence.models.health_record_model import HealthRecordModel
+from src.domain.entities.health_record import HealthRecord, HealthSeverity
+
 
 class HealthRecordMapper:
     @staticmethod

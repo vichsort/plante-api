@@ -1,9 +1,12 @@
+from datetime import UTC, datetime
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, insert
-from datetime import datetime, timezone
-from src.domain.ports.achievement_repository import IAchievementRepository
-from src.adapters.persistence.models.achievement_model import AchievementModel
+
 from src.adapters.persistence.mappers.achievement_mapper import AchievementMapper
+from src.adapters.persistence.models.achievement_model import AchievementModel
+from src.domain.ports.achievement_repository import IAchievementRepository
+
 
 class AchievementRepository(IAchievementRepository):
 
@@ -19,7 +22,7 @@ class AchievementRepository(IAchievementRepository):
         model = AchievementModel(
             user_id=user_id,
             badge_code=badge_code,
-            unlocked_at=datetime.now(timezone.utc),
+            unlocked_at=datetime.now(UTC),
         )
         self._session.add(model)
         await self._session.flush()

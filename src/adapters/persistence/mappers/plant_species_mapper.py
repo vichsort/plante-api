@@ -1,7 +1,12 @@
-from src.domain.entities.plant_species import (
-    PlantSpecies, EnrichmentStatus, LightRequirement, SoilType, EnrichmentSource,
-)
 from src.adapters.persistence.models import PlantSpeciesModel
+from src.domain.entities.plant_species import (
+    EnrichmentSource,
+    EnrichmentStatus,
+    LightRequirement,
+    PlantSpecies,
+    SoilType,
+)
+
 
 class PlantSpeciesMapper:
     @staticmethod

@@ -1,13 +1,22 @@
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Boolean, Integer, DateTime, Enum as SAEnum, JSON
-from .base import Base
-from src.domain.entities.plant_species import EnrichmentStatus, LightRequirement, SoilType, EnrichmentSource
 from datetime import datetime
 
-class PlantSpeciesModel(Base):
+from sqlalchemy import JSON, Boolean, DateTime, Integer, String
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.domain.entities.plant_species import (
+    EnrichmentSource,
+    EnrichmentStatus,
+    LightRequirement,
+    SoilType,
+)
+
+from .base import AuditMixin, Base
+
+
+class PlantSpeciesModel(Base, AuditMixin):
     __tablename__ = "plant_species"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     scientific_name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     enrichment_status: Mapped[str] = mapped_column(
         SAEnum(EnrichmentStatus, values_callable=lambda e: [x.value for x in e], name="enrichmentStatus"),

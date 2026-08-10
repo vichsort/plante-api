@@ -1,16 +1,21 @@
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Integer, ForeignKey, Float, DateTime, Enum as SAEnum, JSON
-from .base import Base
-from src.domain.entities.health_record import HealthSeverity
+import uuid
 from datetime import datetime
 
-class HealthRecordModel(Base):
+from sqlalchemy import JSON, UUID, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.domain.entities.health_record import HealthSeverity
+
+from .base import AuditMixin, Base
+
+
+class HealthRecordModel(Base, AuditMixin):
     __tablename__ = "health_records"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_plant_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("user_plants.id", ondelete="RESTRICT"),
+    user_plant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("user_plants.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

@@ -1,7 +1,10 @@
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, DateTime, JSON
-from .base import Base
 from datetime import datetime
+
+from sqlalchemy import JSON, DateTime, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .base import Base
+
 
 class PlantNutritionalModel(Base):
     __tablename__ = "plant_nutritional"

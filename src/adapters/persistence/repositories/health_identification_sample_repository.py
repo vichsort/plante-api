@@ -3,6 +3,12 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.adapters.persistence.mappers.health_identification_sample_mapper import (
+    HealthIdentificationSampleMapper,
+)
+from src.adapters.persistence.models.health_identification_sample_model import (
+    HealthIdentificationSampleModel,
+)
 from src.domain.entities.health_identification_sample import (
     HealthIdentificationSample,
     HealthSampleStatus,
@@ -10,12 +16,7 @@ from src.domain.entities.health_identification_sample import (
 from src.domain.ports.health_identification_sample_repository import (
     IHealthIdentificationSampleRepository,
 )
-from src.adapters.persistence.mappers.health_identification_sample_mapper import (
-    HealthIdentificationSampleMapper,
-)
-from src.adapters.persistence.models.health_identification_sample_model import (
-    HealthIdentificationSampleModel,
-)
+
 
 class HealthIdentificationSampleRepository(IHealthIdentificationSampleRepository):
     def __init__(self, session: AsyncSession) -> None:

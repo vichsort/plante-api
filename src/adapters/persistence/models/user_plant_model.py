@@ -1,14 +1,24 @@
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Integer, Float, DateTime, Boolean, Enum as SAEnum
-from .base import Base
-from src.domain.entities.user_plant import IdentificationStatus, IdentificationSource
+import uuid
 from datetime import datetime
 
-class UserPlantModel(Base):
+from sqlalchemy import UUID, Boolean, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.domain.entities.user_plant import IdentificationSource, IdentificationStatus
+
+from .base import AuditMixin, Base
+
+
+class UserPlantModel(Base, AuditMixin):
     __tablename__ = "user_plants"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     scientific_name: Mapped[str] = mapped_column(String(255), nullable=False)
     identification_confidence: Mapped[float] = mapped_column(Float, nullable=False)
     identification_source: Mapped[str] = mapped_column(

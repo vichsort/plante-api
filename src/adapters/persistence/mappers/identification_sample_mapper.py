@@ -1,5 +1,9 @@
-from src.domain.entities.plant_identification_sample import PlantIdentificationSample, SampleStatus
 from src.adapters.persistence.models import PlantIdentificationSampleModel
+from src.domain.entities.plant_identification_sample import (
+    PlantIdentificationSample,
+    SampleStatus,
+)
+
 
 class IdentificationSampleMapper:
     @staticmethod

@@ -1,10 +1,11 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.adapters.persistence.mappers.health_record_mapper import HealthRecordMapper
+from src.adapters.persistence.models.health_record_model import HealthRecordModel
 from src.domain.entities.health_record import HealthRecord
 from src.domain.ports.health_record_repository import IHealthRecordRepository
-from src.adapters.persistence.models.health_record_model import HealthRecordModel
-from src.adapters.persistence.mappers.health_record_mapper import HealthRecordMapper
+
 
 class HealthRecordRepository(IHealthRecordRepository):
     def __init__(self, session: AsyncSession) -> None:

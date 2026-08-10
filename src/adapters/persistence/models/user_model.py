@@ -1,13 +1,17 @@
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Boolean, Integer, DateTime, Enum as SAEnum
-from .base import Base
-from src.domain.value_objects.subscription_tier import SubscriptionTier
 from datetime import datetime
 
-class UserModel(Base):
+from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.domain.value_objects.subscription_tier import SubscriptionTier
+
+from .base import AuditMixin, Base
+
+
+class UserModel(Base, AuditMixin):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -29,4 +33,3 @@ class UserModel(Base):
     subscription_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
     profile_picture_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

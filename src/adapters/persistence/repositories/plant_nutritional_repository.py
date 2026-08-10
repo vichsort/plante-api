@@ -1,10 +1,14 @@
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.adapters.persistence.mappers.plant_nutritional_mapper import (
+    PlantNutritionalMapper,
+)
+from src.adapters.persistence.models.plant_nutritional_model import (
+    PlantNutritionalModel,
+)
 from src.domain.entities.plant_nutritional import PlantNutritional
 from src.domain.ports.plant_nutritional_repository import IPlantNutritionalRepository
-from src.adapters.persistence.models.plant_nutritional_model import PlantNutritionalModel
-from src.adapters.persistence.mappers.plant_nutritional_mapper import PlantNutritionalMapper
+
 
 class PlantNutritionalRepository(IPlantNutritionalRepository):
     def __init__(self, session: AsyncSession) -> None:

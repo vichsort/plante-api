@@ -1,10 +1,11 @@
+from src.adapters.persistence.models.health_identification_sample_model import (
+    HealthIdentificationSampleModel,
+)
 from src.domain.entities.health_identification_sample import (
     HealthIdentificationSample,
     HealthSampleStatus,
 )
-from src.adapters.persistence.models.health_identification_sample_model import (
-    HealthIdentificationSampleModel,
-)
+
 
 class HealthIdentificationSampleMapper:
     @staticmethod

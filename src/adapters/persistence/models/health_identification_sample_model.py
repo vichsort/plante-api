@@ -1,24 +1,28 @@
+import uuid
 from datetime import datetime
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String
-from sqlalchemy.orm import Mapped, mapped_column
+
+from sqlalchemy import JSON, UUID, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
-from src.adapters.persistence.models.base import Base
+from sqlalchemy.orm import Mapped, mapped_column
+
 from src.domain.entities.health_identification_sample import HealthSampleStatus
 
-class HealthIdentificationSampleModel(Base):
+from .base import AuditMixin, Base
+
+
+class HealthIdentificationSampleModel(Base, AuditMixin):
     __tablename__ = "health_identification_samples"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    health_record_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("health_records.id", ondelete="RESTRICT"),
+    health_record_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("health_records.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
-        unique=True,   # 1 sample por health_record
+        unique=True,
     )
     scientific_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     user_image_key: Mapped[str] = mapped_column(String(500), nullable=False)
-    reference_image_keys: Mapped[list] = mapped_column(JSON, nullable=False)  # lista de storage keys
+    reference_image_keys: Mapped[list] = mapped_column(JSON, nullable=False)
     vitality_score: Mapped[float] = mapped_column(Float, nullable=False)
     issues_detected: Mapped[list] = mapped_column(JSON, nullable=False)
     treatment_plan: Mapped[list] = mapped_column(JSON, nullable=False)
@@ -29,8 +33,12 @@ class HealthIdentificationSampleModel(Base):
         nullable=False,
         index=True,
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     rejected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     recovery_estimate_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
