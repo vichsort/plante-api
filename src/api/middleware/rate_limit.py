@@ -17,13 +17,13 @@ _DEFAULT_RATE_LIMIT = 60       # 60 req/min para rotas gerais
 _SENSITIVE_RATE_LIMIT = 15     # 15 req/min para rotas de IA e Auth
 _WINDOW_SECONDS = 60
 
-# Comparação exata: subrotas baratas (ex: /health/history) seguem o limite geral
+# Comparação exata: subrotas baratas (ex: /diagnose/history) seguem o limite geral
 _SENSITIVE_PATHS = frozenset({
     "/auth/login",
     "/auth/register",
     "/auth/verify-email",
     "/identify",
-    "/health/diagnose",
+    "/diagnose",
 })
 
 _EXEMPT_PATHS = ("/docs", "/openapi.json", "/redoc", "/healthz")

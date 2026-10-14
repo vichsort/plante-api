@@ -25,9 +25,9 @@ from src.domain.use_cases.get_health_history_use_case import (
 )
 from src.infrastructure.container import Container
 
-router = APIRouter(prefix="/health", tags=["health"])
+router = APIRouter(prefix="/diagnose", tags=["diagnosis"])
 
-@router.post("/diagnose", status_code=200, response_model=ApiResponse[HealthDiagnosisResponse])
+@router.post("", status_code=200, response_model=ApiResponse[HealthDiagnosisResponse])
 @inject
 async def diagnose_health(
     user_plant_id: str = Form(...),
