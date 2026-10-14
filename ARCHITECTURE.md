@@ -132,6 +132,7 @@ Cada exceção carrega um **Código Único Máquina-Readable** e um **Status HTT
 | `PLANTE_4006_UNAUTHORIZED` | Credenciais inválidas ou token JWT expirado. | 401 |
 | `PLANTE_4007_INVALID_PASSWORD` | Senha atual incorreta durante alteração de perfil. | 400 |
 | `PLANTE_4029_RATE_LIMIT_EXCEEDED` | Limite de requisições por minuto excedido (ver `RateLimitMiddleware`). | 429 |
+| `PLANTE_5001_EXTERNAL_SERVICE_ERROR` | API externa indisponível ou Circuit Breaker aberto (Kindwise/PlantNet). | 502 |
 | `PLANTE_5003_SERVICE_NOT_READY` | Readiness probe: Postgres ou Redis indisponível (`/health/readiness`). | 503 |
 
 ### 3.3. Envelope Uniforme de Resposta HTTP (`ApiResponse[T]`)

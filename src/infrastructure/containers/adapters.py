@@ -14,6 +14,11 @@ from src.adapters.cache.redis_token_repository import RedisTokenRepository
 from src.adapters.email.ses_email_sender import SesEmailSender
 from src.adapters.events.celery_publisher import CeleryPublisher
 from src.adapters.notifications.firebase_adapter import FirebaseAdapter
+from src.adapters.resilience import (
+    CircuitBreaker,
+    CircuitBreakerHealthAnalyzer,
+    CircuitBreakerPlantIdentifier,
+)
 from src.adapters.security.bcrypt_hasher import BcryptHasher
 from src.adapters.storage.s3_image_storage import S3ImageStorage
 from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
@@ -67,14 +72,30 @@ class AdaptersContainer(containers.DeclarativeContainer):
         credentials_path=settings.provided.google_application_credentials,
     )
 
-    kindwise_identifier = providers.Singleton(
+    # Kindwise atende identificação e saúde: um único breaker por provedor
+    kindwise_breaker = providers.Singleton(CircuitBreaker, name="Kindwise")
+    plantnet_breaker = providers.Singleton(CircuitBreaker, name="PlantNet")
+
+    kindwise_adapter = providers.Singleton(
         KindwiseAdapter,
         api_key=settings.provided.plant_id_api_key,
     )
 
-    plantnet_identifier = providers.Singleton(
+    plantnet_adapter = providers.Singleton(
         PlantNetAdapter,
         api_key=settings.provided.plantnet_api_key,
+    )
+
+    kindwise_identifier = providers.Singleton(
+        CircuitBreakerPlantIdentifier,
+        inner=kindwise_adapter,
+        breaker=kindwise_breaker,
+    )
+
+    plantnet_identifier = providers.Singleton(
+        CircuitBreakerPlantIdentifier,
+        inner=plantnet_adapter,
+        breaker=plantnet_breaker,
     )
 
     consensus_identifier = providers.Singleton(
@@ -90,8 +111,9 @@ class AdaptersContainer(containers.DeclarativeContainer):
     )
 
     health_analyzer = providers.Singleton(
-        KindwiseAdapter,
-        api_key=settings.provided.plant_id_api_key,
+        CircuitBreakerHealthAnalyzer,
+        inner=kindwise_adapter,
+        breaker=kindwise_breaker,
     )
 
     plant_enricher = providers.Singleton(
