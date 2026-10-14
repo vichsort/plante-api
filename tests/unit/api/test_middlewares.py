@@ -1,3 +1,6 @@
+import uuid
+
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -29,6 +32,42 @@ def test_correlation_id_middleware_generates_and_propagates():
     assert res_custom.headers["X-Correlation-ID"] == custom_id
 
 
+def _correlation_app() -> FastAPI:
+    app = FastAPI()
+    app.add_middleware(CorrelationIdMiddleware)
+
+    @app.get("/test")
+    def sample():
+        return {"ok": True}
+
+    return app
+
+
+@pytest.mark.parametrize(
+    "incoming",
+    ["abc", "1-5759e988-bd862e3fe1be46a994272793", "req_ID.v2-01", "a" * 128],
+)
+def test_correlation_id_accepts_valid_non_uuid_values(incoming):
+    response = TestClient(_correlation_app()).get("/test", headers={"X-Correlation-ID": incoming})
+    assert response.headers["X-Correlation-ID"] == incoming
+
+
+@pytest.mark.parametrize(
+    "incoming",
+    ["a" * 129, "has space", "inject\\nlog", "semi;colon", "<script>", "Root=1-5759e988"],
+)
+def test_correlation_id_replaces_invalid_values_with_uuid4(incoming):
+    response = TestClient(_correlation_app()).get("/test", headers={"X-Correlation-ID": incoming})
+    returned = response.headers["X-Correlation-ID"]
+    assert returned != incoming
+    assert uuid.UUID(returned).version == 4
+
+
+def test_correlation_id_generates_uuid4_for_empty_header():
+    response = TestClient(_correlation_app()).get("/test", headers={"X-Correlation-ID": ""})
+    assert uuid.UUID(response.headers["X-Correlation-ID"]).version == 4
+
+
 def test_security_headers_middleware():
     app = FastAPI()
     app.add_middleware(SecurityHeadersMiddleware)
@@ -43,6 +82,30 @@ def test_security_headers_middleware():
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["Strict-Transport-Security"].startswith("max-age=")
+    assert "X-XSS-Protection" not in response.headers
+    assert (
+        response.headers["Content-Security-Policy"]
+        == "default-src 'none'; frame-ancestors 'none'"
+    )
+
+
+@pytest.mark.parametrize("path", ["/docs", "/docs/oauth2-redirect", "/redoc"])
+def test_security_headers_skip_csp_on_docs_pages(path):
+    app = FastAPI()
+    app.add_middleware(SecurityHeadersMiddleware)
+
+    response = TestClient(app).get(path)
+    assert response.status_code == 200
+    assert "Content-Security-Policy" not in response.headers
+    assert response.headers["X-Frame-Options"] == "DENY"
+
+
+def test_security_headers_apply_csp_to_openapi_schema():
+    app = FastAPI()
+    app.add_middleware(SecurityHeadersMiddleware)
+
+    response = TestClient(app).get("/openapi.json")
+    assert "Content-Security-Policy" in response.headers
 
 
 def test_rate_limit_middleware_blocks_after_exceeding_limit():
