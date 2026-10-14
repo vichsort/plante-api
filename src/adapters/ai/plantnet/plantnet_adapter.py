@@ -3,6 +3,8 @@ from typing import Any
 
 import httpx
 
+from src.adapters.ai.provider_errors import translate_provider_errors
+from src.domain.exceptions import InvalidImageError
 from src.domain.ports.plant_identifier import (
     IdentificationResult,
     IPlantIdentifier,
@@ -13,6 +15,8 @@ from src.domain.value_objects.confidence_score import ConfidenceScore
 _BASE_URL = "https://my-api.plantnet.org/v2/identify"
 _PROJECT = "all"
 _NB_RESULTS = 5
+# PlantNet responde 404 "Species not found" para imagens que não são planta ou sem espécie prevista
+_INVALID_IMAGE_STATUSES = frozenset({400, 404})
 
 class PlantNetAdapter(IPlantIdentifier):
     _api_key: str
@@ -37,7 +41,7 @@ class PlantNetAdapter(IPlantIdentifier):
             "images": [image_b64],
             "organs": ["auto"],
         }
-        async with httpx.AsyncClient() as client:
+        async with translate_provider_errors("PlantNet", _INVALID_IMAGE_STATUSES), httpx.AsyncClient() as client:
             r = await client.post(
                 f"{_BASE_URL}/{_PROJECT}",
                 params=params,
@@ -50,7 +54,7 @@ class PlantNetAdapter(IPlantIdentifier):
     def _parse(self, data: dict) -> IdentificationResult:
         results = data.get("results", [])
         if not results:
-            raise ValueError("PlantNet returned no results.")
+            raise InvalidImageError()
 
         best = results[0]
         species = best.get("species", {})

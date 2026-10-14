@@ -3,7 +3,6 @@ from collections.abc import Awaitable, Callable
 from enum import StrEnum
 from typing import TypeVar
 
-import httpx
 import structlog
 
 from src.domain.exceptions import ExternalServiceError
@@ -24,13 +23,10 @@ class CircuitState(StrEnum):
 
 def is_provider_failure(exc: BaseException) -> bool:
     """
-    Apenas falhas de infraestrutura do provedor abrem o circuito.
-    Respostas 4xx ou resultados vazios indicam que o provedor está respondendo.
+    Apenas falhas transitórias do provedor (ExternalServiceError retryable) abrem o circuito.
+    Imagem inválida, outros 4xx ou resultados vazios indicam que o provedor está respondendo.
     """
-    if isinstance(exc, httpx.HTTPStatusError):
-        status = exc.response.status_code
-        return status >= 500 or status == 429
-    return isinstance(exc, httpx.TransportError | TimeoutError)
+    return isinstance(exc, ExternalServiceError) and exc.retryable
 
 
 class CircuitBreaker:

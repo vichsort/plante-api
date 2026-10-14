@@ -54,3 +54,11 @@ def test_openapi_probes_do_not_document_common_errors(client: TestClient):
         assert "429" not in responses
         assert "500" not in responses
     assert "/healthz" not in paths
+
+
+def test_openapi_ai_routes_document_invalid_image(client: TestClient):
+    paths = client.get("/openapi.json").json()["paths"]
+
+    for path in ("/identify", "/diagnose"):
+        examples = paths[path]["post"]["responses"]["400"]["content"]["application/json"]["examples"]
+        assert "PLANTE_4013_INVALID_IMAGE" in examples

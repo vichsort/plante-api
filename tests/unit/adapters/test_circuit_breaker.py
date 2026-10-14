@@ -1,6 +1,5 @@
 import asyncio
 
-import httpx
 import pytest
 
 from src.adapters.resilience import (
@@ -8,7 +7,7 @@ from src.adapters.resilience import (
     CircuitBreakerPlantIdentifier,
     CircuitState,
 )
-from src.domain.exceptions import ExternalServiceError
+from src.domain.exceptions import ExternalServiceError, InvalidImageError
 
 
 class _Clock:
@@ -19,9 +18,8 @@ class _Clock:
         return self.now
 
 
-def _status_error(status: int) -> httpx.HTTPStatusError:
-    request = httpx.Request("POST", "https://provider.test")
-    return httpx.HTTPStatusError("error", request=request, response=httpx.Response(status, request=request))
+def _provider_down() -> ExternalServiceError:
+    return ExternalServiceError(service="Kindwise", retryable=True)
 
 
 async def _fail(exc: BaseException):
@@ -34,8 +32,8 @@ async def _ok():
 
 async def _trip(breaker: CircuitBreaker, times: int) -> None:
     for _ in range(times):
-        with pytest.raises(httpx.ConnectError):
-            await breaker.call(lambda: _fail(httpx.ConnectError("down")))
+        with pytest.raises(ExternalServiceError):
+            await breaker.call(lambda: _fail(_provider_down()))
 
 
 @pytest.mark.asyncio
@@ -119,8 +117,16 @@ async def test_cancelled_probe_allows_new_probe():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("exc", [_status_error(400), _status_error(404), ValueError("no suggestions")])
-async def test_client_errors_do_not_count_as_failures(exc):
+@pytest.mark.parametrize(
+    "exc",
+    [
+        InvalidImageError(),
+        ExternalServiceError(service="Kindwise"),
+        ValueError("no suggestions"),
+        TimeoutError(),
+    ],
+)
+async def test_non_retryable_errors_do_not_count_as_failures(exc):
     breaker = CircuitBreaker("Kindwise", failure_threshold=1, clock=_Clock())
     with pytest.raises(type(exc)):
         await breaker.call(lambda: _fail(exc))
@@ -128,11 +134,10 @@ async def test_client_errors_do_not_count_as_failures(exc):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("exc", [_status_error(500), _status_error(429), httpx.ReadTimeout("slow"), TimeoutError()])
-async def test_provider_errors_count_as_failures(exc):
+async def test_retryable_external_errors_count_as_failures():
     breaker = CircuitBreaker("Kindwise", failure_threshold=1, clock=_Clock())
-    with pytest.raises(type(exc)):
-        await breaker.call(lambda: _fail(exc))
+    with pytest.raises(ExternalServiceError):
+        await breaker.call(lambda: _fail(_provider_down()))
     assert breaker.state is CircuitState.OPEN
 
 

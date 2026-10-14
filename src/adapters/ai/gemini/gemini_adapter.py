@@ -1,7 +1,16 @@
+import asyncio
+import json
+
 from google import genai
+from google.genai import errors as genai_errors
 
 from src.adapters.ai.gemini.prompt_builder import GeminiPromptBuilder
 from src.adapters.ai.gemini.response_parser import GeminiResponseParser
+from src.adapters.ai.provider_errors import (
+    provider_status_error,
+    translate_provider_errors,
+)
+from src.domain.exceptions import ExternalServiceError
 from src.domain.ports.plant_enricher import (
     DiseaseAnalysisResult,
     EnrichmentResult,
@@ -10,6 +19,7 @@ from src.domain.ports.plant_enricher import (
 )
 
 _MODEL = "gemini-2.5-flash"
+_SERVICE = "Gemini"
 
 class GeminiAdapter(IPlantEnricher):
     _client: genai.Client
@@ -73,15 +83,22 @@ class GeminiAdapter(IPlantEnricher):
         return self._parser.parse_health_diagnosis(raw)
 
     async def _generate(self, prompt: str) -> dict:
-        import asyncio
-        import json
-        response = await asyncio.get_event_loop().run_in_executor(
-            None,
-            lambda: self._client.models.generate_content(
-                model=_MODEL,
-                contents=prompt,
-                config={"response_mime_type": "application/json"},
-            ),
-        )
+        try:
+            # Gemini não recebe imagem: nenhum status do provedor significa imagem inválida
+            async with translate_provider_errors(_SERVICE, invalid_image_statuses=frozenset()):
+                response = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: self._client.models.generate_content(
+                        model=_MODEL,
+                        contents=prompt,
+                        config={"response_mime_type": "application/json"},
+                    ),
+                )
+        except genai_errors.APIError as exc:
+            raise provider_status_error(_SERVICE, exc.code) from exc
+
         raw_text = response.text if response and response.text else "{}"
-        return json.loads(raw_text)
+        try:
+            return json.loads(raw_text)
+        except json.JSONDecodeError as exc:
+            raise ExternalServiceError(message="Invalid JSON response.", service=_SERVICE) from exc

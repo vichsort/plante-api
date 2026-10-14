@@ -2,6 +2,8 @@ import base64
 
 import httpx
 
+from src.adapters.ai.provider_errors import translate_provider_errors
+from src.domain.exceptions import InvalidImageError
 from src.domain.ports.health_analyzer import (
     DiseaseHint,
     HealthAssessmentResult,
@@ -41,7 +43,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             "details": _DETAILS,
             "language": "pt",
         }
-        async with httpx.AsyncClient() as client:
+        async with translate_provider_errors("Kindwise"), httpx.AsyncClient() as client:
             r = await client.post(
                 f"{_BASE_URL}identification",
                 headers=self._headers,
@@ -59,7 +61,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             .get("suggestions", [])
         )
         if not suggestions:
-            raise ValueError("Kindwise returned no identification suggestions.")
+            raise InvalidImageError()
 
         best = suggestions[0]
         details = best.get("details", {})
@@ -95,7 +97,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             "images": [image_b64],
             "similar_images": True,
         }
-        async with httpx.AsyncClient() as client:
+        async with translate_provider_errors("Kindwise"), httpx.AsyncClient() as client:
             r = await client.post(
                 f"{_BASE_URL}health_assessment",
                 headers=self._headers,

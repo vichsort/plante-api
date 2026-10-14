@@ -13,6 +13,7 @@ from src.api.schemas.identification import (
 )
 from src.domain.exceptions import (
     ExternalServiceError,
+    InvalidImageError,
     LowConfidenceError,
     PlantLimitExceededError,
     SampleNotFoundError,
@@ -42,6 +43,7 @@ router = APIRouter(prefix="/identify", tags=["identification"], responses=error_
         PlantLimitExceededError,
         SubscriptionRequiredError,
         ExternalServiceError,
+        InvalidImageError,
     ),
 )
 @inject

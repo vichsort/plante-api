@@ -2,6 +2,7 @@ import asyncio
 
 import structlog
 
+from src.domain.exceptions import ExternalServiceError, InvalidImageError
 from src.domain.policies.consensus_policy import ConsensusPolicy
 from src.domain.ports.plant_identifier import (
     IdentificationResult,
@@ -27,10 +28,13 @@ class ConsensusIdentifier(IPlantIdentifier):
         latitude: float | None = None,
         longitude: float | None = None,
     ) -> IdentificationResult:
-        kindwise_result, plantnet_result = await asyncio.gather(
+        (kindwise_result, kindwise_error), (plantnet_result, plantnet_error) = await asyncio.gather(
             self._call_with_timeout(self._kindwise, image_bytes, latitude, longitude, "kindwise"),
             self._call_with_timeout(self._plantnet, image_bytes, latitude, longitude, "plantnet"),
         )
+
+        if kindwise_result is None and plantnet_result is None:
+            _raise_domain_failure(kindwise_error, plantnet_error)
 
         consensus = ConsensusPolicy.resolve(kindwise_result, plantnet_result)
 
@@ -62,15 +66,27 @@ class ConsensusIdentifier(IPlantIdentifier):
         latitude: float | None,
         longitude: float | None,
         source: str,
-    ) -> IdentificationResult | None:
+    ) -> tuple[IdentificationResult | None, Exception | None]:
         try:
-            return await asyncio.wait_for(
+            result = await asyncio.wait_for(
                 identifier.identify(image_bytes, latitude=latitude, longitude=longitude),
                 timeout=_TIMEOUT_SECONDS,
             )
+            return result, None
         except TimeoutError:
             log.warning("consensus.timeout", source=source)
-            return None
+            return None, ExternalServiceError(message="Timed out.", service=source, retryable=True)
         except Exception as e:
             log.warning("consensus.failed", source=source, error=str(e))
-            return None
+            return None, e
+
+
+def _raise_domain_failure(*errors: Exception | None) -> None:
+    """
+    Ambos os provedores falharam: propaga o erro de domínio mais informativo.
+    Imagem inválida prevalece sobre indisponibilidade; erros desconhecidos seguem para a policy.
+    """
+    for error_type in (InvalidImageError, ExternalServiceError):
+        for error in errors:
+            if isinstance(error, error_type):
+                raise error

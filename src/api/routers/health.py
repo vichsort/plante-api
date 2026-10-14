@@ -15,6 +15,7 @@ from src.api.schemas.health import (
 from src.domain.exceptions import (
     ExternalServiceError,
     HealthRecordNotFoundError,
+    InvalidImageError,
     PlantNotFoundError,
     RawResponseExpiredError,
     UnauthorizedError,
@@ -40,7 +41,7 @@ router = APIRouter(prefix="/diagnose", tags=["diagnosis"], responses=error_respo
     "",
     status_code=200,
     response_model=ApiResponse[HealthDiagnosisResponse],
-    responses=error_responses(PlantNotFoundError, UserNotFoundError, ExternalServiceError),
+    responses=error_responses(PlantNotFoundError, UserNotFoundError, ExternalServiceError, InvalidImageError),
 )
 @inject
 async def diagnose_health(
