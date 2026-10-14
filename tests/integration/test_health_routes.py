@@ -5,11 +5,6 @@ from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient
 
 
-def test_healthz_infra_route(client: TestClient):
-    response = client.get("/healthz")
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "plante-api"}
-
 def test_diagnose_health_route_success(client: TestClient, auth_headers: dict[str, str]):
     user_plant_id = str(uuid.uuid4())
     health_record_id = str(uuid.uuid4())

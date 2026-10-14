@@ -26,7 +26,7 @@ _SENSITIVE_PATHS = frozenset({
     "/diagnose",
 })
 
-_EXEMPT_PATHS = ("/docs", "/openapi.json", "/redoc", "/healthz", "/health/liveness", "/health/readiness")
+_EXEMPT_PATHS = ("/docs", "/openapi.json", "/redoc", "/health/liveness", "/health/readiness")
 
 _KEY_PREFIX = "plante:ratelimit"
 

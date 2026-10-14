@@ -67,7 +67,6 @@ def create_app() -> FastAPI:
         description="Sistema de identificação e gestão botânica",
         version="0.0.0",
         lifespan=lifespan,
-        responses=COMMON_ERROR_RESPONSES,
     )
 
     app.state.container = container
@@ -90,17 +89,10 @@ def create_app() -> FastAPI:
         probes,
         profile,
     )
-    app.include_router(auth.router)
-    app.include_router(identification.router)
-    app.include_router(garden.router)
-    app.include_router(plants.router)
-    app.include_router(health.router)
-    app.include_router(profile.router)
+    for domain in (auth, identification, garden, plants, health, profile):
+        app.include_router(domain.router, responses=COMMON_ERROR_RESPONSES)
+    # Probes ficam fora do rate limit, então não documentam os erros comuns (ex.: 429)
     app.include_router(probes.router)
-
-    @app.get("/healthz", tags=["infra"])
-    async def health_check():
-        return {"status": "ok", "service": "plante-api"}
 
     return app
 

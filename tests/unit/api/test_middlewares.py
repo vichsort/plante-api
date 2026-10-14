@@ -142,8 +142,8 @@ def _rate_limited_app(**kwargs) -> FastAPI:
     def identify():
         return {"ok": True}
 
-    @app.get("/healthz")
-    def healthz():
+    @app.get("/health/liveness")
+    def liveness():
         return {"status": "ok"}
 
     return app
@@ -172,7 +172,7 @@ def test_rate_limit_skips_exempt_paths():
     client = TestClient(_rate_limited_app(requests_per_minute=1))
 
     for _ in range(3):
-        response = client.get("/healthz")
+        response = client.get("/health/liveness")
         assert response.status_code == 200
         assert "X-RateLimit-Limit" not in response.headers
 

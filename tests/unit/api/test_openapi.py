@@ -29,3 +29,28 @@ def test_openapi_documents_domain_and_common_errors(client: TestClient):
 
     login = paths["/auth/login"]["post"]["responses"]
     assert "PLANTE_4006_UNAUTHORIZED" in login["401"]["content"]["application/json"]["examples"]
+
+
+def test_openapi_documents_common_errors_on_every_domain_route(client: TestClient):
+    paths = client.get("/openapi.json").json()["paths"]
+
+    domain_operations = [
+        (path, method, operation)
+        for path, item in paths.items()
+        if not path.startswith("/health/")
+        for method, operation in item.items()
+    ]
+    assert domain_operations
+    for path, method, operation in domain_operations:
+        assert "429" in operation["responses"], f"{method.upper()} {path} sem 429"
+        assert "500" in operation["responses"], f"{method.upper()} {path} sem 500"
+
+
+def test_openapi_probes_do_not_document_common_errors(client: TestClient):
+    paths = client.get("/openapi.json").json()["paths"]
+
+    for probe in ("/health/liveness", "/health/readiness"):
+        responses = paths[probe]["get"]["responses"]
+        assert "429" not in responses
+        assert "500" not in responses
+    assert "/healthz" not in paths
