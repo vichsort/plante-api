@@ -26,6 +26,7 @@ from src.domain.exceptions.health import (
     HealthRecordNotFoundError,
     RawResponseExpiredError,
 )
+from src.domain.exceptions.rate_limit import RateLimitExceededError
 from src.domain.exceptions.subscription import SubscriptionRequiredError
 
 __all__ = [
@@ -45,6 +46,7 @@ __all__ = [
     "PlantLimitExceededError",
     "PlantNotFoundError",
     "PlantNotReadyForWateringError",
+    "RateLimitExceededError",
     "RawResponseExpiredError",
     "SampleNotFoundError",
     "SpeciesNotFoundError",

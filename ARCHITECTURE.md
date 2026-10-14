@@ -131,6 +131,7 @@ Cada exceção carrega um **Código Único Máquina-Readable** e um **Status HTT
 | `PLANTE_4005_FREE_TIER_PLANT_LIMIT` | Limite de 3 plantas do plano FREE atingido. | 403 |
 | `PLANTE_4006_UNAUTHORIZED` | Credenciais inválidas ou token JWT expirado. | 401 |
 | `PLANTE_4007_INVALID_PASSWORD` | Senha atual incorreta durante alteração de perfil. | 400 |
+| `PLANTE_4029_RATE_LIMIT_EXCEEDED` | Limite de requisições por minuto excedido (ver `RateLimitMiddleware`). | 429 |
 
 ### 3.3. Envelope Uniforme de Resposta HTTP (`ApiResponse[T]`)
 

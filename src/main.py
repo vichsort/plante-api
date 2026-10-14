@@ -2,8 +2,15 @@ from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 
 from src.api.exception_handlers import register_exception_handlers
+from src.api.middleware import (
+    AuditMiddleware,
+    CorrelationIdMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
 from src.infrastructure.container import Container
 
 log = structlog.get_logger()
@@ -44,8 +51,12 @@ def create_app() -> FastAPI:
 
     app.state.container = container
 
-    from src.api.middleware import AuditMiddleware
+    # Middlewares (registrados na ordem interna -> externa)
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RateLimitMiddleware, redis_provider=container.adapters.redis)
     app.add_middleware(AuditMiddleware)
+    app.add_middleware(CorrelationIdMiddleware)
 
     register_exception_handlers(app)
 
