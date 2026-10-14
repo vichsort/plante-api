@@ -1,3 +1,4 @@
+import inspect
 from contextlib import asynccontextmanager
 
 import structlog
@@ -19,15 +20,32 @@ log = structlog.get_logger()
 async def lifespan(app: FastAPI):
     container = app.state.container
 
-    await container.init_resources()
+    # init/shutdown_resources só retornam awaitable quando há Resources assíncronos
+    if inspect.isawaitable(result := container.init_resources()):
+        await result
     log.info("plante.startup")
 
     yield
 
-    await container.shutdown_resources()
-    await container.adapters().weather_http().aclose()
+    if inspect.isawaitable(result := container.shutdown_resources()):
+        await result
+    await _close_connections(container)
 
     log.info("plante.shutdown")
+
+
+async def _close_connections(container: Container) -> None:
+    """Fecha pools e clientes de rede; uma falha não impede o fechamento dos demais."""
+    closers = {
+        "database": container.infra.engine().dispose,
+        "redis": container.adapters.redis().aclose,
+        "weather_http": container.adapters.weather_http().aclose,
+    }
+    for name, close in closers.items():
+        try:
+            await close()
+        except Exception as exc:
+            log.warning("plante.shutdown_failed", resource=name, error=str(exc))
 
 
 def create_app() -> FastAPI:
@@ -40,6 +58,7 @@ def create_app() -> FastAPI:
         "src.api.routers.plants",
         "src.api.routers.health",
         "src.api.routers.profile",
+        "src.api.routers.probes",
     ])
 
     app = FastAPI(
@@ -60,13 +79,22 @@ def create_app() -> FastAPI:
 
     register_exception_handlers(app)
 
-    from src.api.routers import auth, garden, health, identification, plants, profile
+    from src.api.routers import (
+        auth,
+        garden,
+        health,
+        identification,
+        plants,
+        probes,
+        profile,
+    )
     app.include_router(auth.router)
     app.include_router(identification.router)
     app.include_router(garden.router)
     app.include_router(plants.router)
     app.include_router(health.router)
     app.include_router(profile.router)
+    app.include_router(probes.router)
 
     @app.get("/healthz", tags=["infra"])
     async def health_check():

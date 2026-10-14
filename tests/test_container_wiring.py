@@ -12,4 +12,5 @@ def test_container_wires_without_error():
         "src.api.routers.plants",
         "src.api.routers.health",
         "src.api.routers.profile",
+        "src.api.routers.probes",
     ])

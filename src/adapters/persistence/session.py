@@ -1,11 +1,16 @@
 from collections.abc import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from src.infrastructure.settings import Settings
 
 
-def build_engine(settings: Settings):
+def build_engine(settings: Settings) -> AsyncEngine:
     return create_async_engine(
         settings.database_url,
         pool_size=10,
@@ -13,8 +18,7 @@ def build_engine(settings: Settings):
         echo=settings.debug,
     )
 
-def build_session_factory(settings: Settings) -> async_sessionmaker[AsyncSession]:
-    engine = build_engine(settings)
+def build_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
     return async_sessionmaker(engine, expire_on_commit=False)
 
 async def get_session(

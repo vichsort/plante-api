@@ -1,7 +1,7 @@
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.adapters.persistence.session import build_session_factory
+from src.adapters.persistence.session import build_engine, build_session_factory
 
 
 def build_session_instance(session_factory: async_sessionmaker[AsyncSession]) -> AsyncSession:
@@ -10,9 +10,14 @@ def build_session_instance(session_factory: async_sessionmaker[AsyncSession]) ->
 class InfraContainer(containers.DeclarativeContainer):
     settings: providers.Dependency = providers.Dependency()
 
+    engine = providers.Singleton(
+        build_engine,
+        settings=settings,
+    )
+
     session_factory = providers.Singleton(
         build_session_factory,
-        settings=settings,
+        engine=engine,
     )
 
     session = providers.Factory(

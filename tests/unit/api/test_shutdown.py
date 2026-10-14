@@ -1,0 +1,36 @@
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from src.infrastructure.container import Container
+from src.main import _close_connections
+
+
+@pytest.mark.asyncio
+async def test_close_connections_closes_all_even_if_one_fails():
+    container = Container()
+    engine = MagicMock()
+    engine.dispose = AsyncMock(side_effect=RuntimeError("boom"))
+    redis = AsyncMock()
+    weather_http = AsyncMock()
+
+    with (
+        container.infra.engine.override(engine),
+        container.adapters.redis.override(redis),
+        container.adapters.weather_http.override(weather_http),
+    ):
+        await _close_connections(container)
+
+    engine.dispose.assert_awaited_once()
+    redis.aclose.assert_awaited_once()
+    weather_http.aclose.assert_awaited_once()
+
+
+def test_lifespan_starts_and_shuts_down():
+    from fastapi.testclient import TestClient
+
+    from src.main import create_app
+
+    app = create_app()
+    with TestClient(app) as client:
+        assert client.get("/health/liveness").status_code == 200
