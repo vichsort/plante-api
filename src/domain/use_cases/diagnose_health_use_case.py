@@ -2,8 +2,14 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+import structlog
+
 from src.domain.entities.health_record import HealthRecord, HealthSeverity
-from src.domain.exceptions import PlantNotFoundError, UserNotFoundError
+from src.domain.exceptions import (
+    ExternalServiceError,
+    PlantNotFoundError,
+    UserNotFoundError,
+)
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.health_analyzer import IHealthAnalyzer
 from src.domain.ports.health_raw_response_repository import IHealthRawResponseRepository
@@ -12,6 +18,8 @@ from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.plant_enricher import IPlantEnricher
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
+
+log = structlog.get_logger()
 
 
 def _map_severity(vitality: float) -> HealthSeverity:
@@ -69,11 +77,17 @@ class DiagnoseHealthUseCase:
         gemini_data: dict = {}
 
         if assessment.health_probability < SubscriptionPolicy.health_unhealthy_threshold():
-            user.consume_identify_token()
-            gemini_data = await self._plant_enricher.diagnose_health(
-                scientific_name=user_plant.scientific_name,
-                issues=issues,
-            )
+            # Gemini é complementar: se falhar, o diagnóstico segue só com o Kindwise
+            try:
+                gemini_data = await self._plant_enricher.diagnose_health(
+                    scientific_name=user_plant.scientific_name,
+                    issues=issues,
+                )
+            except ExternalServiceError as exc:
+                log.warning("diagnose.enrichment_unavailable", error=exc.message)
+            else:
+                # Token extra só é cobrado quando a análise complementar foi entregue
+                user.consume_identify_token()
 
         vitality = gemini_data.get("vitality_score", assessment.health_probability)
         severity = _map_severity(vitality)
