@@ -12,6 +12,7 @@ from src.api.middleware import (
     RateLimitMiddleware,
     SecurityHeadersMiddleware,
 )
+from src.api.openapi import COMMON_ERROR_RESPONSES
 from src.infrastructure.container import Container
 
 log = structlog.get_logger()
@@ -66,6 +67,7 @@ def create_app() -> FastAPI:
         description="Sistema de identificação e gestão botânica",
         version="0.0.0",
         lifespan=lifespan,
+        responses=COMMON_ERROR_RESPONSES,
     )
 
     app.state.container = container

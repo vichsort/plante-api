@@ -4,6 +4,7 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 
 from src.api.deps import get_current_user_id
+from src.api.openapi import error_responses
 from src.api.response import ApiResponse
 from src.api.schemas.auth import (
     LoginRequest,
@@ -13,6 +14,12 @@ from src.api.schemas.auth import (
     RegisterResponse,
     TokenResponse,
     VerifyEmailRequest,
+)
+from src.domain.exceptions import (
+    EmailAlreadyInUseError,
+    InvalidVerificationCodeError,
+    UnauthorizedError,
+    UserNotFoundError,
 )
 from src.domain.use_cases.login_use_case import LoginUseCase
 from src.domain.use_cases.logout_use_case import LogoutUseCase
@@ -29,7 +36,12 @@ from src.infrastructure.container import Container
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/register", status_code=201, response_model=ApiResponse[RegisterResponse])
+@router.post(
+    "/register",
+    status_code=201,
+    response_model=ApiResponse[RegisterResponse],
+    responses=error_responses(EmailAlreadyInUseError),
+)
 @inject
 async def register(
     body: RegisterRequest,
@@ -43,7 +55,12 @@ async def register(
     ))
     return ApiResponse.success(RegisterResponse(**result))
 
-@router.post("/verify-email", status_code=200, response_model=ApiResponse[MessageResponse])
+@router.post(
+    "/verify-email",
+    status_code=200,
+    response_model=ApiResponse[MessageResponse],
+    responses=error_responses(InvalidVerificationCodeError, UserNotFoundError),
+)
 @inject
 async def verify_email(
     body: VerifyEmailRequest,
@@ -55,7 +72,12 @@ async def verify_email(
     ))
     return ApiResponse.success(MessageResponse(message="Email verified successfully."))
 
-@router.post("/login", status_code=200, response_model=ApiResponse[TokenResponse])
+@router.post(
+    "/login",
+    status_code=200,
+    response_model=ApiResponse[TokenResponse],
+    responses=error_responses(UnauthorizedError),
+)
 @inject
 async def login(
     body: LoginRequest,
@@ -73,7 +95,12 @@ async def login(
         token_type=result.token_type,
     ))
 
-@router.post("/refresh", status_code=200, response_model=ApiResponse[TokenResponse])
+@router.post(
+    "/refresh",
+    status_code=200,
+    response_model=ApiResponse[TokenResponse],
+    responses=error_responses(UnauthorizedError),
+)
 @inject
 async def refresh(
     body: RefreshRequest,
@@ -88,7 +115,12 @@ async def refresh(
         token_type=result.token_type,
     ))
 
-@router.post("/logout", status_code=200, response_model=ApiResponse[MessageResponse])
+@router.post(
+    "/logout",
+    status_code=200,
+    response_model=ApiResponse[MessageResponse],
+    responses=error_responses(UnauthorizedError),
+)
 @inject
 async def logout(
     use_case: LogoutUseCase = Depends(Provide[Container.use_cases.logout_use_case]),

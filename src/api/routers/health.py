@@ -4,12 +4,21 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 
 from src.api.deps import get_current_user_id
+from src.api.openapi import error_responses
 from src.api.response import ApiResponse
 from src.api.schemas.health import (
     ConfirmHealthDiagnosisRequest,
     ConfirmHealthDiagnosisResponse,
     HealthDiagnosisResponse,
     HealthRecordItemResponse,
+)
+from src.domain.exceptions import (
+    ExternalServiceError,
+    HealthRecordNotFoundError,
+    PlantNotFoundError,
+    RawResponseExpiredError,
+    UnauthorizedError,
+    UserNotFoundError,
 )
 from src.domain.use_cases.confirm_health_diagnosis_use_case import (
     ConfirmHealthDiagnosisInputDTO,
@@ -25,9 +34,14 @@ from src.domain.use_cases.get_health_history_use_case import (
 )
 from src.infrastructure.container import Container
 
-router = APIRouter(prefix="/diagnose", tags=["diagnosis"])
+router = APIRouter(prefix="/diagnose", tags=["diagnosis"], responses=error_responses(UnauthorizedError))
 
-@router.post("", status_code=200, response_model=ApiResponse[HealthDiagnosisResponse])
+@router.post(
+    "",
+    status_code=200,
+    response_model=ApiResponse[HealthDiagnosisResponse],
+    responses=error_responses(PlantNotFoundError, UserNotFoundError, ExternalServiceError),
+)
 @inject
 async def diagnose_health(
     user_plant_id: str = Form(...),
@@ -43,7 +57,12 @@ async def diagnose_health(
     ))
     return ApiResponse.success(HealthDiagnosisResponse(**result))
 
-@router.post("/confirm", status_code=200, response_model=ApiResponse[ConfirmHealthDiagnosisResponse])
+@router.post(
+    "/confirm",
+    status_code=200,
+    response_model=ApiResponse[ConfirmHealthDiagnosisResponse],
+    responses=error_responses(HealthRecordNotFoundError, RawResponseExpiredError, UserNotFoundError),
+)
 @inject
 async def confirm_health_diagnosis(
     body: ConfirmHealthDiagnosisRequest,
@@ -56,7 +75,12 @@ async def confirm_health_diagnosis(
     ))
     return ApiResponse.success(ConfirmHealthDiagnosisResponse(**result))
 
-@router.get("/history/{user_plant_id}", status_code=200, response_model=ApiResponse[list[HealthRecordItemResponse]])
+@router.get(
+    "/history/{user_plant_id}",
+    status_code=200,
+    response_model=ApiResponse[list[HealthRecordItemResponse]],
+    responses=error_responses(PlantNotFoundError),
+)
 @inject
 async def get_health_history(
     user_plant_id: str,

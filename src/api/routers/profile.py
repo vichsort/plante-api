@@ -4,6 +4,7 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 
 from src.api.deps import get_current_user_id
+from src.api.openapi import error_responses
 from src.api.response import ApiResponse
 from src.api.schemas.auth import MessageResponse
 from src.api.schemas.profile import (
@@ -13,6 +14,13 @@ from src.api.schemas.profile import (
     UpdateLocationRequest,
     UpgradeSubscriptionRequest,
     UpgradeSubscriptionResponse,
+)
+from src.domain.exceptions import (
+    EmailAlreadyInUseError,
+    InvalidCredentialsError,
+    UnauthorizedError,
+    UserNotFoundError,
+    WeakPasswordError,
 )
 from src.domain.use_cases.change_email_use_case import (
     ChangeEmailInputDTO,
@@ -36,9 +44,14 @@ from src.domain.use_cases.upgrade_subscription_use_case import (
 )
 from src.infrastructure.container import Container
 
-router = APIRouter(prefix="/profile", tags=["profile"])
+router = APIRouter(prefix="/profile", tags=["profile"], responses=error_responses(UnauthorizedError))
 
-@router.patch("/email", status_code=200, response_model=ApiResponse[MessageResponse])
+@router.patch(
+    "/email",
+    status_code=200,
+    response_model=ApiResponse[MessageResponse],
+    responses=error_responses(EmailAlreadyInUseError, InvalidCredentialsError, UserNotFoundError),
+)
 @inject
 async def change_email(
     body: ChangeEmailRequest,
@@ -52,7 +65,12 @@ async def change_email(
     ))
     return ApiResponse.success(MessageResponse(message="Verification code sent to new email."))
 
-@router.patch("/password", status_code=200, response_model=ApiResponse[MessageResponse])
+@router.patch(
+    "/password",
+    status_code=200,
+    response_model=ApiResponse[MessageResponse],
+    responses=error_responses(InvalidCredentialsError, UserNotFoundError, WeakPasswordError),
+)
 @inject
 async def change_password(
     body: ChangePasswordRequest,
@@ -66,7 +84,12 @@ async def change_password(
     ))
     return ApiResponse.success(MessageResponse(message="Password updated successfully."))
 
-@router.patch("/location", status_code=200, response_model=ApiResponse[MessageResponse])
+@router.patch(
+    "/location",
+    status_code=200,
+    response_model=ApiResponse[MessageResponse],
+    responses=error_responses(UserNotFoundError),
+)
 @inject
 async def update_location(
     body: UpdateLocationRequest,
@@ -80,7 +103,12 @@ async def update_location(
     ))
     return ApiResponse.success(MessageResponse(message="Location updated successfully."))
 
-@router.post("/subscription/upgrade", status_code=200, response_model=ApiResponse[UpgradeSubscriptionResponse])
+@router.post(
+    "/subscription/upgrade",
+    status_code=200,
+    response_model=ApiResponse[UpgradeSubscriptionResponse],
+    responses=error_responses(UserNotFoundError),
+)
 @inject
 async def upgrade_subscription(
     body: UpgradeSubscriptionRequest,

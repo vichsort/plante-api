@@ -4,12 +4,23 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 
 from src.api.deps import get_current_user_id
+from src.api.openapi import error_responses
 from src.api.response import ApiResponse
 from src.api.schemas.garden import (
     AddPlantToGardenRequest,
     DeleteUserPlantRequest,
     GardenItemResponse,
     WaterPlantResponse,
+)
+from src.domain.exceptions import (
+    ForbiddenError,
+    PlantLimitExceededError,
+    PlantNotFoundError,
+    PlantNotReadyForWateringError,
+    SampleNotFoundError,
+    SpeciesNotFoundError,
+    UnauthorizedError,
+    UserNotFoundError,
 )
 from src.domain.use_cases.add_plant_to_garden_use_case import (
     AddPlantToGardenInputDTO,
@@ -29,9 +40,21 @@ from src.domain.use_cases.water_plant_use_case import (
 )
 from src.infrastructure.container import Container
 
-router = APIRouter(prefix="/garden", tags=["garden"])
+router = APIRouter(prefix="/garden", tags=["garden"], responses=error_responses(UnauthorizedError))
 
-@router.post("", status_code=201, response_model=ApiResponse[dict])
+@router.post(
+    "",
+    status_code=201,
+    response_model=ApiResponse[dict],
+    responses=error_responses(
+        ForbiddenError,
+        PlantNotFoundError,
+        SampleNotFoundError,
+        SpeciesNotFoundError,
+        UserNotFoundError,
+        PlantLimitExceededError,
+    ),
+)
 @inject
 async def add_plant_to_garden(
     body: AddPlantToGardenRequest,
@@ -54,7 +77,17 @@ async def get_user_garden(
     items = await use_case.execute(GetUserGardenInputDTO(user_id=user_id))
     return ApiResponse.success([GardenItemResponse(**item) for item in items])
 
-@router.delete("/{user_plant_id}", status_code=200, response_model=ApiResponse[dict])
+@router.delete(
+    "/{user_plant_id}",
+    status_code=200,
+    response_model=ApiResponse[dict],
+    responses=error_responses(
+        ForbiddenError,
+        PlantNotFoundError,
+        SampleNotFoundError,
+        UserNotFoundError,
+    ),
+)
 @inject
 async def delete_user_plant(
     user_plant_id: str,
@@ -69,7 +102,12 @@ async def delete_user_plant(
     ))
     return ApiResponse.success({"message": "Plant removed from garden successfully."})
 
-@router.post("/{user_plant_id}/water", status_code=200, response_model=ApiResponse[WaterPlantResponse])
+@router.post(
+    "/{user_plant_id}/water",
+    status_code=200,
+    response_model=ApiResponse[WaterPlantResponse],
+    responses=error_responses(ForbiddenError, PlantNotFoundError, PlantNotReadyForWateringError),
+)
 @inject
 async def water_plant(
     user_plant_id: str,

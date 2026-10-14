@@ -4,11 +4,21 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from src.api.deps import get_current_user_id
+from src.api.openapi import error_responses
 from src.api.response import ApiResponse
 from src.api.schemas.identification import (
     ConfirmPlantIdentificationRequest,
     ConfirmPlantIdentificationResponse,
     IdentifyPlantResponse,
+)
+from src.domain.exceptions import (
+    ExternalServiceError,
+    LowConfidenceError,
+    PlantLimitExceededError,
+    SampleNotFoundError,
+    SubscriptionRequiredError,
+    UnauthorizedError,
+    UserNotFoundError,
 )
 from src.domain.use_cases.confirm_plant_identification_use_case import (
     ConfirmPlantIdentificationInputDTO,
@@ -20,9 +30,20 @@ from src.domain.use_cases.identify_plant_use_case import (
 )
 from src.infrastructure.container import Container
 
-router = APIRouter(prefix="/identify", tags=["identification"])
+router = APIRouter(prefix="/identify", tags=["identification"], responses=error_responses(UnauthorizedError))
 
-@router.post("", status_code=200, response_model=ApiResponse[IdentifyPlantResponse])
+@router.post(
+    "",
+    status_code=200,
+    response_model=ApiResponse[IdentifyPlantResponse],
+    responses=error_responses(
+        LowConfidenceError,
+        UserNotFoundError,
+        PlantLimitExceededError,
+        SubscriptionRequiredError,
+        ExternalServiceError,
+    ),
+)
 @inject
 async def identify_plant(
     image: UploadFile = File(...),
@@ -42,7 +63,12 @@ async def identify_plant(
 
     return ApiResponse.success(IdentifyPlantResponse(**result))
 
-@router.post("/confirm", status_code=200, response_model=ApiResponse[ConfirmPlantIdentificationResponse])
+@router.post(
+    "/confirm",
+    status_code=200,
+    response_model=ApiResponse[ConfirmPlantIdentificationResponse],
+    responses=error_responses(SampleNotFoundError, UserNotFoundError),
+)
 @inject
 async def confirm_plant_identification(
     body: ConfirmPlantIdentificationRequest,
