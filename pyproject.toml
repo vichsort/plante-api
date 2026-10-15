@@ -66,6 +66,8 @@ packages = ["src"]
 # ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# Loop novo por teste: fixtures assíncronas (sessão do banco, cliente Redis) não atravessam testes
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 # Contrato chama as APIs reais (gasta créditos): só com `pytest -m contract`
 addopts = "-m 'not contract'"

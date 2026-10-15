@@ -1,4 +1,3 @@
-import secrets
 from dataclasses import dataclass
 
 from src.domain.exceptions import (
@@ -54,9 +53,3 @@ class ChangeEmailUseCase:
 
         await self.otp_repo.save_code(user_id=user.id, code=raw_code)
         await self.email_sender.send_verification_code(to_email=dto.new_email, code=raw_code)
-
-
-def _generate_otp_code() -> str:
-    digits = [secrets.randbelow(10) for _ in range(6)]
-    checksum = sum(digits) % 10
-    return f"PLA{''.join(map(str, digits[:3]))}{checksum}{''.join(map(str, digits[3:]))}"
