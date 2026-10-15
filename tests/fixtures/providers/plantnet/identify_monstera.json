@@ -1,0 +1,492 @@
+{
+  "query": {
+    "project": "all",
+    "images": [
+      "REDACTED"
+    ],
+    "organs": [
+      "auto"
+    ],
+    "includeRelatedImages": true,
+    "noReject": false,
+    "type": null
+  },
+  "predictedOrgans": [
+    {
+      "image": "REDACTED",
+      "filename": "plant.jpg",
+      "organ": "leaf",
+      "score": 0.79967
+    }
+  ],
+  "language": "pt",
+  "preferedReferential": "k-world-flora",
+  "bestMatch": "Monstera deliciosa Liebm.",
+  "results": [
+    {
+      "score": 0.85787,
+      "species": {
+        "scientificNameWithoutAuthor": "Monstera deliciosa",
+        "scientificNameAuthorship": "Liebm.",
+        "genus": {
+          "scientificNameWithoutAuthor": "Monstera",
+          "scientificNameAuthorship": "",
+          "scientificName": "Monstera"
+        },
+        "family": {
+          "scientificNameWithoutAuthor": "Araceae",
+          "scientificNameAuthorship": "",
+          "scientificName": "Araceae"
+        },
+        "commonNames": [
+          "Costela de-adão",
+          "Banana de-macaco",
+          "Deliciosa"
+        ],
+        "scientificName": "Monstera deliciosa Liebm."
+      },
+      "images": [
+        {
+          "organ": "leaf",
+          "author": "Encyclopedia of Life − EOL",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1482270297257,
+            "string": "20 de dezembro de 2016"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/c8191a2632b1ca4e80778b92308b594479e48060",
+            "m": "https://bs.plantnet.org/image/m/c8191a2632b1ca4e80778b92308b594479e48060",
+            "s": "https://bs.plantnet.org/image/s/c8191a2632b1ca4e80778b92308b594479e48060"
+          },
+          "citation": "Encyclopedia of Life − EOL / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "Helena Del Pozo",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1677099231160,
+            "string": "22 de fevereiro de 2023"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/59d8ce098249487e3b38637b500240f05152d693",
+            "m": "https://bs.plantnet.org/image/m/59d8ce098249487e3b38637b500240f05152d693",
+            "s": "https://bs.plantnet.org/image/s/59d8ce098249487e3b38637b500240f05152d693"
+          },
+          "citation": "Helena Del Pozo / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "correia silvia",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1745159341588,
+            "string": "20 de abril de 2025"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/89185b2e7fe6cc36f999ae68ba6c4bde4d99a7c8",
+            "m": "https://bs.plantnet.org/image/m/89185b2e7fe6cc36f999ae68ba6c4bde4d99a7c8",
+            "s": "https://bs.plantnet.org/image/s/89185b2e7fe6cc36f999ae68ba6c4bde4d99a7c8"
+          },
+          "citation": "correia silvia / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "mareknowak88",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1736166823815,
+            "string": "6 de janeiro de 2025"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/3e5fe27dab688413eb0e98e36eaa8be275ccd546",
+            "m": "https://bs.plantnet.org/image/m/3e5fe27dab688413eb0e98e36eaa8be275ccd546",
+            "s": "https://bs.plantnet.org/image/s/3e5fe27dab688413eb0e98e36eaa8be275ccd546"
+          },
+          "citation": "mareknowak88 / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "axouxere",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1659116967379,
+            "string": "29 de julho de 2022"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/f347cad3863708d803cd9df8bce7a65228b3e4b9",
+            "m": "https://bs.plantnet.org/image/m/f347cad3863708d803cd9df8bce7a65228b3e4b9",
+            "s": "https://bs.plantnet.org/image/s/f347cad3863708d803cd9df8bce7a65228b3e4b9"
+          },
+          "citation": "axouxere / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "mproalvas",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1719600563557,
+            "string": "28 de junho de 2024"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/a4c5b506807f2fbaf3c3ee3226a4e98244031879",
+            "m": "https://bs.plantnet.org/image/m/a4c5b506807f2fbaf3c3ee3226a4e98244031879",
+            "s": "https://bs.plantnet.org/image/s/a4c5b506807f2fbaf3c3ee3226a4e98244031879"
+          },
+          "citation": "mproalvas / Pl@ntNet, cc-by-sa"
+        }
+      ],
+      "gbif": {
+        "id": "2868241"
+      },
+      "powo": {
+        "id": "87478-1"
+      }
+    },
+    {
+      "score": 0.01462,
+      "species": {
+        "scientificNameWithoutAuthor": "Monstera adansonii",
+        "scientificNameAuthorship": "Schott",
+        "genus": {
+          "scientificNameWithoutAuthor": "Monstera",
+          "scientificNameAuthorship": "",
+          "scientificName": "Monstera"
+        },
+        "family": {
+          "scientificNameWithoutAuthor": "Araceae",
+          "scientificNameAuthorship": "",
+          "scientificName": "Araceae"
+        },
+        "commonNames": [
+          "Costela de adão",
+          "Costela de-Eva",
+          "Monstera adansonii Schott"
+        ],
+        "scientificName": "Monstera adansonii Schott"
+      },
+      "images": [
+        {
+          "organ": "leaf",
+          "author": "Pedro Gomes",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1680593940369,
+            "string": "4 de abril de 2023"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/2b930d53fd47823295f2ca882d0abdde8c3dbdad",
+            "m": "https://bs.plantnet.org/image/m/2b930d53fd47823295f2ca882d0abdde8c3dbdad",
+            "s": "https://bs.plantnet.org/image/s/2b930d53fd47823295f2ca882d0abdde8c3dbdad"
+          },
+          "citation": "Pedro Gomes / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "Bernd Grossmeier",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1670338322237,
+            "string": "6 de dezembro de 2022"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/1b7d5ee0bc2446299159372fda40ce41bb072666",
+            "m": "https://bs.plantnet.org/image/m/1b7d5ee0bc2446299159372fda40ce41bb072666",
+            "s": "https://bs.plantnet.org/image/s/1b7d5ee0bc2446299159372fda40ce41bb072666"
+          },
+          "citation": "Bernd Grossmeier / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "Neyra Loaiza",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1675186912837,
+            "string": "31 de janeiro de 2023"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/b0ac926d00954777038029d45470f7b3845f0051",
+            "m": "https://bs.plantnet.org/image/m/b0ac926d00954777038029d45470f7b3845f0051",
+            "s": "https://bs.plantnet.org/image/s/b0ac926d00954777038029d45470f7b3845f0051"
+          },
+          "citation": "Neyra Loaiza / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "Mike Kangwana",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1686921865652,
+            "string": "16 de junho de 2023"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/d025f446620de41eb226b96c48ff5b1fc94878a1",
+            "m": "https://bs.plantnet.org/image/m/d025f446620de41eb226b96c48ff5b1fc94878a1",
+            "s": "https://bs.plantnet.org/image/s/d025f446620de41eb226b96c48ff5b1fc94878a1"
+          },
+          "citation": "Mike Kangwana / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "Nick Seefeldt",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1682954580967,
+            "string": "1 de maio de 2023"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/1009a5e36fe0f6d2110d33a8a988bc85f023e34f",
+            "m": "https://bs.plantnet.org/image/m/1009a5e36fe0f6d2110d33a8a988bc85f023e34f",
+            "s": "https://bs.plantnet.org/image/s/1009a5e36fe0f6d2110d33a8a988bc85f023e34f"
+          },
+          "citation": "Nick Seefeldt / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "astrid p",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1677066284115,
+            "string": "22 de fevereiro de 2023"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/05f9c0fc3d053ede08b85217a96c24fed7108ec0",
+            "m": "https://bs.plantnet.org/image/m/05f9c0fc3d053ede08b85217a96c24fed7108ec0",
+            "s": "https://bs.plantnet.org/image/s/05f9c0fc3d053ede08b85217a96c24fed7108ec0"
+          },
+          "citation": "astrid p / Pl@ntNet, cc-by-sa"
+        }
+      ],
+      "gbif": {
+        "id": "2868136"
+      },
+      "powo": {
+        "id": "87464-1"
+      }
+    },
+    {
+      "score": 0.01299,
+      "species": {
+        "scientificNameWithoutAuthor": "Monstera punctulata",
+        "scientificNameAuthorship": "(Schott) Schott ex Engl.",
+        "genus": {
+          "scientificNameWithoutAuthor": "Monstera",
+          "scientificNameAuthorship": "",
+          "scientificName": "Monstera"
+        },
+        "family": {
+          "scientificNameWithoutAuthor": "Araceae",
+          "scientificNameAuthorship": "",
+          "scientificName": "Araceae"
+        },
+        "commonNames": [],
+        "scientificName": "Monstera punctulata (Schott) Schott ex Engl."
+      },
+      "images": [
+        {
+          "organ": "leaf",
+          "author": "Ester Lages",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1711973844223,
+            "string": "1 de abril de 2024"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/94e10fdd524d9667cd4bb56368ddca0356ae121f",
+            "m": "https://bs.plantnet.org/image/m/94e10fdd524d9667cd4bb56368ddca0356ae121f",
+            "s": "https://bs.plantnet.org/image/s/94e10fdd524d9667cd4bb56368ddca0356ae121f"
+          },
+          "citation": "Ester Lages / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "Senger Mario",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1670417598682,
+            "string": "7 de dezembro de 2022"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/500eb044b5574c01051806c1c3e97e6ce0e28b2a",
+            "m": "https://bs.plantnet.org/image/m/500eb044b5574c01051806c1c3e97e6ce0e28b2a",
+            "s": "https://bs.plantnet.org/image/s/500eb044b5574c01051806c1c3e97e6ce0e28b2a"
+          },
+          "citation": "Senger Mario / Pl@ntNet, cc-by-sa"
+        }
+      ],
+      "gbif": {
+        "id": "2868198"
+      },
+      "powo": {
+        "id": "87541-1"
+      }
+    },
+    {
+      "score": 0.01065,
+      "species": {
+        "scientificNameWithoutAuthor": "Rhaphidophora tetrasperma",
+        "scientificNameAuthorship": "Hook.f.",
+        "genus": {
+          "scientificNameWithoutAuthor": "Rhaphidophora",
+          "scientificNameAuthorship": "",
+          "scientificName": "Rhaphidophora"
+        },
+        "family": {
+          "scientificNameWithoutAuthor": "Araceae",
+          "scientificNameAuthorship": "",
+          "scientificName": "Araceae"
+        },
+        "commonNames": [
+          "Mini costela de Adão",
+          "Mini costela-de-Adão"
+        ],
+        "scientificName": "Rhaphidophora tetrasperma Hook.f."
+      },
+      "images": [
+        {
+          "organ": "leaf",
+          "author": "Mal Tipo",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1707593593571,
+            "string": "10 de fevereiro de 2024"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/3b6a2f624baf95672e7eae83541293c23e53c8e0",
+            "m": "https://bs.plantnet.org/image/m/3b6a2f624baf95672e7eae83541293c23e53c8e0",
+            "s": "https://bs.plantnet.org/image/s/3b6a2f624baf95672e7eae83541293c23e53c8e0"
+          },
+          "citation": "Mal Tipo / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "Vilchez Yolanda",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1730995405551,
+            "string": "7 de novembro de 2024"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/ea26491c9e2136a6984f53161c633c6c744fa720",
+            "m": "https://bs.plantnet.org/image/m/ea26491c9e2136a6984f53161c633c6c744fa720",
+            "s": "https://bs.plantnet.org/image/s/ea26491c9e2136a6984f53161c633c6c744fa720"
+          },
+          "citation": "Vilchez Yolanda / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "Rocca Arturo",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1708761207727,
+            "string": "24 de fevereiro de 2024"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/313518a3cc661424997201feb69641701eaf19a1",
+            "m": "https://bs.plantnet.org/image/m/313518a3cc661424997201feb69641701eaf19a1",
+            "s": "https://bs.plantnet.org/image/s/313518a3cc661424997201feb69641701eaf19a1"
+          },
+          "citation": "Rocca Arturo / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "Luciano Zanetti",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1733997155265,
+            "string": "12 de dezembro de 2024"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/e13914eb9e2593dfbcf714029b090094694fac89",
+            "m": "https://bs.plantnet.org/image/m/e13914eb9e2593dfbcf714029b090094694fac89",
+            "s": "https://bs.plantnet.org/image/s/e13914eb9e2593dfbcf714029b090094694fac89"
+          },
+          "citation": "Luciano Zanetti / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "Enzo Coppola",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1700645969257,
+            "string": "22 de novembro de 2023"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/1dd1043606fb77cde5759fd76b178d063dfbfb04",
+            "m": "https://bs.plantnet.org/image/m/1dd1043606fb77cde5759fd76b178d063dfbfb04",
+            "s": "https://bs.plantnet.org/image/s/1dd1043606fb77cde5759fd76b178d063dfbfb04"
+          },
+          "citation": "Enzo Coppola / Pl@ntNet, cc-by-sa"
+        },
+        {
+          "organ": "leaf",
+          "author": "Peter Lietavec",
+          "license": "cc-by-sa",
+          "date": {
+            "timestamp": 1724915466456,
+            "string": "29 de agosto de 2024"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/5ef03d7a6d2e127a629a6e05c9458a83f468c707",
+            "m": "https://bs.plantnet.org/image/m/5ef03d7a6d2e127a629a6e05c9458a83f468c707",
+            "s": "https://bs.plantnet.org/image/s/5ef03d7a6d2e127a629a6e05c9458a83f468c707"
+          },
+          "citation": "Peter Lietavec / Pl@ntNet, cc-by-sa"
+        }
+      ],
+      "gbif": {
+        "id": "5329745"
+      },
+      "powo": {
+        "id": "88594-1"
+      }
+    },
+    {
+      "score": 0.00815,
+      "species": {
+        "scientificNameWithoutAuthor": "Monstera tacanaensis",
+        "scientificNameAuthorship": "Matuda",
+        "genus": {
+          "scientificNameWithoutAuthor": "Monstera",
+          "scientificNameAuthorship": "",
+          "scientificName": "Monstera"
+        },
+        "family": {
+          "scientificNameWithoutAuthor": "Araceae",
+          "scientificNameAuthorship": "",
+          "scientificName": "Araceae"
+        },
+        "commonNames": [
+          "Costela de-adão"
+        ],
+        "scientificName": "Monstera tacanaensis Matuda"
+      },
+      "images": [
+        {
+          "organ": "habit",
+          "author": "GBIF − steve_the_green (iNaturalist) − Global Biodiversity Information Facility",
+          "license": "cc-by-nc",
+          "date": {
+            "timestamp": 1763549266696,
+            "string": "19 de novembro de 2025"
+          },
+          "url": {
+            "o": "https://bs.plantnet.org/image/o/2b74f309bc94237ee005733702501008c117b7c3",
+            "m": "https://bs.plantnet.org/image/m/2b74f309bc94237ee005733702501008c117b7c3",
+            "s": "https://bs.plantnet.org/image/s/2b74f309bc94237ee005733702501008c117b7c3"
+          },
+          "citation": "GBIF − steve_the_green (iNaturalist) − Global Biodiversity Information Facility / Pl@ntNet, cc-by-nc"
+        }
+      ],
+      "gbif": {
+        "id": "2868242"
+      },
+      "powo": {
+        "id": "163965-2"
+      }
+    }
+  ],
+  "version": "2026-03-20 (7.5)",
+  "remainingIdentificationRequests": 498
+}

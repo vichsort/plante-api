@@ -1,0 +1,66 @@
+{
+  "access_token": "REDACTED",
+  "model_version": "plant_id:5.1.1",
+  "custom_id": null,
+  "input": {
+    "latitude": null,
+    "longitude": null,
+    "health": "only",
+    "similar_images": true,
+    "images": [
+      "REDACTED"
+    ],
+    "datetime": "2026-10-15T00:09:42.377452+00:00"
+  },
+  "result": {
+    "disease": {
+      "suggestions": [
+        {
+          "id": "727a482522a3cb03",
+          "name": "Lepidoptera",
+          "probability": 0.0103,
+          "similar_images": [
+            {
+              "id": "3e096abb070e4fd655475a8174f7c2d9ab8243c4",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/3e0/96abb070e4fd655475a8174f7c2d9ab8243c4.jpg",
+              "license_name": "CC BY 3.0",
+              "license_url": "https://creativecommons.org/licenses/by/3.0/",
+              "citation": "Jerry A. Payne, USDA Agricultural Research Service",
+              "similarity": 0.302,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/3e0/96abb070e4fd655475a8174f7c2d9ab8243c4.small.jpg"
+            },
+            {
+              "id": "04859588c3b664cc4617325d4f54eabbbf252101",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/048/59588c3b664cc4617325d4f54eabbbf252101.jpg",
+              "license_name": "CC BY-NC-SA 4.0",
+              "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+              "citation": "FlowerChecker s.r.o.",
+              "similarity": 0.297,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/048/59588c3b664cc4617325d4f54eabbbf252101.small.jpg"
+            }
+          ],
+          "details": {
+            "language": "en",
+            "entity_id": "727a482522a3cb03"
+          }
+        }
+      ],
+      "question": null
+    },
+    "is_plant": {
+      "probability": 0.089864604,
+      "threshold": 0.5,
+      "binary": false
+    },
+    "is_healthy": {
+      "binary": false,
+      "probability": 0.0537000016120146,
+      "threshold": 0.5
+    }
+  },
+  "status": "COMPLETED",
+  "sla_compliant_client": true,
+  "sla_compliant_system": true,
+  "created": 1792022982.377452,
+  "completed": 1792022982.966623
+}

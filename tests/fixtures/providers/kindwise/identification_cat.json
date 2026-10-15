@@ -1,0 +1,351 @@
+{
+  "access_token": "REDACTED",
+  "model_version": "plant_id:5.1.1",
+  "custom_id": null,
+  "input": {
+    "latitude": null,
+    "longitude": null,
+    "similar_images": true,
+    "images": [
+      "REDACTED"
+    ],
+    "datetime": "2026-10-15T00:08:00.178858+00:00"
+  },
+  "result": {
+    "classification": {
+      "suggestions": [
+        {
+          "id": "91058b2009910d10",
+          "name": "Magnolia kobus",
+          "probability": 0.0614,
+          "similar_images": [
+            {
+              "id": "01ad2b6fc498eef9ca1fe56b429e2b16d7d616aa",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/01a/d2b6fc498eef9ca1fe56b429e2b16d7d616aa.jpeg",
+              "license_name": "CC BY-SA 4.0",
+              "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+              "citation": "Charles Darwin",
+              "similarity": 0.484,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/01a/d2b6fc498eef9ca1fe56b429e2b16d7d616aa.small.jpeg"
+            },
+            {
+              "id": "4f477f4a1ec5ed6b690e1e454d3c2038ed9e9c7e",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/4f4/77f4a1ec5ed6b690e1e454d3c2038ed9e9c7e.jpg",
+              "license_name": "CC BY 4.0",
+              "license_url": "https://creativecommons.org/licenses/by/4.0/",
+              "citation": "Bill Keim",
+              "similarity": 0.457,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/4f4/77f4a1ec5ed6b690e1e454d3c2038ed9e9c7e.small.jpg"
+            }
+          ],
+          "details": {
+            "common_names": null,
+            "taxonomy": {
+              "class": "Magnoliopsida",
+              "genus": "Magnolia",
+              "order": "Magnoliales",
+              "family": "Magnoliaceae",
+              "phylum": "Tracheophyta",
+              "kingdom": "Plantae"
+            },
+            "gbif_id": 3153260,
+            "image": {
+              "value": "https://plant-id.ams3.cdn.digitaloceanspaces.com/knowledge_base/wikidata/7c5/7c5fc6206214cd1b4006a77633bb37b19b460fd1.jpg",
+              "citation": "https://commons.wikimedia.org/wiki/User:Bruce_Marlin",
+              "license_name": "CC BY-SA 3.0",
+              "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+            },
+            "edible_parts": [
+              "flowers",
+              "leaves"
+            ],
+            "watering": {
+              "max": 2,
+              "min": 2
+            },
+            "language": "pt",
+            "entity_id": "91058b2009910d10",
+            "edible_parts_citation": "Source of edible parts: https://pfaf.org"
+          }
+        },
+        {
+          "id": "8b8b97fc86fa651c",
+          "name": "Salix pentandra",
+          "probability": 0.0216,
+          "similar_images": [
+            {
+              "id": "6bafa2e1ad0b174c755ee11c3e71dfe1bf83a176",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/6ba/fa2e1ad0b174c755ee11c3e71dfe1bf83a176.jpeg",
+              "license_name": "CC BY 4.0",
+              "license_url": "https://creativecommons.org/licenses/by/4.0/",
+              "citation": "Виктория Билоус",
+              "similarity": 0.466,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/6ba/fa2e1ad0b174c755ee11c3e71dfe1bf83a176.small.jpeg"
+            },
+            {
+              "id": "f382b4b79b2f2d3a57822eca67fb046b5ebb19d0",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/f38/2b4b79b2f2d3a57822eca67fb046b5ebb19d0.jpg",
+              "license_name": "CC0",
+              "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+              "citation": "Kerstin Årdahl",
+              "similarity": 0.464,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/f38/2b4b79b2f2d3a57822eca67fb046b5ebb19d0.small.jpg"
+            }
+          ],
+          "details": {
+            "common_names": null,
+            "taxonomy": {
+              "class": "Magnoliopsida",
+              "genus": "Salix",
+              "order": "Malpighiales",
+              "family": "Salicaceae",
+              "phylum": "Tracheophyta",
+              "kingdom": "Plantae"
+            },
+            "gbif_id": 5372647,
+            "image": {
+              "value": "https://plant-id.ams3.cdn.digitaloceanspaces.com/knowledge_base/wikidata/91b/91b2990b52e62e41368a250196faff25c18b6082.jpg",
+              "citation": "https://commons.wikimedia.org/wiki/User:MPF",
+              "license_name": "CC BY 2.5",
+              "license_url": "https://creativecommons.org/licenses/by/2.5/"
+            },
+            "edible_parts": [
+              "inner bark",
+              "leaves",
+              "shoots"
+            ],
+            "watering": null,
+            "language": "pt",
+            "entity_id": "8b8b97fc86fa651c",
+            "edible_parts_citation": "Source of edible parts: https://pfaf.org"
+          }
+        },
+        {
+          "id": "b82da2e69ec7a57e",
+          "name": "Magnolia stellata",
+          "probability": 0.016,
+          "similar_images": [
+            {
+              "id": "769e269ab40bc4f2a2691f03758f7f0ab443d515",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/769/e269ab40bc4f2a2691f03758f7f0ab443d515.jpeg",
+              "license_name": "CC BY-SA 4.0",
+              "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+              "citation": "Maarten Vanhove",
+              "similarity": 0.435,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/769/e269ab40bc4f2a2691f03758f7f0ab443d515.small.jpeg"
+            },
+            {
+              "id": "c8e3892bc96b70f1c1ad2f80a274a53003825a8b",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/c8e/3892bc96b70f1c1ad2f80a274a53003825a8b.jpeg",
+              "license_name": "CC BY-SA 4.0",
+              "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+              "citation": "L.. F..",
+              "similarity": 0.415,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/c8e/3892bc96b70f1c1ad2f80a274a53003825a8b.small.jpeg"
+            }
+          ],
+          "details": {
+            "common_names": [
+              "Magnólia-estrelada"
+            ],
+            "taxonomy": {
+              "class": "Magnoliopsida",
+              "genus": "Magnolia",
+              "order": "Magnoliales",
+              "family": "Magnoliaceae",
+              "phylum": "Tracheophyta",
+              "kingdom": "Plantae"
+            },
+            "gbif_id": 3153912,
+            "image": {
+              "value": "https://plant-id.ams3.cdn.digitaloceanspaces.com/knowledge_base/wikidata/3d5/3d5a3f64ca67c1bee7d76eae751bc7842ebf32bd.jpg",
+              "citation": "https://commons.wikimedia.org/wiki/User:Myrabella",
+              "license_name": "CC BY-SA 3.0",
+              "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+            },
+            "edible_parts": [
+              "leaves"
+            ],
+            "watering": {
+              "max": 2,
+              "min": 2
+            },
+            "language": "pt",
+            "entity_id": "b82da2e69ec7a57e",
+            "edible_parts_citation": "Source of edible parts: https://pfaf.org"
+          }
+        },
+        {
+          "id": "13c98ed93a2c5ff5",
+          "name": "Betula pubescens",
+          "probability": 0.0159,
+          "similar_images": [
+            {
+              "id": "fb5d6a3eb4a6bba33a761f26d0cd6a7003d3b590",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/fb5/d6a3eb4a6bba33a761f26d0cd6a7003d3b590.jpeg",
+              "license_name": "CC BY 4.0",
+              "license_url": "https://creativecommons.org/licenses/by/4.0/",
+              "citation": "Lutz Levente",
+              "similarity": 0.475,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/fb5/d6a3eb4a6bba33a761f26d0cd6a7003d3b590.small.jpeg"
+            },
+            {
+              "id": "0661777473612d1cb171a93d1c2bd6e81f935d19",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/066/1777473612d1cb171a93d1c2bd6e81f935d19.jpeg",
+              "license_name": "CC BY-SA 4.0",
+              "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+              "citation": "José Antonio Acosta",
+              "similarity": 0.443,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/066/1777473612d1cb171a93d1c2bd6e81f935d19.small.jpeg"
+            }
+          ],
+          "details": {
+            "common_names": [
+              "Vidoeiro",
+              "Bétula"
+            ],
+            "taxonomy": {
+              "class": "Magnoliopsida",
+              "genus": "Betula",
+              "order": "Fagales",
+              "family": "Betulaceae",
+              "phylum": "Tracheophyta",
+              "kingdom": "Plantae"
+            },
+            "gbif_id": 9118014,
+            "image": {
+              "value": "https://plant-id.ams3.cdn.digitaloceanspaces.com/knowledge_base/wikidata/0d6/0d6322498c801f53c033b956cf8c3c9efe63b5dc.jpg",
+              "citation": "https://commons.wikimedia.org/wiki/User:Southgeist",
+              "license_name": "CC BY-SA 2.0",
+              "license_url": "https://creativecommons.org/licenses/by-sa/2.0/"
+            },
+            "edible_parts": [
+              "flowers",
+              "inner bark",
+              "leaves",
+              "sap"
+            ],
+            "watering": null,
+            "language": "pt",
+            "entity_id": "13c98ed93a2c5ff5",
+            "edible_parts_citation": "Source of edible parts: https://pfaf.org"
+          }
+        },
+        {
+          "id": "5296f072e317ffa6",
+          "name": "Castanea pumila",
+          "probability": 0.0145,
+          "similar_images": [
+            {
+              "id": "b9cac287eeb0f1c7c5ab1473de3edd755a507389",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/b9c/ac287eeb0f1c7c5ab1473de3edd755a507389.jpeg",
+              "license_name": "CC BY 4.0",
+              "license_url": "https://creativecommons.org/licenses/by/4.0/",
+              "citation": "Matt Berger",
+              "similarity": 0.517,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/b9c/ac287eeb0f1c7c5ab1473de3edd755a507389.small.jpeg"
+            },
+            {
+              "id": "724e3c949c28f4a178ff362f1650cae5084f44f1",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/724/e3c949c28f4a178ff362f1650cae5084f44f1.jpg",
+              "license_name": "CC BY 4.0",
+              "license_url": "https://creativecommons.org/licenses/by/4.0/",
+              "citation": "Leila Dasher",
+              "similarity": 0.376,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/724/e3c949c28f4a178ff362f1650cae5084f44f1.small.jpg"
+            }
+          ],
+          "details": {
+            "common_names": null,
+            "taxonomy": {
+              "class": "Magnoliopsida",
+              "genus": "Castanea",
+              "order": "Fagales",
+              "family": "Fagaceae",
+              "phylum": "Tracheophyta",
+              "kingdom": "Plantae"
+            },
+            "gbif_id": 5333212,
+            "image": {
+              "value": "https://plant-id.ams3.cdn.digitaloceanspaces.com/knowledge_base/wikidata/104/104603dcda14d21f5db8a83dc84f3e148f377ded.jpg",
+              "citation": null,
+              "license_name": "CC0",
+              "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+            },
+            "edible_parts": [
+              "seeds"
+            ],
+            "watering": null,
+            "language": "pt",
+            "entity_id": "5296f072e317ffa6",
+            "edible_parts_citation": "Source of edible parts: https://pfaf.org"
+          }
+        },
+        {
+          "id": "0c5928a92f91d133",
+          "name": "Rhus typhina",
+          "probability": 0.0139,
+          "similar_images": [
+            {
+              "id": "ec56ee7d492cd869e4b4fc2bb616b56afc0fdf97",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/ec5/6ee7d492cd869e4b4fc2bb616b56afc0fdf97.jpg",
+              "license_name": "CC BY 4.0",
+              "license_url": "https://creativecommons.org/licenses/by/4.0/",
+              "citation": "Tom Scavo",
+              "similarity": 0.488,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/ec5/6ee7d492cd869e4b4fc2bb616b56afc0fdf97.small.jpg"
+            },
+            {
+              "id": "d2e8db66d10a996dbfc5529f42a2a223d9854bed",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/d2e/8db66d10a996dbfc5529f42a2a223d9854bed.jpg",
+              "license_name": "CC BY 4.0",
+              "license_url": "https://creativecommons.org/licenses/by/4.0/",
+              "citation": "Emily Summerbell",
+              "similarity": 0.487,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/d2e/8db66d10a996dbfc5529f42a2a223d9854bed.small.jpg"
+            }
+          ],
+          "details": {
+            "common_names": null,
+            "taxonomy": {
+              "class": "Magnoliopsida",
+              "genus": "Rhus",
+              "order": "Sapindales",
+              "family": "Anacardiaceae",
+              "phylum": "Tracheophyta",
+              "kingdom": "Plantae"
+            },
+            "gbif_id": 3190538,
+            "image": {
+              "value": "https://plant-id.ams3.cdn.digitaloceanspaces.com/knowledge_base/wikidata/8c4/8c47208071c5cb8db150d80f4b43a9a64d727dbf.jpg",
+              "citation": null,
+              "license_name": "CC0",
+              "license_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+            },
+            "edible_parts": [
+              "fruit",
+              "oil"
+            ],
+            "watering": {
+              "max": 2,
+              "min": 1
+            },
+            "language": "pt",
+            "entity_id": "0c5928a92f91d133",
+            "edible_parts_citation": "Source of edible parts: https://pfaf.org"
+          }
+        }
+      ]
+    },
+    "is_plant": {
+      "probability": 0.089864604,
+      "threshold": 0.5,
+      "binary": false
+    }
+  },
+  "status": "COMPLETED",
+  "sla_compliant_client": true,
+  "sla_compliant_system": true,
+  "created": 1792022880.178858,
+  "completed": 1792022880.603281
+}

@@ -1,0 +1,87 @@
+{
+  "access_token": "REDACTED",
+  "model_version": "plant_id:5.1.1",
+  "custom_id": null,
+  "input": {
+    "latitude": null,
+    "longitude": null,
+    "similar_images": true,
+    "images": [
+      "REDACTED"
+    ],
+    "datetime": "2026-10-15T00:07:55.886233+00:00"
+  },
+  "result": {
+    "is_plant": {
+      "probability": 0.81509143,
+      "threshold": 0.5,
+      "binary": true
+    },
+    "classification": {
+      "suggestions": [
+        {
+          "id": "ad11b3384dd5c143",
+          "name": "Monstera deliciosa",
+          "probability": 0.9873,
+          "similar_images": [
+            {
+              "id": "100bd25dd3506b3171b71b6241e6da5072d4dad6",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/100/bd25dd3506b3171b71b6241e6da5072d4dad6.jpeg",
+              "license_name": "CC BY-NC-SA 4.0",
+              "license_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+              "citation": "FlowerChecker s.r.o.",
+              "similarity": 0.802,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/100/bd25dd3506b3171b71b6241e6da5072d4dad6.small.jpeg"
+            },
+            {
+              "id": "41b65d915d07853845ecef36832a9628cf2ebeaf",
+              "url": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/41b/65d915d07853845ecef36832a9628cf2ebeaf.jpg",
+              "license_name": "CC0",
+              "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+              "citation": "andré",
+              "similarity": 0.78,
+              "url_small": "https://plant-id.ams3.cdn.digitaloceanspaces.com/similar_images/5/41b/65d915d07853845ecef36832a9628cf2ebeaf.small.jpg"
+            }
+          ],
+          "details": {
+            "common_names": [
+              "Costela-de-adão",
+              "Guaimbé",
+              "Banana-abacaxi"
+            ],
+            "taxonomy": {
+              "class": "Liliopsida",
+              "genus": "Monstera",
+              "order": "Alismatales",
+              "family": "Araceae",
+              "phylum": "Tracheophyta",
+              "kingdom": "Plantae"
+            },
+            "gbif_id": 2868241,
+            "image": {
+              "value": "https://plant-id.ams3.cdn.digitaloceanspaces.com/knowledge_base/wikidata/fbf/fbf5241269019c03b728e7836c7ab87962404b85.jpg",
+              "citation": "https://commons.wikimedia.org/wiki/File:Monstera_deliciosa2.jpg",
+              "license_name": "CC BY-SA 3.0",
+              "license_url": "https://creativecommons.org/licenses/by-sa/3.0/"
+            },
+            "edible_parts": [
+              "fruit"
+            ],
+            "watering": {
+              "max": 2,
+              "min": 2
+            },
+            "language": "pt",
+            "entity_id": "ad11b3384dd5c143",
+            "edible_parts_citation": "Source of edible parts: https://pfaf.org"
+          }
+        }
+      ]
+    }
+  },
+  "status": "COMPLETED",
+  "sla_compliant_client": true,
+  "sla_compliant_system": true,
+  "created": 1792022875.886233,
+  "completed": 1792022876.245313
+}

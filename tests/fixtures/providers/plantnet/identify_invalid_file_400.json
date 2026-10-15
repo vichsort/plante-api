@@ -1,0 +1,5 @@
+{
+  "statusCode": 400,
+  "error": "Bad Request",
+  "message": "Unsupported file type for image[0] (jpeg or png)"
+}
