@@ -106,8 +106,9 @@ class AdaptersContainer(containers.DeclarativeContainer):
         plantnet=plantnet_identifier,
     )
 
+    # Selector compara pela string do valor: o bool precisa virar "true"/"false"
     plant_identifier = providers.Selector(
-        settings.provided.consensus_enabled,
+        providers.Callable(lambda enabled: "true" if enabled else "false", settings.provided.consensus_enabled),
         true=consensus_identifier,
         false=kindwise_identifier,
     )

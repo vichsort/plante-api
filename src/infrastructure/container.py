@@ -40,6 +40,7 @@ class Container(containers.DeclarativeContainer):
         health_raw_response_repository=adapters.health_raw_response_repository,
         plant_nutritional_repository=repositories.plant_nutritional_repository,
         achievement_repository=repositories.achievement_repository,
+        plant_reference_image_repository=repositories.plant_reference_image_repository,
         password_hasher=adapters.password_hasher,
         email_sender=adapters.email_sender,
         domain_publisher=adapters.domain_publisher,

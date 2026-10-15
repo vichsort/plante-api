@@ -1,4 +1,7 @@
 # tests/test_container_wiring.py
+import pytest
+from dependency_injector import providers
+
 from src.infrastructure.container import Container
 
 
@@ -14,3 +17,24 @@ def test_container_wires_without_error():
         "src.api.routers.profile",
         "src.api.routers.probes",
     ])
+
+def test_every_subcontainer_dependency_is_provided():
+    container = Container()
+    undefined = [
+        f"{name}.{dep_name}"
+        for name, sub in container.providers.items()
+        if isinstance(sub, providers.Container)
+        for dep_name, dep in sub.container.providers.items()
+        if isinstance(dep, providers.Dependency) and not dep.is_defined
+    ]
+    assert undefined == []
+
+
+@pytest.mark.parametrize("consensus_enabled", ["true", "false"])
+def test_every_use_case_resolves(monkeypatch, consensus_enabled):
+    monkeypatch.setenv("GEMINI_API_KEY", "test")
+    monkeypatch.setenv("CONSENSUS_ENABLED", consensus_enabled)
+    container = Container()
+    for provider in container.use_cases.container.providers.values():
+        if not isinstance(provider, providers.Dependency):
+            provider()
