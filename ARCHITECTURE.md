@@ -130,18 +130,46 @@ Para garantir previsibilidade total e evitar exceções genéricas/frouxas, todo
 
 Cada exceção carrega um **Código Único Máquina-Readable** e um **Status HTTP Padrão**:
 
-| Código de Erro (`code`) | Categoria / Descrição | HTTP Status |
-| :--- | :--- | :---: |
-| `PLANTE_4001_PLANT_NOT_FOUND` | Planta informada não foi encontrada ou foi removida. | 404 |
-| `PLANTE_4002_USER_NOT_FOUND` | Usuário não encontrado no banco de dados. | 404 |
-| `PLANTE_4003_INVALID_OTP` | Código OTP de verificação inválido ou expirado. | 400 |
-| `PLANTE_4004_EMAIL_ALREADY_EXISTS` | Tentativa de cadastro com e-mail já registrado. | 409 |
-| `PLANTE_4005_FREE_TIER_PLANT_LIMIT` | Limite de 3 plantas do plano FREE atingido. | 403 |
-| `PLANTE_4006_UNAUTHORIZED` | Credenciais inválidas ou token JWT expirado. | 401 |
-| `PLANTE_4007_INVALID_PASSWORD` | Senha atual incorreta durante alteração de perfil. | 400 |
-| `PLANTE_4029_RATE_LIMIT_EXCEEDED` | Limite de requisições por minuto excedido (ver `RateLimitMiddleware`). | 429 |
-| `PLANTE_5001_EXTERNAL_SERVICE_ERROR` | API externa indisponível ou Circuit Breaker aberto (Kindwise/PlantNet). | 502 |
-| `PLANTE_5003_SERVICE_NOT_READY` | Readiness probe: Postgres ou Redis indisponível (`/health/readiness`). | 503 |
+| Código de Erro (`code`) | Exceção | Descrição | HTTP Status |
+| :--- | :--- | :--- | :---: |
+| `PLANTE_4000_DOMAIN_ERROR` | `PlantEError` | Base de todos os erros de domínio; não deve chegar ao cliente sem subclasse. | 400 |
+| `PLANTE_4001_PLANT_NOT_FOUND` | `PlantNotFoundError` | Planta não existe ou não pertence ao usuário. | 404 |
+| `PLANTE_4002_USER_NOT_FOUND` | `UserNotFoundError` | Usuário não encontrado. | 404 |
+| `PLANTE_4003_INVALID_VERIFICATION_CODE` | `InvalidVerificationCodeError` | Código OTP inválido ou expirado. | 400 |
+| `PLANTE_4004_EMAIL_ALREADY_IN_USE` | `EmailAlreadyInUseError` | E-mail já usado por outro usuário (cadastro ou troca de e-mail). | 409 |
+| `PLANTE_4005_FREE_TIER_PLANT_LIMIT` | `PlantLimitExceededError` | Plano FREE atingiu o limite de plantas no jardim (`SubscriptionPolicy`). | 403 |
+| `PLANTE_4006_UNAUTHORIZED` | `UnauthorizedError` | Token ausente, inválido ou expirado; login com credenciais erradas. | 401 |
+| `PLANTE_4007_WRONG_CREDENTIALS` | `InvalidCredentialsError` | Senha atual incorreta ao alterar e-mail ou senha. | 400 |
+| `PLANTE_4008_WEAK_PASSWORD` | `WeakPasswordError` | Nova senha não atende à política de senha. | 400 |
+| `PLANTE_4009_FORBIDDEN` | `ForbiddenError` | Autenticado, mas sem permissão sobre o recurso (ex.: planta de outro usuário). | 403 |
+| `PLANTE_4010_IDENTIFICATION_FAILED` | `PlantIdentificationError` | A IA não identificou a planta com confiança suficiente. | 422 |
+| `PLANTE_4011_LOW_CONFIDENCE` | `LowConfidenceError` | Confiança da identificação abaixo de 60% (`ConfidenceScore.is_rejected`). | 422 |
+| `PLANTE_4012_IDENTIFICATION_NOT_FOUND` | `IdentificationNotFoundError` | Identificação não existe ou não pertence ao usuário. | 404 |
+| `PLANTE_4013_INVALID_IMAGE` | `InvalidImageError`, `NotAPlantError` | Imagem ilegível ou sem planta. Regras abaixo. | 400 |
+| `PLANTE_4014_SPECIES_NOT_FOUND` | `SpeciesNotFoundError` | Espécie não existe. | 404 |
+| `PLANTE_4015_SAMPLE_NOT_FOUND` | `SampleNotFoundError` | Amostra de identificação não existe. | 404 |
+| `PLANTE_4016_NOT_READY_FOR_WATERING` | `PlantNotReadyForWateringError` | Rega antes do intervalo ou no mesmo dia (`UserPlant.water()`). | 400 |
+| `PLANTE_4017_HEALTH_RECORD_NOT_FOUND` | `HealthRecordNotFoundError` | Diagnóstico não existe ou não pertence ao usuário. | 404 |
+| `PLANTE_4018_RAW_RESPONSE_EXPIRED` | `RawResponseExpiredError` | Resposta bruta do Kindwise expirou no Redis (TTL 24h) antes da confirmação. | 410 |
+| `PLANTE_4019_SUBSCRIPTION_REQUIRED` | `SubscriptionRequiredError` | Recurso exclusivo do plano Pro ou tokens diários esgotados (`SubscriptionPolicy`). | 403 |
+| `PLANTE_4029_RATE_LIMIT_EXCEEDED` | `RateLimitExceededError` | Limite de requisições por minuto excedido (`RateLimitMiddleware`). | 429 |
+| `PLANTE_4220_VALIDATION_ERROR` | — (FastAPI) | Corpo, query ou path da requisição inválidos. | 422 |
+| `PLANTE_5000_INTERNAL_ERROR` | — (handler genérico) | Exceção inesperada; detalhes só no log. | 500 |
+| `PLANTE_5001_EXTERNAL_SERVICE_ERROR` | `ExternalServiceError` | Provedor externo falhou (Kindwise, PlantNet, Gemini, Firebase, clima). Regras abaixo. | 502 |
+| `PLANTE_5002_GEOCODING_ERROR` | `GeocodingError` | Serviço de geocodificação falhou. | 502 |
+| `PLANTE_5003_SERVICE_NOT_READY` | — (probe) | Readiness: Postgres ou Redis indisponível (`/health/readiness`). | 503 |
+
+**`PLANTE_4013` — quando um provedor de IA gera imagem inválida:**
+* Kindwise: `is_plant.binary == false` explícito → `NotAPlantError` (campo ausente segue o fluxo normal); lista de sugestões vazia → `InvalidImageError`; HTTP 400 → `InvalidImageError` **só** se o corpo contiver o marcador `Invalid image` (outros 400 são payload nosso malformado → `ExternalServiceError(retryable=False)` + log `provider.request_rejected`).
+* PlantNet: HTTP 400 com `Unsupported file type` ou 404 com `Species not found` → `InvalidImageError`; outros 400 (ex.: `organs` inválido) → `ExternalServiceError(retryable=False)`.
+* Consenso: `NotAPlantError` do Kindwise veta a resposta do PlantNet (ver 2.2).
+
+**`PLANTE_5001` — `retryable`:**
+* `retryable=True`: falha transitória (rede, timeout, 5xx, 429). Só essas contam para abrir o circuit breaker do provedor.
+* `retryable=False`: requisição rejeitada pelo provedor (payload nosso inválido, 401/403 de chave mal configurada — logado como `provider.misconfigured`). Não abre o circuito.
+* Circuito aberto também responde `PLANTE_5001`. No `/diagnose`, falha do Gemini não derruba a resposta: o diagnóstico volta só com o Kindwise.
+
+**Erros declarados por use case:** cada use case lista em `raises` os erros de domínio que pode lançar — os `raise` do próprio módulo (conferidos por `tests/unit/use_cases/test_declared_errors.py`) e os vindos de policies, entidades e ports (listados à mão). As rotas documentam o OpenAPI com `error_responses(*UseCase.raises)`.
 
 ### 3.3. Envelope Uniforme de Resposta HTTP (`ApiResponse[T]`)
 
