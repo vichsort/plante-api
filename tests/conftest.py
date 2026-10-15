@@ -11,9 +11,12 @@ from alembic import command as alembic_command
 from alembic.config import Config as AlembicConfig
 from docker.errors import DockerException
 from fastapi.testclient import TestClient
+from redis.asyncio import Redis
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from testcontainers.community.postgres import PostgresContainer
+from testcontainers.core.container import DockerContainer
+from testcontainers.core.wait_strategies import LogMessageWaitStrategy
 
 # Define variáveis de ambiente dummy ANTES de importar src.main
 os.environ["DB_HOST"] = "localhost"
@@ -31,6 +34,7 @@ os.environ["AWS_SECRET_ACCESS_KEY"] = "test_aws_secret"
 os.environ["SES_SENDER_EMAIL"] = "noreply@test.org"
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "test_credentials.json"
 
+from src.adapters.cache.redis_client import RedisClient
 from src.main import app
 
 _ROOT = Path(__file__).parents[1]
@@ -59,15 +63,20 @@ def auth_headers(test_user_id: str) -> dict[str, str]:
     )
     return {"Authorization": f"Bearer {token}"}
 
-@pytest.fixture(scope="session")
-def postgres_url() -> Iterator[str]:
-    """Postgres real em contêiner, com o schema criado pelas migrations do Alembic."""
+def _start_or_skip[C: DockerContainer](container: C) -> C:
+    """Sobe o contêiner; sem Docker, pula o teste localmente e falha no CI."""
     try:
-        container = PostgresContainer("postgres:16-alpine", driver="psycopg").start()
+        return container.start()
     except DockerException as exc:
         if os.environ.get("CI"):
             raise
-        pytest.skip(f"Docker indisponível para os testes de banco: {exc}")
+        pytest.skip(f"Docker indisponível para os testes de infraestrutura: {exc}")
+
+
+@pytest.fixture(scope="session")
+def postgres_url() -> Iterator[str]:
+    """Postgres real em contêiner, com o schema criado pelas migrations do Alembic."""
+    container = _start_or_skip(PostgresContainer("postgres:16-alpine", driver="psycopg"))
 
     try:
         url = container.get_connection_url()
@@ -103,3 +112,33 @@ async def db_session(postgres_url: str) -> AsyncIterator[AsyncSession]:
             await session.close()
             await transaction.rollback()
     await engine.dispose()
+
+
+@pytest.fixture(scope="session")
+def redis_url() -> Iterator[str]:
+    """Redis real em contêiner (o extra `redis` do testcontainers exige redis-py 7; usamos o 5)."""
+    container = _start_or_skip(
+        DockerContainer("redis:7-alpine")
+        .with_exposed_ports(6379)
+        .waiting_for(LogMessageWaitStrategy("Ready to accept connections"))
+    )
+    try:
+        yield f"redis://{container.get_container_host_ip()}:{container.get_exposed_port(6379)}/0"
+    finally:
+        container.stop()
+
+
+@pytest_asyncio.fixture
+async def raw_redis(redis_url: str) -> AsyncIterator[Redis]:
+    """Cliente redis-py cru, para conferir o que foi gravado (TTL, valor). Banco limpo por teste."""
+    redis = Redis.from_url(redis_url)
+    await redis.flushdb()
+    try:
+        yield redis
+    finally:
+        await redis.aclose()
+
+
+@pytest.fixture
+def redis_client(raw_redis: Redis) -> RedisClient:
+    return RedisClient(raw_redis)

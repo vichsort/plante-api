@@ -16,6 +16,7 @@ from src.api.middleware import (
     RateLimitMiddleware,
     SecurityHeadersMiddleware,
 )
+from src.api.middleware.rate_limit import WindowCounter
 from src.domain.exceptions import ExternalServiceError, UnauthorizedError
 from src.domain.ports.token_service import TokenKind
 from src.domain.value_objects.ids import UserId
@@ -188,7 +189,11 @@ def test_rate_limit_skips_exempt_paths():
         assert "X-RateLimit-Limit" not in response.headers
 
 
-class _FakeRedis:
+class _FakeRedis(WindowCounter):
+    """
+    Contador em memória para a lógica do rate limit. O contrato do contador real (INCR + EXPIRE
+    no Redis) é testado em `tests/integration/cache/test_redis_client.py`.
+    """
     def __init__(self) -> None:
         self.store: dict[str, int] = {}
 
