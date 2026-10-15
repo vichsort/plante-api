@@ -5,7 +5,7 @@ import pytest
 
 from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
-from src.domain.exceptions import InvalidImageError
+from src.domain.exceptions import NotAPlantError
 
 _FIXTURES = Path(__file__).parents[2] / "fixtures" / "providers"
 
@@ -25,7 +25,7 @@ def test_kindwise_parses_real_identification():
     ("kindwise/health_assessment_cat.json", "_parse_health"),
 ])
 def test_kindwise_rejects_real_non_plant(name, parse):
-    with pytest.raises(InvalidImageError):
+    with pytest.raises(NotAPlantError):
         getattr(KindwiseAdapter(api_key="test"), parse)(_load(name))
 
 

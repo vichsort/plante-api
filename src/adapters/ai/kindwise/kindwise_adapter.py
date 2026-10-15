@@ -3,7 +3,7 @@ import base64
 import httpx
 
 from src.adapters.ai.provider_errors import translate_provider_errors
-from src.domain.exceptions import InvalidImageError
+from src.domain.exceptions import InvalidImageError, NotAPlantError
 from src.domain.ports.health_analyzer import (
     DiseaseHint,
     HealthAssessmentResult,
@@ -143,4 +143,4 @@ def _reject_non_plant(data: dict) -> None:
     Só rejeita com `false` explícito: campo ausente ou em outro formato segue o fluxo normal.
     """
     if (data.get("result") or {}).get("is_plant", {}).get("binary") is False:
-        raise InvalidImageError()
+        raise NotAPlantError()

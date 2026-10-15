@@ -2,7 +2,11 @@ import asyncio
 
 import structlog
 
-from src.domain.exceptions import ExternalServiceError, InvalidImageError
+from src.domain.exceptions import (
+    ExternalServiceError,
+    InvalidImageError,
+    NotAPlantError,
+)
 from src.domain.policies.consensus_policy import ConsensusPolicy
 from src.domain.ports.plant_identifier import (
     IdentificationResult,
@@ -35,6 +39,16 @@ class ConsensusIdentifier(IPlantIdentifier):
 
         if kindwise_result is None and plantnet_result is None:
             _raise_domain_failure(kindwise_error, plantnet_error)
+
+        # Kindwise afirmando que não é planta veta o PlantNet, que sempre tenta achar uma espécie
+        # (ex.: planta ao fundo da foto). Outras falhas do Kindwise deixam o PlantNet decidir.
+        if isinstance(kindwise_error, NotAPlantError):
+            log.info(
+                "consensus.vetoed",
+                source="kindwise",
+                plantnet_species=plantnet_result.scientific_name if plantnet_result else None,
+            )
+            raise kindwise_error
 
         consensus = ConsensusPolicy.resolve(kindwise_result, plantnet_result)
 

@@ -43,6 +43,13 @@ class InvalidImageError(PlantEError):
         super().__init__(message=message)
 
 
+class NotAPlantError(InvalidImageError):
+    """O provedor afirmou que a imagem não contém uma planta (mesmo código da API que `InvalidImageError`)."""
+
+    def __init__(self, message: str = "The image does not contain a plant."):
+        super().__init__(message=message)
+
+
 class SpeciesNotFoundError(PlantEError):
     """A espécie solicitada não existe."""
     code = "PLANTE_4014_SPECIES_NOT_FOUND"

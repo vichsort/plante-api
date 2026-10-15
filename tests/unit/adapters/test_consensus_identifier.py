@@ -4,7 +4,11 @@ import pytest
 
 from src.adapters.ai.consensus import consensus_adapter
 from src.adapters.ai.consensus.consensus_adapter import ConsensusIdentifier
-from src.domain.exceptions import ExternalServiceError, InvalidImageError
+from src.domain.exceptions import (
+    ExternalServiceError,
+    InvalidImageError,
+    NotAPlantError,
+)
 from src.domain.ports.plant_identifier import IdentificationResult
 from src.domain.value_objects.confidence_score import ConfidenceScore
 
@@ -35,6 +39,19 @@ def _consensus(kindwise, plantnet) -> ConsensusIdentifier:
 async def test_single_provider_failure_still_resolves():
     result = await _consensus(InvalidImageError(), _result("plantnet")).identify(b"img")
     assert result.source == "plantnet"
+
+
+@pytest.mark.asyncio
+async def test_kindwise_not_a_plant_vetoes_plantnet():
+    with pytest.raises(NotAPlantError):
+        await _consensus(NotAPlantError(), _result("plantnet")).identify(b"img")
+
+
+@pytest.mark.asyncio
+async def test_not_a_plant_wins_over_plantnet_unavailable():
+    unavailable = ExternalServiceError(service="PlantNet", retryable=True)
+    with pytest.raises(NotAPlantError):
+        await _consensus(NotAPlantError(), unavailable).identify(b"img")
 
 
 @pytest.mark.asyncio
