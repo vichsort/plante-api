@@ -22,6 +22,8 @@ class LoginResult:
     token_type: str = "bearer"
 
 class LoginUseCase:
+    raises = (UnauthorizedError,)
+
     def __init__(
         self,
         user_repo: IUserRepository,

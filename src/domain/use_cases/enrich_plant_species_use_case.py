@@ -4,6 +4,7 @@ from typing import Any
 from src.domain.exceptions import (
     ExternalServiceError,
     PlantNotFoundError,
+    SubscriptionRequiredError,
     UserNotFoundError,
 )
 from src.domain.policies.subscription_policy import SubscriptionPolicy
@@ -18,6 +19,13 @@ class EnrichPlantInputDTO:
     species_id: Any
 
 class EnrichPlantSpeciesUseCase:
+    raises = (
+        ExternalServiceError,
+        PlantNotFoundError,
+        SubscriptionRequiredError,
+        UserNotFoundError,
+    )
+
     def __init__(
         self,
         user_repo: IUserRepository,

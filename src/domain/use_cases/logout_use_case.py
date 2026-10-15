@@ -5,6 +5,8 @@ from src.domain.ports.token_repository import ITokenRepository
 log = structlog.get_logger()
 
 class LogoutUseCase:
+    raises = ()
+
     def __init__(self, token_repo: ITokenRepository) -> None:
         self._token_repo = token_repo
 

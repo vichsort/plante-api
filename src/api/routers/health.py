@@ -13,13 +13,7 @@ from src.api.schemas.health import (
     HealthRecordItemResponse,
 )
 from src.domain.exceptions import (
-    ExternalServiceError,
-    HealthRecordNotFoundError,
-    InvalidImageError,
-    PlantNotFoundError,
-    RawResponseExpiredError,
     UnauthorizedError,
-    UserNotFoundError,
 )
 from src.domain.use_cases.confirm_health_diagnosis_use_case import (
     ConfirmHealthDiagnosisInputDTO,
@@ -41,7 +35,7 @@ router = APIRouter(prefix="/diagnose", tags=["diagnosis"], responses=error_respo
     "",
     status_code=200,
     response_model=ApiResponse[HealthDiagnosisResponse],
-    responses=error_responses(PlantNotFoundError, UserNotFoundError, ExternalServiceError, InvalidImageError),
+    responses=error_responses(*DiagnoseHealthUseCase.raises),
 )
 @inject
 async def diagnose_health(
@@ -62,7 +56,7 @@ async def diagnose_health(
     "/confirm",
     status_code=200,
     response_model=ApiResponse[ConfirmHealthDiagnosisResponse],
-    responses=error_responses(HealthRecordNotFoundError, RawResponseExpiredError, UserNotFoundError),
+    responses=error_responses(*ConfirmHealthDiagnosisUseCase.raises),
 )
 @inject
 async def confirm_health_diagnosis(
@@ -80,7 +74,7 @@ async def confirm_health_diagnosis(
     "/history/{user_plant_id}",
     status_code=200,
     response_model=ApiResponse[list[HealthRecordItemResponse]],
-    responses=error_responses(PlantNotFoundError),
+    responses=error_responses(*GetHealthHistoryUseCase.raises),
 )
 @inject
 async def get_health_history(

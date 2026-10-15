@@ -19,6 +19,8 @@ class RegisterUserInputDTO:
     state: str
 
 class RegisterUserUseCase:
+    raises = (EmailAlreadyInUseError,)
+
     def __init__(
         self,
         user_repo: IUserRepository,

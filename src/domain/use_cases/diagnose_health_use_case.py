@@ -7,6 +7,7 @@ import structlog
 from src.domain.entities.health_record import HealthRecord, HealthSeverity
 from src.domain.exceptions import (
     ExternalServiceError,
+    InvalidImageError,
     PlantNotFoundError,
     UserNotFoundError,
 )
@@ -40,6 +41,8 @@ class DiagnoseHealthInputDTO:
     image_bytes: bytes
 
 class DiagnoseHealthUseCase:
+    raises = (ExternalServiceError, InvalidImageError, PlantNotFoundError, UserNotFoundError)
+
     def __init__(
         self,
         user_repo: IUserRepository,

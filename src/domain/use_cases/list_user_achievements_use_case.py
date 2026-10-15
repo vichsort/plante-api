@@ -9,6 +9,8 @@ class ListUserAchievementsInputDTO:
     user_id: Any
 
 class ListUserAchievementsUseCase:
+    raises = ()
+
     def __init__(self, achievement_repo: IAchievementRepository) -> None:
         self.achievement_repo = achievement_repo
 

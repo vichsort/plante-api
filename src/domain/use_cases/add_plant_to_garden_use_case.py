@@ -5,6 +5,7 @@ from typing import Any
 from src.domain.events.domain_events import PlantAddedToGardenEvent
 from src.domain.exceptions import (
     ForbiddenError,
+    PlantLimitExceededError,
     PlantNotFoundError,
     SampleNotFoundError,
     SpeciesNotFoundError,
@@ -27,6 +28,15 @@ class AddPlantToGardenInputDTO:
     sample_id: Any
 
 class AddPlantToGardenUseCase:
+    raises = (
+        ForbiddenError,
+        PlantLimitExceededError,
+        PlantNotFoundError,
+        SampleNotFoundError,
+        SpeciesNotFoundError,
+        UserNotFoundError,
+    )
+
     def __init__(
         self,
         user_repo: IUserRepository,

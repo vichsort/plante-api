@@ -16,11 +16,7 @@ from src.api.schemas.profile import (
     UpgradeSubscriptionResponse,
 )
 from src.domain.exceptions import (
-    EmailAlreadyInUseError,
-    InvalidCredentialsError,
     UnauthorizedError,
-    UserNotFoundError,
-    WeakPasswordError,
 )
 from src.domain.use_cases.change_email_use_case import (
     ChangeEmailInputDTO,
@@ -50,7 +46,7 @@ router = APIRouter(prefix="/profile", tags=["profile"], responses=error_response
     "/email",
     status_code=200,
     response_model=ApiResponse[MessageResponse],
-    responses=error_responses(EmailAlreadyInUseError, InvalidCredentialsError, UserNotFoundError),
+    responses=error_responses(*ChangeEmailUseCase.raises),
 )
 @inject
 async def change_email(
@@ -69,7 +65,7 @@ async def change_email(
     "/password",
     status_code=200,
     response_model=ApiResponse[MessageResponse],
-    responses=error_responses(InvalidCredentialsError, UserNotFoundError, WeakPasswordError),
+    responses=error_responses(*ChangePasswordUseCase.raises),
 )
 @inject
 async def change_password(
@@ -88,7 +84,7 @@ async def change_password(
     "/location",
     status_code=200,
     response_model=ApiResponse[MessageResponse],
-    responses=error_responses(UserNotFoundError),
+    responses=error_responses(*UpdateLocationFallbackUseCase.raises),
 )
 @inject
 async def update_location(
@@ -107,7 +103,7 @@ async def update_location(
     "/subscription/upgrade",
     status_code=200,
     response_model=ApiResponse[UpgradeSubscriptionResponse],
-    responses=error_responses(UserNotFoundError),
+    responses=error_responses(*UpgradeSubscriptionUseCase.raises),
 )
 @inject
 async def upgrade_subscription(

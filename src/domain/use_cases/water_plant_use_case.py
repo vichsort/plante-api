@@ -3,7 +3,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 from src.domain.events.domain_events import PlantWateredEvent
-from src.domain.exceptions import ForbiddenError, PlantNotFoundError
+from src.domain.exceptions import (
+    ForbiddenError,
+    PlantNotFoundError,
+    PlantNotReadyForWateringError,
+)
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 
@@ -14,6 +18,8 @@ class WaterPlantInputDTO:
     user_plant_id: Any
 
 class WaterPlantUseCase:
+    raises = (ForbiddenError, PlantNotFoundError, PlantNotReadyForWateringError)
+
     def __init__(
         self,
         user_plant_repo: IUserPlantRepository,

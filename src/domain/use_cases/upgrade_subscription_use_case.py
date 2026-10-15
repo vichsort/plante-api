@@ -14,6 +14,8 @@ class UpgradeSubscriptionInputDTO:
     plan_duration_days: int
 
 class UpgradeSubscriptionUseCase:
+    raises = (UserNotFoundError,)
+
     def __init__(
         self,
         user_repo: IUserRepository,

@@ -13,14 +13,7 @@ from src.api.schemas.garden import (
     WaterPlantResponse,
 )
 from src.domain.exceptions import (
-    ForbiddenError,
-    PlantLimitExceededError,
-    PlantNotFoundError,
-    PlantNotReadyForWateringError,
-    SampleNotFoundError,
-    SpeciesNotFoundError,
     UnauthorizedError,
-    UserNotFoundError,
 )
 from src.domain.use_cases.add_plant_to_garden_use_case import (
     AddPlantToGardenInputDTO,
@@ -46,14 +39,7 @@ router = APIRouter(prefix="/garden", tags=["garden"], responses=error_responses(
     "",
     status_code=201,
     response_model=ApiResponse[dict[str, Any]],
-    responses=error_responses(
-        ForbiddenError,
-        PlantNotFoundError,
-        SampleNotFoundError,
-        SpeciesNotFoundError,
-        UserNotFoundError,
-        PlantLimitExceededError,
-    ),
+    responses=error_responses(*AddPlantToGardenUseCase.raises),
 )
 @inject
 async def add_plant_to_garden(
@@ -81,12 +67,7 @@ async def get_user_garden(
     "/{user_plant_id}",
     status_code=200,
     response_model=ApiResponse[dict[str, Any]],
-    responses=error_responses(
-        ForbiddenError,
-        PlantNotFoundError,
-        SampleNotFoundError,
-        UserNotFoundError,
-    ),
+    responses=error_responses(*DeleteUserPlantUseCase.raises),
 )
 @inject
 async def delete_user_plant(
@@ -106,7 +87,7 @@ async def delete_user_plant(
     "/{user_plant_id}/water",
     status_code=200,
     response_model=ApiResponse[WaterPlantResponse],
-    responses=error_responses(ForbiddenError, PlantNotFoundError, PlantNotReadyForWateringError),
+    responses=error_responses(*WaterPlantUseCase.raises),
 )
 @inject
 async def water_plant(

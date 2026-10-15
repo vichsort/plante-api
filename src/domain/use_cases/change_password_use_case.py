@@ -20,6 +20,8 @@ class ChangePasswordInputDTO:
 
 
 class ChangePasswordUseCase:
+    raises = (InvalidCredentialsError, UserNotFoundError, WeakPasswordError)
+
     def __init__(
         self,
         user_repo: IUserRepository,

@@ -17,6 +17,8 @@ class ConfirmPlantIdentificationInputDTO:
     sample_id: Any
 
 class ConfirmPlantIdentificationUseCase:
+    raises = (SampleNotFoundError, UserNotFoundError)
+
     def __init__(
         self,
         user_repo: IUserRepository,

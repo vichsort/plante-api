@@ -22,6 +22,8 @@ class DeleteUserPlantInputDTO:
     sample_id: Any
 
 class DeleteUserPlantUseCase:
+    raises = (ForbiddenError, PlantNotFoundError, SampleNotFoundError, UserNotFoundError)
+
     def __init__(
         self,
         user_repo: IUserRepository,

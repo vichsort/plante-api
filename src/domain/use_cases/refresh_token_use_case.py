@@ -18,6 +18,8 @@ class RefreshResult:
     token_type: str = "bearer"
 
 class RefreshTokenUseCase:
+    raises = (UnauthorizedError,)
+
     def __init__(
         self,
         token_repo: ITokenRepository,

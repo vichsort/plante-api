@@ -12,7 +12,14 @@ from src.domain.entities.user_plant import (
     UserPlant,
 )
 from src.domain.events.domain_events import PlantIdentifiedEvent
-from src.domain.exceptions import LowConfidenceError, UserNotFoundError
+from src.domain.exceptions import (
+    ExternalServiceError,
+    InvalidImageError,
+    LowConfidenceError,
+    PlantLimitExceededError,
+    SubscriptionRequiredError,
+    UserNotFoundError,
+)
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.identification_sample_repository import (
@@ -38,6 +45,15 @@ class IdentifyPlantInputDTO:
 
 
 class IdentifyPlantUseCase:
+    raises = (
+        ExternalServiceError,
+        InvalidImageError,
+        LowConfidenceError,
+        PlantLimitExceededError,
+        SubscriptionRequiredError,
+        UserNotFoundError,
+    )
+
     def __init__(
         self,
         user_repo: IUserRepository,

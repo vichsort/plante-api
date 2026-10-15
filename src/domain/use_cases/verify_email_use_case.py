@@ -13,6 +13,8 @@ class VerifyEmailInputDTO:
     raw_code: str
 
 class VerifyEmailUseCase:
+    raises = (InvalidVerificationCodeError, UserNotFoundError)
+
     def __init__(
         self,
         user_repo: IUserRepository,

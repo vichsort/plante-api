@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from src.api.deps import get_current_user_id
 from src.api.openapi import error_responses
 from src.api.response import ApiResponse
-from src.domain.exceptions import PlantNotFoundError, UnauthorizedError
+from src.domain.exceptions import UnauthorizedError
 from src.domain.use_cases.get_plant_details_use_case import (
     GetPlantDetailsInputDTO,
     GetPlantDetailsUseCase,
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/plants", tags=["plants"], responses=error_responses(
     "/{user_plant_id}",
     status_code=200,
     response_model=ApiResponse[dict[str, Any]],
-    responses=error_responses(PlantNotFoundError),
+    responses=error_responses(*GetPlantDetailsUseCase.raises),
 )
 @inject
 async def get_plant_details(

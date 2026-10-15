@@ -7,6 +7,8 @@ from src.domain.ports.user_plant_repository import IUserPlantRepository
 
 
 class BreakStreakCronUseCase:
+    raises = ()
+
     def __init__(
         self,
         user_plant_repo: IUserPlantRepository,

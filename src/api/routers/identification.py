@@ -12,14 +12,7 @@ from src.api.schemas.identification import (
     IdentifyPlantResponse,
 )
 from src.domain.exceptions import (
-    ExternalServiceError,
-    InvalidImageError,
-    LowConfidenceError,
-    PlantLimitExceededError,
-    SampleNotFoundError,
-    SubscriptionRequiredError,
     UnauthorizedError,
-    UserNotFoundError,
 )
 from src.domain.use_cases.confirm_plant_identification_use_case import (
     ConfirmPlantIdentificationInputDTO,
@@ -37,14 +30,7 @@ router = APIRouter(prefix="/identify", tags=["identification"], responses=error_
     "",
     status_code=200,
     response_model=ApiResponse[IdentifyPlantResponse],
-    responses=error_responses(
-        LowConfidenceError,
-        UserNotFoundError,
-        PlantLimitExceededError,
-        SubscriptionRequiredError,
-        ExternalServiceError,
-        InvalidImageError,
-    ),
+    responses=error_responses(*IdentifyPlantUseCase.raises),
 )
 @inject
 async def identify_plant(
@@ -69,7 +55,7 @@ async def identify_plant(
     "/confirm",
     status_code=200,
     response_model=ApiResponse[ConfirmPlantIdentificationResponse],
-    responses=error_responses(SampleNotFoundError, UserNotFoundError),
+    responses=error_responses(*ConfirmPlantIdentificationUseCase.raises),
 )
 @inject
 async def confirm_plant_identification(

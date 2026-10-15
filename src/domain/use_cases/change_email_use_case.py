@@ -21,6 +21,8 @@ class ChangeEmailInputDTO:
     new_email: str
 
 class ChangeEmailUseCase:
+    raises = (EmailAlreadyInUseError, InvalidCredentialsError, UserNotFoundError)
+
     def __init__(
         self,
         user_repo: IUserRepository,

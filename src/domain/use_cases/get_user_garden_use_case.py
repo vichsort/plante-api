@@ -9,6 +9,8 @@ class GetUserGardenInputDTO:
     user_id: Any
 
 class GetUserGardenUseCase:
+    raises = ()
+
     def __init__(self, user_plant_repo: IUserPlantRepository):
         self.user_plant_repo = user_plant_repo
 

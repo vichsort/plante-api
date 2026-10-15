@@ -16,10 +16,7 @@ from src.api.schemas.auth import (
     VerifyEmailRequest,
 )
 from src.domain.exceptions import (
-    EmailAlreadyInUseError,
-    InvalidVerificationCodeError,
     UnauthorizedError,
-    UserNotFoundError,
 )
 from src.domain.use_cases.login_use_case import LoginUseCase
 from src.domain.use_cases.logout_use_case import LogoutUseCase
@@ -40,7 +37,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     "/register",
     status_code=201,
     response_model=ApiResponse[RegisterResponse],
-    responses=error_responses(EmailAlreadyInUseError),
+    responses=error_responses(*RegisterUserUseCase.raises),
 )
 @inject
 async def register(
@@ -59,7 +56,7 @@ async def register(
     "/verify-email",
     status_code=200,
     response_model=ApiResponse[MessageResponse],
-    responses=error_responses(InvalidVerificationCodeError, UserNotFoundError),
+    responses=error_responses(*VerifyEmailUseCase.raises),
 )
 @inject
 async def verify_email(
@@ -76,7 +73,7 @@ async def verify_email(
     "/login",
     status_code=200,
     response_model=ApiResponse[TokenResponse],
-    responses=error_responses(UnauthorizedError),
+    responses=error_responses(*LoginUseCase.raises),
 )
 @inject
 async def login(
@@ -99,7 +96,7 @@ async def login(
     "/refresh",
     status_code=200,
     response_model=ApiResponse[TokenResponse],
-    responses=error_responses(UnauthorizedError),
+    responses=error_responses(*RefreshTokenUseCase.raises),
 )
 @inject
 async def refresh(

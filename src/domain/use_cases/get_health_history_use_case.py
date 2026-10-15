@@ -13,6 +13,8 @@ class GetHealthHistoryInputDTO:
     limit: int = 20
 
 class GetHealthHistoryUseCase:
+    raises = (PlantNotFoundError,)
+
     def __init__(
         self,
         user_plant_repo: IUserPlantRepository,

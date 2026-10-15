@@ -29,6 +29,8 @@ class ConfirmHealthDiagnosisInputDTO:
 
 
 class ConfirmHealthDiagnosisUseCase:
+    raises = (HealthRecordNotFoundError, RawResponseExpiredError, UserNotFoundError)
+
     def __init__(
         self,
         user_repo: IUserRepository,

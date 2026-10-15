@@ -11,6 +11,8 @@ class GetPlantDetailsInputDTO:
     user_plant_id: Any
 
 class GetPlantDetailsUseCase:
+    raises = (PlantNotFoundError,)
+
     def __init__(self, user_plant_repo: IUserPlantRepository):
         self.user_plant_repo = user_plant_repo
 
