@@ -127,6 +127,72 @@ module = ["src.infrastructure.settings"]
 disallow_any_explicit = false
 
 # ---------------------------------------------------------------------------
+# Import Linter — camadas da arquitetura hexagonal (ARCHITECTURE.md, seção 1)
+# ---------------------------------------------------------------------------
+[tool.importlinter]
+root_package = "src"
+include_external_packages = true
+
+# Uma camada só importa as de baixo. `src.main` e `src.infrastructure` são a composição (montam
+# o container); API e workers são as entradas e não se conhecem.
+[[tool.importlinter.contracts]]
+name = "Camadas: entradas -> composição -> adapters -> domínio"
+type = "layers"
+containers = ["src"]
+layers = [
+    "main",
+    "api | workers",
+    "infrastructure",
+    "adapters",
+    "domain",
+]
+exhaustive = true  # pacote novo em `src` precisa entrar numa camada
+
+# As entradas recebem adapters pelo container, nunca importando-os direto.
+[[tool.importlinter.contracts]]
+name = "Entradas não importam adapters"
+type = "forbidden"
+source_modules = ["src.api", "src.workers"]
+forbidden_modules = ["src.adapters"]
+allow_indirect_imports = true  # via src.infrastructure (o container) é o caminho esperado
+ignore_imports = [
+    # Exceção: o readiness pinga o Redis e só o RedisClient conhece o redis-py. Uma porta no
+    # domínio para isso seria só cerimônia (o probe é infraestrutura, não regra de negócio).
+    "src.api.routers.probes -> src.adapters.cache.redis_client",
+]
+
+# Domínio puro: só biblioteca padrão, `typing_extensions` e `structlog` (logs).
+[[tool.importlinter.contracts]]
+name = "Domínio não importa frameworks"
+type = "forbidden"
+source_modules = ["src.domain"]
+forbidden_modules = [
+    "aioboto3",
+    "aiofiles",
+    "alembic",
+    "bcrypt",
+    "boto3",
+    "celery",
+    "dependency_injector",
+    "dotenv",
+    "email_validator",
+    "fastapi",
+    "firebase_admin",
+    "google",
+    "httpx",
+    "jwt",
+    "multipart",
+    "psycopg",
+    "pydantic",
+    "pydantic_settings",
+    "redis",
+    "sqlalchemy",
+    "starlette",
+    "tenacity",
+    "uvicorn",
+]
+
+# ---------------------------------------------------------------------------
 # Ruff (linter + formatter — substitui flake8/black/isort)
 # ---------------------------------------------------------------------------
 [tool.ruff]
@@ -144,6 +210,7 @@ known-first-party = ["src"]
 dev = [
     "boto3-stubs[ses]>=1.43.114",
     "celery-types>=0.26.0",
+    "import-linter>=2.15",
     "mypy>=2.3.0",
     "ruff>=0.6.0",
     "testcontainers[postgres]>=4.15.0",

@@ -12,6 +12,10 @@ O PlantE API é projetado sob os seguintes princípios inegociáveis:
    - A regra de negócio (**Domínio**) é pura e totalmente independente de frameworks Web (FastAPI), bancos de dados (SQLAlchemy), corretores de mensagem (Celery/Redis) ou APIs de terceiros (Kindwise, PlantNet, Gemini, AWS SES).
    - As dependências **SEMPRE apontam para dentro**:
      $$\text{API (HTTP/CLI)} \longrightarrow \text{Domain Use Cases} \longrightarrow \text{Domain Entities / Ports} \longleftarrow \text{Adapters}$$
+   - **Verificado no CI pelo `import-linter`** (`[tool.importlinter]` no `pyproject.toml`, `uv run lint-imports`). Camadas, de cima para baixo: `src.main` → `src.api` | `src.workers` (não se conhecem) → `src.infrastructure` (container, settings, Celery) → `src.adapters` → `src.domain`. Uma camada só importa as de baixo; todo pacote novo em `src` precisa entrar numa delas e ter `__init__.py` (o linter não enxerga namespace packages; `tests/test_packages.py` confere).
+   - API e workers não importam adapters: recebem pelo container. **Exceção documentada:** `src.api.routers.probes` importa o `RedisClient` para o readiness (o probe é infraestrutura, uma porta no domínio seria só cerimônia).
+   - O domínio não importa frameworks (FastAPI, SQLAlchemy, Pydantic, Celery, redis, httpx, PyJWT…); só a biblioteca padrão, `typing_extensions` e `structlog`.
+   - Adapters não leem `Settings`: recebem valores primitivos do container. O `CeleryPublisher` publica tasks pelo nome (`send_task`) em vez de importar `src.workers`.
 
 2. **Injeção de Dependências Desacoplada (`dependency-injector`)**:
    - Nenhuma classe de Use Case instancia repositórios ou serviços diretamente. Todas as dependências são declaradas via abstrações (`Ports`) e injetadas pelo container central (`src/infrastructure/container.py`).
@@ -229,10 +233,10 @@ Para evitar vazamento de conexões de banco de dados e loops de eventos concorre
 
 ## 7. Qualidade de Código & Checklist de Contribuição (CI/CD)
 
-Antes de abrir um Pull Request no repositório, o contribuidor deve garantir (o CI roda os três em todo push e PR):
+Antes de abrir um Pull Request no repositório, o contribuidor deve garantir (o CI roda os quatro em todo push e PR):
 
 ```bash
-# 1. Executar a suíte completa de testes automatizados (persistência em Postgres via testcontainers: requer Docker)
+# 1. Executar a suíte completa de testes automatizados (Postgres e Redis reais via testcontainers: requer Docker)
 uv run pytest
 
 # 2. Verificar linting e formatação de código
@@ -240,6 +244,9 @@ uv run ruff check src tests migrations
 
 # 3. Verificar tipagem estrita
 uv run mypy
+
+# 4. Verificar as camadas (import-linter)
+uv run lint-imports
 ```
 
 Testes de contrato contra as APIs reais dos provedores ficam fora do padrão e do CI (gastam créditos): `uv run pytest -m contract`.
