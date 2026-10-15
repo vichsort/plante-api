@@ -30,23 +30,24 @@ def provider_status_error(service: str, status: int) -> ExternalServiceError:
 async def translate_provider_errors(
     service: str,
     invalid_image_statuses: frozenset[int] = _INVALID_IMAGE_STATUSES,
-    invalid_image_marker: str | None = None,
+    invalid_image_markers: tuple[str, ...] = (),
 ) -> AsyncIterator[None]:
     """
     Traduz exceções httpx de um provedor de IA para erros de domínio.
     Status em `invalid_image_statuses` → InvalidImageError; falhas de infraestrutura
     (rede, timeout, 5xx, 429) → ExternalServiceError(retryable=True); demais → ExternalServiceError.
-    Com `invalid_image_marker`, o corpo da resposta também precisa contê-lo; sem ele o provedor
-    rejeitou a requisição em si (bug nosso), logado como erro e não retryable.
+    Com `invalid_image_markers`, o corpo da resposta também precisa conter um deles; sem isso o
+    provedor rejeitou a requisição em si (bug nosso), logado como erro e não retryable.
     """
     try:
         yield
     except httpx.HTTPStatusError as exc:
         status = exc.response.status_code
         if status in invalid_image_statuses:
-            if invalid_image_marker is None or invalid_image_marker in exc.response.text:
+            body = exc.response.text
+            if not invalid_image_markers or any(marker in body for marker in invalid_image_markers):
                 raise InvalidImageError() from exc
-            log.error("provider.request_rejected", service=service, status=status, body=exc.response.text[:200])
+            log.error("provider.request_rejected", service=service, status=status, body=body[:200])
         raise provider_status_error(service, status) from exc
     except httpx.TransportError as exc:
         raise ExternalServiceError(

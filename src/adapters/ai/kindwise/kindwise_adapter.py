@@ -21,7 +21,7 @@ _DETAILS = "common_names,taxonomy,gbif_id,image,edible_parts,watering"
 # Kindwise responde 400 tanto para imagem inválida ("Invalid image data") quanto para payload
 # malformado ("Images have to be list of base64 strings"); só o primeiro é erro do usuário.
 # Verificado contra a API real em 2026-10-14 (identification e health_assessment).
-_INVALID_IMAGE_MARKER = "Invalid image"
+_INVALID_IMAGE_MARKERS = ("Invalid image",)
 
 class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
     _headers: dict[str, str]
@@ -47,7 +47,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             "details": _DETAILS,
             "language": "pt",
         }
-        async with translate_provider_errors("Kindwise", invalid_image_marker=_INVALID_IMAGE_MARKER), httpx.AsyncClient() as client:
+        async with translate_provider_errors("Kindwise", invalid_image_markers=_INVALID_IMAGE_MARKERS), httpx.AsyncClient() as client:
             r = await client.post(
                 f"{_BASE_URL}identification",
                 headers=self._headers,
@@ -102,7 +102,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             "images": [image_b64],
             "similar_images": True,
         }
-        async with translate_provider_errors("Kindwise", invalid_image_marker=_INVALID_IMAGE_MARKER), httpx.AsyncClient() as client:
+        async with translate_provider_errors("Kindwise", invalid_image_markers=_INVALID_IMAGE_MARKERS), httpx.AsyncClient() as client:
             r = await client.post(
                 f"{_BASE_URL}health_assessment",
                 headers=self._headers,

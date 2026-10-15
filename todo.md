@@ -10,6 +10,7 @@ Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; o
 1. ~~**Kindwise: confirmar contrato de erro e `is_plant`**~~ ✅ (Bloco 1) — bug visível ao usuário: foto que não é planta vira identificação.
 2. ~~**Rate limit: chave por usuário em vez de IP + `--proxy-headers`**~~ ✅ (Bloco 2) — atrás de load balancer o limite vira global e bloqueia todos.
 3. ~~**Redis: timeouts curtos + backoff quando cai**~~ ✅ (Bloco 2) — Redis lento hoje deixa todas as rotas lentas.
+3a. ~~**PlantNet: adapter nunca funcionou**~~ ✅ (achado nos testes reais) — mandava JSON e a API só aceita multipart (415); parser lia campos inexistentes.
 
 **Importante — aguardando mais detalhes antes de começar:**
 4. Pipeline básico de CI (`ruff`, `mypy`, `pytest`) (Bloco 3).
@@ -19,6 +20,7 @@ Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; o
 6. Use cases declaram seus erros (`raises`) + catálogo de erros do `ARCHITECTURE.md` (feitos juntos).
 7. Propagar Correlation ID para Celery e chamadas HTTP aos provedores (Bloco 3).
 8. Itens de deploy em "Fora do código".
+9. Consenso: `is_plant == false` do Kindwise vetar o resultado do PlantNet (casos de borda; ver Bloco 1).
 
 Próximo passo: itens críticos concluídos; itens 4–8 aguardam mais detalhes.
 
@@ -77,6 +79,16 @@ Próximo passo: itens críticos concluídos; itens 4–8 aguardam mais detalhes.
   - [x] Remover `src/domain/exceptions.py` (código morto, sombreado pelo pacote `src/domain/exceptions/`).
   - [ ] Atualizar catálogo de erros do `ARCHITECTURE.md`: nomes divergentes do código (4003, 4004, 4007), faltam 4008–4019 e 5002, e o 5001 não cita Gemini nem `retryable`.
   - [ ] `ANTIGRAVITY.md`: existe localmente, mas está no `.gitignore` (linha 56) — decidir se continua só local (descartar o item) ou passa a ser versionado.
+
+- [x] **PlantNet: corrigir formato da requisição e parser** (achado em 2026-10-14)
+  - Requisição ia como JSON com base64; a API só aceita `multipart/form-data` → toda chamada voltava 415 (não retryable, só `consensus.failed` em warning). Na prática o `/identify` sempre rodou só com Kindwise e a `ConsensusPolicy` nunca rodou com dados reais.
+  - Parser lia `species.taxonomy` (não existe): família/gênero vêm em `species.family/genus.scientificNameWithoutAuthor`, GBIF em `results[0].gbif.id`, `images[].url` é `{o, m, s}`.
+  - Verificado contra a API real: Monstera → 200 (85,8%, Araceae); gato → 404 `Species not found`; bytes que não são imagem → 400 `Unsupported file type`; `organs` inválido/desbalanceado → 400 (erro nosso). Regra aplicada igual ao Kindwise: só `Unsupported file type`/`Species not found` viram `InvalidImageError`.
+  - Efeito: consenso ativo em produção pela primeira vez; cada `/identify` consome também a cota do PlantNet (500/dia no plano atual).
+
+- [ ] **Consenso: veto do `is_plant` do Kindwise**
+  - Hoje, se o Kindwise rejeita (`is_plant == false`) e o PlantNet devolve uma espécie, vale o PlantNet. No teste real o gato foi rejeitado pelos dois, então é caso de borda (ex.: planta ao fundo da foto).
+  - Proposta: `InvalidImageError` do Kindwise por `is_plant` vetar o resultado do PlantNet. Decisão pendente.
 
 ---
 

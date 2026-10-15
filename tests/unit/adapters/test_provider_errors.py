@@ -159,9 +159,59 @@ async def test_custom_invalid_image_statuses():
 
 @pytest.mark.asyncio
 async def test_plantnet_species_not_found_is_invalid_image(monkeypatch):
-    _patch_transport(monkeypatch, plantnet_adapter, 404)
+    # Resposta real para foto de gato
+    body = {"statusCode": 404, "error": "Not Found", "message": "Species not found"}
+    _patch_transport(monkeypatch, plantnet_adapter, 404, json=body)
     with pytest.raises(InvalidImageError):
         await PlantNetAdapter(api_key="test").identify(b"img")
+
+
+@pytest.mark.asyncio
+async def test_plantnet_unsupported_file_is_invalid_image(monkeypatch):
+    body = {"statusCode": 400, "error": "Bad Request", "message": "Unsupported file type for image[0] (jpeg or png)"}
+    _patch_transport(monkeypatch, plantnet_adapter, 400, json=body)
+    with pytest.raises(InvalidImageError):
+        await PlantNetAdapter(api_key="test").identify(b"img")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status, message", [
+    (400, '"organs" must be one of [auto, leaf, flower]'),
+    (404, "Not Found"),
+])
+async def test_plantnet_rejected_request_is_not_invalid_image(monkeypatch, status, message):
+    _patch_transport(monkeypatch, plantnet_adapter, status, json={"statusCode": status, "message": message})
+    with capture_logs() as logs, pytest.raises(ExternalServiceError) as raised:
+        await PlantNetAdapter(api_key="test").identify(b"img")
+    assert raised.value.retryable is False
+    assert any(e["event"] == "provider.request_rejected" for e in logs)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("image, content_type", [
+    (b"\xff\xd8\xffjpeg-bytes", "image/jpeg"),
+    (b"\x89PNG\r\n\x1a\npng-bytes", "image/png"),
+])
+async def test_plantnet_sends_multipart_upload(monkeypatch, image, content_type):
+    # PlantNet responde 415 para JSON: a imagem precisa ir como multipart/form-data
+    sent: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(request)
+        return httpx.Response(200, json={"results": [{"score": 0.86, "species": {"scientificNameWithoutAuthor": "Monstera deliciosa"}}]})
+
+    transport = httpx.MockTransport(handler)
+    monkeypatch.setattr(plantnet_adapter.httpx, "AsyncClient", lambda: _RealAsyncClient(transport=transport))
+
+    result = await PlantNetAdapter(api_key="test").identify(image)
+
+    assert result.scientific_name == "Monstera deliciosa"
+    request = sent[0]
+    assert request.headers["content-type"].startswith("multipart/form-data")
+    body = request.read()
+    assert image in body
+    assert f"Content-Type: {content_type}".encode() in body
+    assert b'name="organs"\r\n\r\nauto' in body
 
 
 @pytest.mark.asyncio
@@ -216,3 +266,35 @@ async def test_gemini_invalid_json_is_external_error():
 async def test_gemini_valid_json_is_parsed():
     payload = json.dumps({"vitality_score": 0.4})
     assert (await _gemini(payload)._generate("prompt")) == {"vitality_score": 0.4}
+
+
+def test_plantnet_parses_real_response_shape():
+    # Trecho da resposta real para Monstera deliciosa (2026-10-14)
+    data = {
+        "results": [{
+            "score": 0.85787,
+            "species": {
+                "scientificNameWithoutAuthor": "Monstera deliciosa",
+                "genus": {"scientificNameWithoutAuthor": "Monstera"},
+                "family": {"scientificNameWithoutAuthor": "Araceae"},
+                "commonNames": ["Costela de-adão", "Banana de-macaco"],
+            },
+            "images": [{
+                "organ": "leaf",
+                "license": "cc-by-sa",
+                "url": {"o": "https://bs.plantnet.org/image/o/abc", "m": "https://bs.plantnet.org/image/m/abc",
+                        "s": "https://bs.plantnet.org/image/s/abc"},
+            }],
+            "gbif": {"id": "2868241"},
+        }],
+    }
+
+    result = PlantNetAdapter(api_key="test")._parse(data)
+
+    assert result.scientific_name == "Monstera deliciosa"
+    assert result.family == "Araceae"
+    assert result.genus == "Monstera"
+    assert result.gbif_id == "2868241"
+    assert result.common_names == ("Costela de-adão", "Banana de-macaco")
+    assert result.similar_images[0].url == "https://bs.plantnet.org/image/m/abc"
+    assert result.similar_images[0].url_small == "https://bs.plantnet.org/image/s/abc"
