@@ -2,6 +2,7 @@ from celery.app.utils import find_app
 
 from src.adapters.events.celery_publisher import SEND_VERIFICATION_EMAIL_TASK
 from src.infrastructure.celery_config import celery_app
+from src.infrastructure.settings import get_settings
 
 
 def test_worker_command_finds_the_app() -> None:
@@ -15,3 +16,8 @@ def test_worker_registers_published_and_scheduled_tasks() -> None:
 
     scheduled = {entry["task"] for entry in celery_app.conf.beat_schedule.values()}
     assert {SEND_VERIFICATION_EMAIL_TASK, *scheduled} <= set(celery_app.tasks)
+
+
+def test_broker_uses_the_same_redis_url_as_the_app() -> None:
+    # `REDIS_ENDPOINT` é só o host, para o broker e para o `RedisClient`
+    assert celery_app.conf.broker_url == get_settings().redis_url

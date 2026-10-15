@@ -1,17 +1,14 @@
-import os
 import uuid
 
 import structlog
 from celery import Celery, Task
 from celery.signals import before_task_publish, task_postrun, task_prerun
 
-broker_url = os.getenv("REDIS_ENDPOINT", "redis://localhost:6379/0")
-if not broker_url.startswith("redis://"):
-    pwd = os.getenv("REDIS_PASSWORD", "")
-    host = os.getenv("REDIS_ENDPOINT", "localhost")
-    port = os.getenv("REDIS_PORT", "6379")
-    auth = f":{pwd}@" if pwd else ""
-    broker_url = f"redis://{auth}{host}:{port}/0"
+from src.infrastructure.settings import get_settings
+
+# Mesma URL do `RedisClient`: `REDIS_ENDPOINT` é só o host (antes o broker aceitava também uma
+# URL completa, e com ela o worker conectava na fila mas o `RedisClient` dele quebrava)
+broker_url = get_settings().redis_url
 
 celery_app = Celery(
     "plante",
@@ -23,6 +20,9 @@ celery_app = Celery(
         "src.workers.notification_tasks",
     ],
 )
+
+# Celery 6 deixa de tentar reconectar ao broker na subida sem isto (hoje só avisa)
+celery_app.conf.broker_connection_retry_on_startup = True
 
 # Tarefas agendadas (`celery -A src.workers beat`). A anonimização diária saiu: dado de treino
 # já nasce anônimo, separado do dado do usuário.
