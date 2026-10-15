@@ -1,11 +1,15 @@
 from .achievement_model import AchievementModel
 from .base import Base
-from .health_identification_sample_model import HealthIdentificationSampleModel
 from .health_record_model import HealthRecordModel
-from .plant_identification_sample_model import PlantIdentificationSampleModel
+from .identification_model import IdentificationModel
 from .plant_nutritional_model import PlantNutritionalModel
 from .plant_reference_image_model import PlantReferenceImageModel
 from .plant_species_model import PlantSpeciesModel
+from .training_models import (
+    TrainingFeedbackModel,
+    TrainingHealthSampleModel,
+    TrainingIdentificationSampleModel,
+)
 from .user_model import UserModel
 from .user_plant_model import UserPlantModel
 
@@ -21,8 +25,10 @@ __all__ = [
     "PlantNutritionalModel",
     "PlantReferenceImageModel",
     "UserPlantModel",
-    "PlantIdentificationSampleModel",
-    'HealthRecordModel',
-    'HealthIdentificationSampleModel',
+    "IdentificationModel",
+    "HealthRecordModel",
+    "TrainingIdentificationSampleModel",
+    "TrainingHealthSampleModel",
+    "TrainingFeedbackModel",
     'AchievementModel'
 ]

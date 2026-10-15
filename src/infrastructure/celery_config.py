@@ -3,7 +3,6 @@ import uuid
 
 import structlog
 from celery import Celery, Task
-from celery.schedules import crontab
 from celery.signals import before_task_publish, task_postrun, task_prerun
 
 broker_url = os.getenv("REDIS_ENDPOINT", "redis://localhost:6379/0")
@@ -22,16 +21,12 @@ celery_app = Celery(
     # importar: `src.workers` fica acima desta camada)
     include=[
         "src.workers.notification_tasks",
-        "src.workers.anonimization_worker",
     ],
 )
 
-celery_app.conf.beat_schedule = {
-    "anonymize-confirmed-samples-daily": {
-        "task": "workers.anonymize_confirmed_samples",
-        "schedule": crontab(hour=3, minute=0),
-    },
-}
+# Tarefas agendadas (`celery -A src.workers beat`). A anonimização diária saiu: dado de treino
+# já nasce anônimo, separado do dado do usuário.
+celery_app.conf.beat_schedule = {}
 
 # Correlation ID: a task herda o ID da requisição que a publicou. O nome evita `correlation_id`,
 # que o Celery já usa como ID da própria task.

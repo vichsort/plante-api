@@ -6,9 +6,6 @@ from src.adapters.ai.gemini.gemini_adapter import GeminiAdapter
 from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
 from src.adapters.cache.redis_client import RedisClient
-from src.adapters.cache.redis_health_raw_response_repository import (
-    RedisHealthRawResponseRepository,
-)
 from src.adapters.cache.redis_otp_repository import RedisOtpRepository
 from src.adapters.cache.redis_token_repository import RedisTokenRepository
 from src.adapters.email.ses_email_sender import SesEmailSender
@@ -60,10 +57,6 @@ class AdaptersContainer(containers.DeclarativeContainer):
         redis=redis,
     )
 
-    health_raw_response_repository = providers.Singleton(
-        RedisHealthRawResponseRepository,
-        redis=redis,
-    )
 
     email_sender = providers.Singleton(
         SesEmailSender,

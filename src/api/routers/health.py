@@ -7,17 +7,13 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from src.api.deps import CurrentUserId
 from src.api.openapi import error_responses
 from src.api.response import ApiResponse
+from src.api.schemas.auth import MessageResponse
 from src.api.schemas.health import (
-    ConfirmHealthDiagnosisRequest,
-    ConfirmHealthDiagnosisResponse,
     HealthDiagnosisResponse,
+    HealthFeedbackRequest,
     HealthRecordItemResponse,
 )
 from src.domain.exceptions import UnauthorizedError
-from src.domain.use_cases.confirm_health_diagnosis_use_case import (
-    ConfirmHealthDiagnosisInputDTO,
-    ConfirmHealthDiagnosisUseCase,
-)
 from src.domain.use_cases.diagnose_health_use_case import (
     DiagnoseHealthInputDTO,
     DiagnoseHealthUseCase,
@@ -25,6 +21,10 @@ from src.domain.use_cases.diagnose_health_use_case import (
 from src.domain.use_cases.get_health_history_use_case import (
     GetHealthHistoryInputDTO,
     GetHealthHistoryUseCase,
+)
+from src.domain.use_cases.give_health_feedback_use_case import (
+    GiveHealthFeedbackInputDTO,
+    GiveHealthFeedbackUseCase,
 )
 from src.domain.value_objects.ids import HealthRecordId, UserPlantId
 from src.infrastructure.container import Container
@@ -44,32 +44,39 @@ async def diagnose_health(
     image: Annotated[UploadFile, File()],
     use_case: Annotated[DiagnoseHealthUseCase, Depends(Provide[Container.use_cases.diagnose_health_use_case])],
     user_id: CurrentUserId,
+    latitude: Annotated[float | None, Form(ge=-90, le=90)] = None,
+    longitude: Annotated[float | None, Form(ge=-180, le=180)] = None,
 ) -> ApiResponse[HealthDiagnosisResponse]:
     output = await use_case.execute(DiagnoseHealthInputDTO(
         user_id=user_id,
         user_plant_id=UserPlantId(user_plant_id),
         image_bytes=await image.read(),
+        latitude=latitude,
+        longitude=longitude,
     ))
     return ApiResponse.success(HealthDiagnosisResponse.from_domain(output))
 
 
 @router.post(
-    "/confirm",
+    "/{health_record_id}/feedback",
     status_code=200,
-    response_model=ApiResponse[ConfirmHealthDiagnosisResponse],
-    responses=error_responses(*ConfirmHealthDiagnosisUseCase.raises),
+    response_model=ApiResponse[MessageResponse],
+    responses=error_responses(*GiveHealthFeedbackUseCase.raises),
 )
 @inject
-async def confirm_health_diagnosis(
-    body: ConfirmHealthDiagnosisRequest,
-    use_case: Annotated[ConfirmHealthDiagnosisUseCase, Depends(Provide[Container.use_cases.confirm_health_diagnosis])],
+async def give_health_feedback(
+    health_record_id: UUID,
+    body: HealthFeedbackRequest,
+    use_case: Annotated[GiveHealthFeedbackUseCase, Depends(Provide[Container.use_cases.give_health_feedback_use_case])],
     user_id: CurrentUserId,
-) -> ApiResponse[ConfirmHealthDiagnosisResponse]:
-    sample = await use_case.execute(ConfirmHealthDiagnosisInputDTO(
+) -> ApiResponse[MessageResponse]:
+    """O diagnóstico acertou, errou ou o usuário não sabe. Pode ser enviado a qualquer momento."""
+    await use_case.execute(GiveHealthFeedbackInputDTO(
         user_id=user_id,
-        health_record_id=HealthRecordId(body.health_record_id),
+        health_record_id=HealthRecordId(health_record_id),
+        verdict=body.verdict,
     ))
-    return ApiResponse.success(ConfirmHealthDiagnosisResponse.from_domain(sample))
+    return ApiResponse.success(MessageResponse(message="Feedback recorded."))
 
 
 @router.get(

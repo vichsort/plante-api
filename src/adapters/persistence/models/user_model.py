@@ -34,7 +34,6 @@ class UserModel(Base, AuditMixin):
         default=SubscriptionTier.FREE,
     )
     tokens_used_today: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    garden_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     fcm_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
     fcm_token_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -4,15 +4,15 @@ from src.api.openapi import error_responses
 from src.domain.exceptions import (
     PlantLimitExceededError,
     PlantNotFoundError,
-    SampleNotFoundError,
+    SpeciesNotFoundError,
 )
 
 
 def test_error_responses_groups_examples_by_status():
-    responses = error_responses(PlantNotFoundError, SampleNotFoundError, PlantLimitExceededError)
+    responses = error_responses(PlantNotFoundError, SpeciesNotFoundError, PlantLimitExceededError)
 
     not_found = responses[404]["content"]["application/json"]["examples"]
-    assert set(not_found) == {PlantNotFoundError.code, SampleNotFoundError.code}
+    assert set(not_found) == {PlantNotFoundError.code, SpeciesNotFoundError.code}
     assert not_found[PlantNotFoundError.code]["value"]["error"]["code"] == PlantNotFoundError.code
     # Exceção com argumento obrigatório usa a docstring como mensagem de exemplo
     forbidden = responses[PlantLimitExceededError.status_code]["content"]["application/json"]["examples"]

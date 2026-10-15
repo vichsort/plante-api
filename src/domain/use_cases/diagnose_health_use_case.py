@@ -5,6 +5,7 @@ from uuid import uuid4
 import structlog
 
 from src.domain.entities.health_record import HealthRecord, HealthSeverity
+from src.domain.entities.training import TrainingHealthSample
 from src.domain.exceptions import (
     ExternalServiceError,
     InvalidImageError,
@@ -13,15 +14,13 @@ from src.domain.exceptions import (
 )
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.health_analyzer import IHealthAnalyzer
-from src.domain.ports.health_raw_response_repository import (
-    IHealthRawResponseRepository,
-    PendingHealthAssessment,
-)
 from src.domain.ports.image_sanitizer import IImageSanitizer
 from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.plant_enricher import HealthDiagnosisEnrichment, IPlantEnricher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import HealthRecordId, UserId, UserPlantId
+from src.domain.value_objects.sources import HealthSource
+from src.domain.value_objects.training_location import TrainingLocation, month_of
 
 log = structlog.stdlib.get_logger()
 
@@ -42,6 +41,8 @@ class DiagnoseHealthInputDTO:
     user_id: UserId
     user_plant_id: UserPlantId
     image_bytes: bytes
+    latitude: float | None = None
+    longitude: float | None = None
 
 @dataclass(frozen=True)
 class DiagnoseHealthOutput:
@@ -50,6 +51,13 @@ class DiagnoseHealthOutput:
 
 
 class DiagnoseHealthUseCase:
+    """
+    Diagnostica a foto e grava, sem ligação de volta entre eles, o **diagnóstico** (histórico do
+    usuário) e a **amostra de treino de saúde** (anônima: cópia própria da foto, sinais do
+    Kindwise, mês e localização aproximada). O feedback do usuário chega depois, a qualquer
+    momento (`GiveHealthFeedbackUseCase`).
+    """
+
     raises = (ExternalServiceError, InvalidImageError, PlantNotFoundError, UserNotFoundError)
 
     def __init__(
@@ -59,14 +67,12 @@ class DiagnoseHealthUseCase:
         health_analyzer: IHealthAnalyzer,
         plant_enricher: IPlantEnricher,
         storage: IImageStorage,
-        health_raw_repo: IHealthRawResponseRepository,
     ) -> None:
         self._uow = uow
         self._sanitizer = sanitizer
         self._health_analyzer = health_analyzer
         self._plant_enricher = plant_enricher
         self._storage = storage
-        self._health_raw_repo = health_raw_repo
 
     async def execute(self, dto: DiagnoseHealthInputDTO) -> DiagnoseHealthOutput:
         now = datetime.now(UTC)
@@ -99,6 +105,10 @@ class DiagnoseHealthUseCase:
 
         vitality = enrichment.vitality_score if enrichment else assessment.health_probability
         severity = _map_severity(vitality)
+        source: HealthSource = "kindwise+gemini" if enrichment else "kindwise"
+        treatment_plan = enrichment.treatment_plan if enrichment else ()
+        recovery_estimate_days = enrichment.recovery_estimate_days if enrichment else None
+        notes = enrichment.notes if enrichment else None
 
         image_key = await self._storage.upload_identification_image(
             image_bytes=image_bytes,
@@ -106,6 +116,18 @@ class DiagnoseHealthUseCase:
             confidence_value=vitality,
             user_id=dto.user_id,
         )
+        training_image_key = await self._storage.upload_training_image(
+            image_bytes=image_bytes,
+            scientific_name=user_plant.scientific_name,
+        )
+        # Imagens de referência das doenças (do Kindwise, não do usuário) ficam com a amostra
+        reference_keys = tuple([
+            await self._storage.download_and_rehost(
+                external_url=url,
+                scientific_name=user_plant.scientific_name,
+            )
+            for url in assessment.all_similar_images_urls
+        ])
 
         # 3. Escrita; o usuário é relido para cobrar os tokens sobre o estado atual
         async with self._uow as uow:
@@ -118,6 +140,24 @@ class DiagnoseHealthUseCase:
                 # Token extra só é cobrado quando a análise complementar foi entregue
                 user.consume_identify_token()
 
+            training_sample = TrainingHealthSample(
+                id=TrainingHealthSample.new_id(),
+                image_key=training_image_key,
+                scientific_name=user_plant.scientific_name,
+                vitality_score=vitality,
+                severity=severity,
+                source=source,
+                signals=assessment.signals,
+                period=month_of(now),
+                location=TrainingLocation.coarse(user.location, dto.latitude, dto.longitude),
+                issues_detected=tuple(issues),
+                treatment_plan=treatment_plan,
+                reference_image_keys=reference_keys,
+                recovery_estimate_days=recovery_estimate_days,
+                notes=notes,
+            )
+            await uow.training.add_health_sample(training_sample)
+
             record = await uow.health_records.save(HealthRecord(
                 id=HealthRecordId(uuid4()),
                 user_plant_id=dto.user_plant_id,
@@ -126,21 +166,17 @@ class DiagnoseHealthUseCase:
                 diagnosed_at=now,
                 vitality_score=vitality,
                 severity=severity,
-                source="kindwise+gemini" if enrichment else "kindwise",
+                source=source,
                 image_key=image_key,
+                training_sample_id=training_sample.id,
                 issues_detected=tuple(issues),
-                treatment_plan=enrichment.treatment_plan if enrichment else (),
-                recovery_estimate_days=enrichment.recovery_estimate_days if enrichment else None,
-                notes=enrichment.notes if enrichment else None,
+                treatment_plan=treatment_plan,
+                recovery_estimate_days=recovery_estimate_days,
+                notes=notes,
             ))
 
             await uow.users.save(user)
             await uow.commit()
-
-        await self._health_raw_repo.save(record.id, PendingHealthAssessment(
-            raw_response=assessment.raw_response,
-            similar_images_urls=assessment.all_similar_images_urls,
-        ))
 
         return DiagnoseHealthOutput(
             record=record,

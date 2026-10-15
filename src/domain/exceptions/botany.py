@@ -59,14 +59,3 @@ class SpeciesNotFoundError(PlantEError):
         super().__init__(
             message=f"Species {species} not found.",
         )
-
-
-class SampleNotFoundError(PlantEError):
-    """A amostra solicitada não existe."""
-    code = "PLANTE_4015_SAMPLE_NOT_FOUND"
-    status_code = 404
-
-    def __init__(self, sample_id: UUID):
-        super().__init__(
-            message=f"Sample {sample_id} not found.",
-        )

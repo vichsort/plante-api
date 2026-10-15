@@ -2,7 +2,12 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 
-from src.domain.value_objects.ids import HealthRecordId, UserId, UserPlantId
+from src.domain.value_objects.ids import (
+    HealthRecordId,
+    TrainingHealthSampleId,
+    UserId,
+    UserPlantId,
+)
 from src.domain.value_objects.sources import HealthSource
 
 
@@ -22,6 +27,8 @@ class HealthRecord:
     severity: HealthSeverity
     source: HealthSource
     image_key: str
+    # Vínculo de mão única com a amostra de treino anônima (que não aponta de volta)
+    training_sample_id: TrainingHealthSampleId
     diagnosed_at: datetime | None = None
     user_id: UserId | None = None
     issues_detected: tuple[str, ...] = field(default_factory=tuple)

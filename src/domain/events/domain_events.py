@@ -3,9 +3,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from src.domain.value_objects.ids import (
-    HealthRecordId,
-    HealthSampleId,
-    IdentificationSampleId,
     PlantSpeciesId,
     UserId,
     UserPlantId,
@@ -101,49 +98,6 @@ class SubscriptionUpgradedEvent(DomainEvent):
             user_id=user_id,
             plan_name=plan_name,
             expires_at=expires_at,
-        )
-
-@dataclass(frozen=True)
-class PlantIdentificationConfirmedEvent(DomainEvent):
-    user_id: UserId
-    sample_id: IdentificationSampleId
-    scientific_name: str
-
-    @classmethod
-    def create(
-        cls,
-        user_id: UserId,
-        sample_id: IdentificationSampleId,
-        scientific_name: str,
-    ) -> "PlantIdentificationConfirmedEvent":
-        return cls(
-            occurred_on=datetime.now(UTC),
-            user_id=user_id,
-            sample_id=sample_id,
-            scientific_name=scientific_name,
-        )
-
-@dataclass(frozen=True)
-class HealthDiagnosisConfirmedEvent(DomainEvent):
-    user_id: UserId
-    health_record_id: HealthRecordId
-    sample_id: HealthSampleId
-    scientific_name: str
-
-    @classmethod
-    def create(
-        cls,
-        user_id: UserId,
-        health_record_id: HealthRecordId,
-        sample_id: HealthSampleId,
-        scientific_name: str,
-    ) -> "HealthDiagnosisConfirmedEvent":
-        return cls(
-            occurred_on=datetime.now(UTC),
-            user_id=user_id,
-            health_record_id=health_record_id,
-            sample_id=sample_id,
-            scientific_name=scientific_name,
         )
 
 @dataclass(frozen=True)

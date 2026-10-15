@@ -18,6 +18,7 @@ from src.domain.entities.user_plant import (
 from src.domain.value_objects.care_interval import CareInterval
 from src.domain.value_objects.ids import UserPlantId
 from src.domain.value_objects.user_location import UserLocation
+from tests.integration.persistence.seed import seed_identification
 
 
 @pytest.mark.asyncio
@@ -34,6 +35,7 @@ async def test_user_plant_repository_crud_and_soft_delete(db_session: AsyncSessi
         current_time=now,
     )
     saved_user = await user_repo.save(user)
+    identification = await seed_identification(db_session, saved_user.id)
     await db_session.commit()
 
     # 2. Criar e salvar planta do usuário
@@ -56,6 +58,7 @@ async def test_user_plant_repository_crud_and_soft_delete(db_session: AsyncSessi
         nickname="Clotilde",
         primary_image_url="http://storage.plante.org/img.jpg",
         care_schedule=care,
+        identification_id=identification.id,
     )
 
     saved_plant = await plant_repo.save(plant)
@@ -77,11 +80,15 @@ async def test_user_plant_repository_crud_and_soft_delete(db_session: AsyncSessi
     count = await plant_repo.count_by_user(saved_user.id)
     assert count == 1
 
-    # 4. Detalhes com a espécie (ainda não cadastrada) e regravação após regar
+    by_identification = await plant_repo.get_by_identification(identification.id, saved_user.id)
+    assert by_identification is not None and by_identification.id == saved_plant.id
+
+    # 4. Detalhes com a espécie (gravada junto com a identificação) e regravação após regar
     details = await plant_repo.get_details(saved_plant.id, saved_user.id)
     assert details is not None
     assert details.plant.nickname == "Clotilde"
-    assert details.species is None
+    assert details.species is not None
+    assert details.species.scientific_name == "Monstera deliciosa"
 
     saved_plant.water(now + timedelta(days=3))
     await plant_repo.save(saved_plant)
@@ -104,3 +111,4 @@ async def test_user_plant_repository_crud_and_soft_delete(db_session: AsyncSessi
 
     count_after = await plant_repo.count_by_user(saved_user.id)
     assert count_after == 0
+    assert await plant_repo.get_by_identification(identification.id, saved_user.id) is None

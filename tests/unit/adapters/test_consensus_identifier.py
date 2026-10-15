@@ -12,6 +12,10 @@ from src.domain.exceptions import (
 )
 from src.domain.ports.plant_identifier import IdentificationResult, SimilarImage
 from src.domain.value_objects.confidence_score import ConfidenceScore
+from src.domain.value_objects.provider_signals import (
+    IdentificationSignals,
+    SpeciesSuggestion,
+)
 
 
 class _Identifier:
@@ -33,7 +37,7 @@ def _result(source: str, scientific_name: str = "Monstera deliciosa", confidence
         confidence=ConfidenceScore(confidence),
         source=source,
         similar_images=(SimilarImage(url=f"https://{source}/1.jpg", similarity=0.5, source=_IMAGE_SOURCES[source]),),
-        raw_response={"from": source},
+        signals=(IdentificationSignals(provider=source, suggestions=(SpeciesSuggestion(scientific_name, confidence),)),),
     )
 
 
@@ -93,16 +97,16 @@ async def test_unknown_errors_keep_policy_behavior():
 
 
 @pytest.mark.asyncio
-async def test_keeps_both_raw_responses():
+async def test_keeps_signals_from_both_providers():
     result = await _consensus(_result("kindwise"), _result("plantnet")).identify(b"img")
-    assert result.raw_response == {"kindwise": {"from": "kindwise"}, "plantnet": {"from": "plantnet"}}
+    assert [signal.provider for signal in result.signals] == ["kindwise", "plantnet"]
 
 
 @pytest.mark.asyncio
-async def test_raw_response_is_none_for_failed_provider():
+async def test_failed_provider_has_no_signals():
     unavailable = ExternalServiceError(service="Kindwise", retryable=True)
     result = await _consensus(unavailable, _result("plantnet")).identify(b"img")
-    assert result.raw_response == {"kindwise": None, "plantnet": {"from": "plantnet"}}
+    assert [signal.provider for signal in result.signals] == ["plantnet"]
 
 
 @pytest.mark.asyncio

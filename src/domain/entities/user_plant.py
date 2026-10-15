@@ -4,7 +4,7 @@ from enum import StrEnum
 
 from src.domain.entities.care_schedule import CareSchedule
 from src.domain.exceptions import PlantNotReadyForWateringError
-from src.domain.value_objects.ids import UserId, UserPlantId
+from src.domain.value_objects.ids import IdentificationId, UserId, UserPlantId
 from src.domain.value_objects.streak import Streak
 
 
@@ -27,6 +27,8 @@ class UserPlant:
     identification_source: IdentificationSource
     status: IdentificationStatus
     care_schedule: CareSchedule
+    # Identificação que originou a planta: só entra no jardim a partir de uma identificação
+    identification_id: IdentificationId
     added_at: datetime | None = None
 
     nickname: str | None = None

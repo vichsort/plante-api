@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from src.domain.entities.plant_reference_image import ImageSource
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.json_value import JsonObject
+from src.domain.value_objects.provider_signals import IdentificationSignals
 from src.domain.value_objects.sources import IdentificationOrigin
 
 
@@ -27,7 +27,8 @@ class IdentificationResult:
     common_names: tuple[str, ...] = ()
     similar_images: tuple[SimilarImage, ...] = ()
     low_confidence: bool = False
-    raw_response: JsonObject = field(default_factory=dict)
+    # O que cada provedor consultado disse (um no modo simples, os dois no consenso)
+    signals: tuple[IdentificationSignals, ...] = ()
 
 class IPlantIdentifier(ABC):
     @abstractmethod

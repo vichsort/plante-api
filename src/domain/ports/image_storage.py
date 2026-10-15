@@ -28,3 +28,11 @@ class IImageStorage(ABC):
     ) -> str:
         """Baixa URL externa (Kindwise) e re-hospeda no bucket. Retorna storage_key."""
         ...
+
+    @abstractmethod
+    async def upload_training_image(self, image_bytes: bytes, scientific_name: str) -> str:
+        """
+        Cópia da foto para o dataset de treino: chave própria (aleatória, em prefixo separado),
+        nunca devolvida ao cliente, para a amostra não compartilhar arquivo com o usuário.
+        """
+        ...

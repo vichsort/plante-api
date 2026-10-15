@@ -5,18 +5,19 @@ import pytest
 
 from src.domain.entities.user import User
 from src.domain.exceptions import ExternalServiceError
-from src.domain.ports.health_analyzer import HealthAssessmentResult
+from src.domain.ports.health_analyzer import DiseaseHint, HealthAssessmentResult
 from src.domain.ports.plant_enricher import HealthDiagnosisEnrichment
 from src.domain.use_cases.diagnose_health_use_case import (
     DiagnoseHealthInputDTO,
     DiagnoseHealthUseCase,
 )
 from src.domain.value_objects.ids import UserId, UserPlantId
+from src.domain.value_objects.provider_signals import DiseaseSuggestion, HealthSignals
 from tests.factories import make_user, make_user_plant
 from tests.fakes import FakeUnitOfWork, MarkingSanitizer
 
 
-def _use_case(enricher: AsyncMock) -> tuple[DiagnoseHealthUseCase, User]:
+def _use_case(enricher: AsyncMock) -> tuple[DiagnoseHealthUseCase, User, FakeUnitOfWork]:
     user = make_user()
     user_repo = AsyncMock()
     user_repo.get_by_id.return_value = user
@@ -29,32 +30,43 @@ def _use_case(enricher: AsyncMock) -> tuple[DiagnoseHealthUseCase, User]:
 
     analyzer = AsyncMock()
     analyzer.assess_health.return_value = HealthAssessmentResult(
-        is_healthy=False, health_probability=0.1, diseases=(), raw_response={}
+        is_healthy=False,
+        health_probability=0.1,
+        diseases=(DiseaseHint("leaf_spots", 0.8, ("https://kindwise/ref.jpg",)),),
+        signals=HealthSignals(provider="kindwise", is_healthy_probability=0.1, diseases=(DiseaseSuggestion("leaf_spots", 0.8),)),
     )
 
     storage = AsyncMock()
     storage.upload_identification_image.return_value = "health/key.jpg"
+    storage.upload_training_image.return_value = "training/identifications/health.jpg"
+    storage.download_and_rehost.return_value = "species/references/ref.jpg"
+    uow = FakeUnitOfWork(users=user_repo, user_plants=user_plant_repo, health_records=health_repo)
 
     use_case = DiagnoseHealthUseCase(
         sanitizer=MarkingSanitizer(),
-        uow=FakeUnitOfWork(users=user_repo, user_plants=user_plant_repo, health_records=health_repo),
+        uow=uow,
         health_analyzer=analyzer,
         plant_enricher=enricher,
         storage=storage,
-        health_raw_repo=AsyncMock(),
     )
-    return use_case, user
+    return use_case, user, uow
 
 
 def _dto() -> DiagnoseHealthInputDTO:
-    return DiagnoseHealthInputDTO(user_id=UserId(uuid.uuid4()), user_plant_id=UserPlantId(uuid.uuid4()), image_bytes=b"img")
+    return DiagnoseHealthInputDTO(
+        user_id=UserId(uuid.uuid4()),
+        user_plant_id=UserPlantId(uuid.uuid4()),
+        image_bytes=b"img",
+        latitude=-27.5954,
+        longitude=-48.548,
+    )
 
 
 @pytest.mark.asyncio
 async def test_diagnose_uses_gemini_and_charges_extra_token():
     enricher = AsyncMock()
     enricher.diagnose_health.return_value = HealthDiagnosisEnrichment(vitality_score=0.5, treatment_plan=("water less",))
-    use_case, user = _use_case(enricher)
+    use_case, user, _ = _use_case(enricher)
 
     result = await use_case.execute(_dto())
 
@@ -68,7 +80,7 @@ async def test_diagnose_uses_gemini_and_charges_extra_token():
 async def test_diagnose_degrades_to_kindwise_when_gemini_fails():
     enricher = AsyncMock()
     enricher.diagnose_health.side_effect = ExternalServiceError(service="Gemini", retryable=True)
-    use_case, user = _use_case(enricher)
+    use_case, user, _ = _use_case(enricher)
 
     result = await use_case.execute(_dto())
 
@@ -76,3 +88,22 @@ async def test_diagnose_degrades_to_kindwise_when_gemini_fails():
     assert result.record.treatment_plan == ()
     assert result.record.source == "kindwise"
     assert user.tokens_used_today == 1
+
+
+@pytest.mark.asyncio
+async def test_diagnosis_records_anonymous_training_sample_linked_one_way():
+    enricher = AsyncMock()
+    enricher.diagnose_health.return_value = HealthDiagnosisEnrichment(vitality_score=0.5, treatment_plan=("water less",))
+    use_case, _, uow = _use_case(enricher)
+
+    result = await use_case.execute(_dto())
+
+    sample = uow.training.add_health_sample.call_args.args[0]
+    assert result.record.training_sample_id == sample.id
+    assert sample.image_key == "training/identifications/health.jpg"
+    assert sample.image_key != result.record.image_key
+    assert sample.reference_image_keys == ("species/references/ref.jpg",)
+    assert sample.signals.diseases == (DiseaseSuggestion("leaf_spots", 0.8),)
+    assert (sample.location.grid_latitude, sample.location.grid_longitude) == (-27.6, -48.5)
+    assert sample.period.day == 1
+    assert uow.committed

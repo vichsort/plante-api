@@ -14,36 +14,33 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.persistence.models import Base
-from src.adapters.persistence.repositories.health_identification_sample_repository import (
-    HealthIdentificationSampleRepository,
-)
 from src.adapters.persistence.repositories.health_record_repository import (
     HealthRecordRepository,
-)
-from src.adapters.persistence.repositories.identification_sample_repository import (
-    IdentificationSampleRepository,
 )
 from src.adapters.persistence.repositories.plant_species_repository import (
     PlantSpeciesRepository,
 )
+from src.adapters.persistence.repositories.training_repository import TrainingRepository
 from src.adapters.persistence.repositories.user_plant_repository import (
     UserPlantRepository,
 )
 from src.adapters.persistence.repositories.user_repository import UserRepository
-from src.domain.value_objects.ids import (
-    HealthRecordId,
-    HealthSampleId,
-    UserId,
-    UserPlantId,
+from src.domain.entities.training import (
+    FeedbackOrigin,
+    FeedbackVerdict,
+    TrainingFeedback,
 )
 from tests.factories import (
+    MONTH,
     make_care_schedule,
     make_health_record,
-    make_health_sample,
-    make_identification_sample,
     make_species,
     make_user,
     make_user_plant,
+)
+from tests.integration.persistence.seed import (
+    seed_identification,
+    seed_training_health_sample,
 )
 
 _BRT = timezone(timedelta(hours=-3))
@@ -68,9 +65,12 @@ async def test_no_column_is_timestamp_without_time_zone(db_session: AsyncSession
 async def test_datetime_keeps_instant_regardless_of_session_time_zone(db_session: AsyncSession) -> None:
     await db_session.execute(text("SET LOCAL TIME ZONE 'Asia/Tokyo'"))
     user = await UserRepository(db_session).save(make_user(email="tz@plante.org"))
+    identification = await seed_identification(db_session, user.id)
     added_at = datetime(2026, 10, 15, 21, 30, tzinfo=_BRT)  # 00:30 UTC do dia seguinte
     due_at = datetime(2026, 10, 22, 9, 0, tzinfo=_BRT)
-    plant = make_user_plant(user_id=user.id, care_schedule=make_care_schedule(next_due_at=due_at))
+    plant = make_user_plant(
+        user_id=user.id, identification_id=identification.id, care_schedule=make_care_schedule(next_due_at=due_at)
+    )
     plant = replace(plant, added_at=added_at)
     repo = UserPlantRepository(db_session)
     await repo.save(plant)
@@ -87,8 +87,11 @@ async def test_datetime_keeps_instant_regardless_of_session_time_zone(db_session
 
 async def test_overdue_query_compares_instants_across_offsets(db_session: AsyncSession) -> None:
     user = await UserRepository(db_session).save(make_user(email="overdue@plante.org"))
+    identification = await seed_identification(db_session, user.id)
     due_at = datetime(2026, 10, 15, 9, 0, tzinfo=_BRT)  # 12:00 UTC
-    plant = make_user_plant(user_id=user.id, care_schedule=make_care_schedule(next_due_at=due_at))
+    plant = make_user_plant(
+        user_id=user.id, identification_id=identification.id, care_schedule=make_care_schedule(next_due_at=due_at)
+    )
     repo = UserPlantRepository(db_session)
     await repo.save(plant)
     await db_session.commit()
@@ -177,18 +180,26 @@ async def test_duplicate_species_scientific_name_violates_unique_constraint(db_s
             await repo.save(make_species("Ficus lyrata"))
 
 
-async def test_health_record_has_at_most_one_sample(db_session: AsyncSession) -> None:
+async def test_training_sample_belongs_to_at_most_one_user_record(db_session: AsyncSession) -> None:
     user = await UserRepository(db_session).save(make_user(email="sample@plante.org"))
-    plant = await UserPlantRepository(db_session).save(make_user_plant(user_id=user.id))
-    record = await HealthRecordRepository(db_session).save(
-        make_health_record(user_id=user.id, user_plant_id=plant.id)
-    )
-    samples = HealthIdentificationSampleRepository(db_session)
-    await samples.save(make_health_sample(record))
+    identification = await seed_identification(db_session, user.id)
+    plant = await UserPlantRepository(db_session).save(make_user_plant(user_id=user.id, identification_id=identification.id))
+    training = await seed_training_health_sample(db_session)
+    records = HealthRecordRepository(db_session)
+    await records.save(make_health_record(user_id=user.id, user_plant_id=plant.id, training_sample_id=training.id))
 
     with pytest.raises(IntegrityError):
         async with db_session.begin_nested():
-            await samples.save(make_health_sample(record))
+            await records.save(make_health_record(user_id=user.id, user_plant_id=plant.id, training_sample_id=training.id))
+
+
+async def test_feedback_targets_exactly_one_sample(db_session: AsyncSession) -> None:
+    with pytest.raises(IntegrityError, match="ck_training_feedback_one_target"):
+        async with db_session.begin_nested():
+            await db_session.execute(text(
+                "INSERT INTO training_feedback (id, verdict, origin, given_on) "
+                "VALUES (gen_random_uuid(), 'correct', 'explicit', CURRENT_DATE)"
+            ))
 
 
 # --- Chaves estrangeiras ---------------------------------------------------------------------
@@ -196,15 +207,21 @@ async def test_health_record_has_at_most_one_sample(db_session: AsyncSession) ->
 # (tabela, coluna) -> (tabela referenciada, ação no DELETE). Mudar uma linha daqui exige
 # migration e uma decisão consciente; os efeitos problemáticos estão nos testes abaixo e no todo.
 _EXPECTED_FOREIGN_KEYS = {
-    ("health_identification_samples", "health_record_id"): ("health_records", "CASCADE"),
-    ("health_identification_samples", "user_id"): ("users", "SET NULL"),
-    ("health_records", "user_id"): ("users", "SET NULL"),
-    ("health_records", "user_plant_id"): ("user_plants", "CASCADE"),
-    ("plant_identification_samples", "species_id"): ("plant_species", "CASCADE"),
-    ("plant_identification_samples", "user_id"): ("users", "SET NULL"),
-    ("plant_reference_images", "user_id"): ("users", "SET NULL"),
-    ("user_achievements", "user_id"): ("users", "CASCADE"),
+    # Lado do usuário: tudo sai com o usuário (CASCADE)
+    ("identifications", "user_id"): ("users", "CASCADE"),
+    ("identifications", "species_id"): ("plant_species", "RESTRICT"),
     ("user_plants", "user_id"): ("users", "CASCADE"),
+    ("user_plants", "identification_id"): ("identifications", "CASCADE"),
+    ("health_records", "user_id"): ("users", "CASCADE"),
+    ("health_records", "user_plant_id"): ("user_plants", "CASCADE"),
+    ("user_achievements", "user_id"): ("users", "CASCADE"),
+    ("plant_reference_images", "user_id"): ("users", "SET NULL"),
+    # Vínculos de mão única para o treino: o lado do usuário aponta para a amostra, nunca o contrário
+    ("identifications", "training_sample_id"): ("training_identification_samples", "RESTRICT"),
+    ("health_records", "training_sample_id"): ("training_health_samples", "RESTRICT"),
+    # Dentro do treino
+    ("training_feedback", "identification_sample_id"): ("training_identification_samples", "RESTRICT"),
+    ("training_feedback", "health_sample_id"): ("training_health_samples", "RESTRICT"),
 }
 
 _DELETE_ACTIONS = {"a": "NO ACTION", "r": "RESTRICT", "c": "CASCADE", "n": "SET NULL", "d": "SET DEFAULT"}
@@ -228,55 +245,60 @@ async def test_foreign_keys_and_delete_actions(db_session: AsyncSession) -> None
     assert in_database == _EXPECTED_FOREIGN_KEYS
 
 
-async def _plant_with_health_sample(session: AsyncSession, email: str) -> tuple[UserId, UserPlantId, HealthRecordId, HealthSampleId]:
+async def _user_with_everything(session: AsyncSession, email: str) -> dict[str, UUID]:
+    """Usuário com identificação, planta, diagnóstico e feedback nas duas amostras de treino."""
     user = await UserRepository(session).save(make_user(email=email))
-    plant = await UserPlantRepository(session).save(make_user_plant(user_id=user.id))
+    identification = await seed_identification(session, user.id)
+    plant = await UserPlantRepository(session).save(make_user_plant(user_id=user.id, identification_id=identification.id))
+    health_training = await seed_training_health_sample(session)
     record = await HealthRecordRepository(session).save(
-        make_health_record(user_id=user.id, user_plant_id=plant.id)
+        make_health_record(user_id=user.id, user_plant_id=plant.id, training_sample_id=health_training.id)
     )
-    sample = await HealthIdentificationSampleRepository(session).save(make_health_sample(record))
+    training = TrainingRepository(session)
+    await training.add_feedback(TrainingFeedback.on_identification(
+        identification.training_sample_id, FeedbackVerdict.CORRECT, FeedbackOrigin.EXPLICIT, MONTH,
+    ))
+    await training.add_feedback(TrainingFeedback.on_health(health_training.id, FeedbackVerdict.WRONG, MONTH))
     await session.commit()
-    return user.id, plant.id, record.id, sample.id
+    return {
+        "user": user.id,
+        "identification": identification.id,
+        "plant": plant.id,
+        "record": record.id,
+        "identification_training": identification.training_sample_id,
+        "health_training": health_training.id,
+    }
 
 
-async def test_deleting_user_plant_cascades_to_health_samples(db_session: AsyncSession) -> None:
-    """
-    Documenta o comportamento atual (ver todo): apagar a planta de verdade apaga os diagnósticos
-    e as amostras de saúde, que são dataset de treino. Hoje a exclusão é soft delete.
-    """
-    _, plant_id, record_id, sample_id = await _plant_with_health_sample(db_session, "plant-cascade@plante.org")
-
-    await db_session.execute(text("DELETE FROM user_plants WHERE id = :id"), {"id": plant_id})
-
-    assert await _scalar_count(db_session, "health_records", "id", record_id) == 0
-    assert await _scalar_count(db_session, "health_identification_samples", "id", sample_id) == 0
-
-
-async def test_deleting_user_with_health_sample_fails(db_session: AsyncSession) -> None:
-    """
-    Documenta o comportamento atual (ver todo): a amostra recebe SET NULL em `user_id` e perde o
-    diagnóstico pela cascata users -> user_plants -> health_records no mesmo DELETE; o UPDATE
-    do SET NULL viola a FK `health_record_id` e o usuário não pode ser apagado.
-    """
-    user_id, _, _, _ = await _plant_with_health_sample(db_session, "user-cascade@plante.org")
-
-    with pytest.raises(IntegrityError, match="health_identification_samples_health_record_id_fkey"):
-        async with db_session.begin_nested():
-            await db_session.execute(text("DELETE FROM users WHERE id = :id"), {"id": user_id})
-
-
-async def test_deleting_user_keeps_identification_samples_anonymized(db_session: AsyncSession) -> None:
-    user = await UserRepository(db_session).save(make_user(email="anon@plante.org"))
-    plant = await UserPlantRepository(db_session).save(make_user_plant(user_id=user.id))
-    species = await PlantSpeciesRepository(db_session).save(make_species("Pilea peperomioides"))
-    identification = replace(make_identification_sample(user_id=user.id), species_id=species.id)
-    await IdentificationSampleRepository(db_session).save(identification)
-    await db_session.commit()
-
-    await db_session.execute(text("DELETE FROM users WHERE id = :id"), {"id": user.id})
-
-    assert await _scalar_count(db_session, "user_plants", "id", plant.id) == 0
-    kept = await db_session.execute(
-        text("SELECT user_id FROM plant_identification_samples WHERE id = :id"), {"id": identification.id}
+async def _training_rows(session: AsyncSession, ids: dict[str, UUID]) -> tuple[int, int, int]:
+    return (
+        await _scalar_count(session, "training_identification_samples", "id", ids["identification_training"]),
+        await _scalar_count(session, "training_health_samples", "id", ids["health_training"]),
+        await _scalar_count(session, "training_feedback", "identification_sample_id", ids["identification_training"])
+        + await _scalar_count(session, "training_feedback", "health_sample_id", ids["health_training"]),
     )
-    assert kept.scalar_one() is None
+
+
+async def test_deleting_user_removes_personal_data_and_keeps_training_data(db_session: AsyncSession) -> None:
+    """
+    Antes do plano C, apagar um usuário com amostra de saúde falhava (SET NULL × CASCADE na mesma
+    linha). Agora o lado do usuário sai inteiro e o dataset de treino fica intacto.
+    """
+    ids = await _user_with_everything(db_session, "delete-me@plante.org")
+
+    await db_session.execute(text("DELETE FROM users WHERE id = :id"), {"id": ids["user"]})
+
+    assert await _scalar_count(db_session, "identifications", "id", ids["identification"]) == 0
+    assert await _scalar_count(db_session, "user_plants", "id", ids["plant"]) == 0
+    assert await _scalar_count(db_session, "health_records", "id", ids["record"]) == 0
+    assert await _training_rows(db_session, ids) == (1, 1, 2)
+
+
+async def test_deleting_plant_keeps_identification_and_training_data(db_session: AsyncSession) -> None:
+    ids = await _user_with_everything(db_session, "plant-gone@plante.org")
+
+    await db_session.execute(text("DELETE FROM user_plants WHERE id = :id"), {"id": ids["plant"]})
+
+    assert await _scalar_count(db_session, "health_records", "id", ids["record"]) == 0
+    assert await _scalar_count(db_session, "identifications", "id", ids["identification"]) == 1
+    assert await _training_rows(db_session, ids) == (1, 1, 2)

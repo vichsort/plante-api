@@ -19,6 +19,12 @@ from src.domain.ports.plant_identifier import (
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.json_value import JsonObject
+from src.domain.value_objects.provider_signals import (
+    DiseaseSuggestion,
+    HealthSignals,
+    IdentificationSignals,
+    SpeciesSuggestion,
+)
 
 _SERVICE = "Kindwise"
 _BASE_URL = "https://plant.id/api/v3/"
@@ -29,9 +35,12 @@ _DETAILS = "common_names,taxonomy,gbif_id,image,edible_parts,watering"
 _INVALID_IMAGE_MARKERS = ("Invalid image",)
 
 
-# Contrato da API (plant.id v3), só com os campos usados; o resto vai inteiro no raw_response.
+# Contrato da API (plant.id v3), só com os campos usados. O resto da resposta é descartado: ela
+# ecoa a requisição (`input` com coordenadas e URL da foto), traz `access_token` (dá acesso à
+# identificação, com a foto, na API deles) e horários — nada disso pode chegar ao dataset.
 class _Model(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    # `model_version` é campo da API: libera o prefixo `model_` reservado pelo Pydantic
+    model_config = ConfigDict(frozen=True, protected_namespaces=())
 
 
 class _BinaryVerdict(_Model):
@@ -76,6 +85,7 @@ class _IdentificationResult(_Model):
 
 class _IdentificationResponse(_Model):
     result: _IdentificationResult
+    model_version: str | None = None
 
 
 class _HealthResult(_Model):
@@ -86,6 +96,7 @@ class _HealthResult(_Model):
 
 class _HealthResponse(_Model):
     result: _HealthResult
+    model_version: str | None = None
 
 
 class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
@@ -120,7 +131,8 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
         return self._parse_identification(parse_json_object(r.content, _SERVICE))
 
     def _parse_identification(self, data: JsonObject) -> IdentificationResult:
-        result = parse_contract(_IdentificationResponse, data, _SERVICE).result
+        response = parse_contract(_IdentificationResponse, data, _SERVICE)
+        result = response.result
         _reject_non_plant(result.is_plant)
         if not result.classification.suggestions:
             raise InvalidImageError()
@@ -148,7 +160,22 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
                 for img in best.similar_images
                 if img.url
             ),
-            raw_response=data,
+            signals=(IdentificationSignals(
+                provider="kindwise",
+                suggestions=tuple(
+                    SpeciesSuggestion(
+                        scientific_name=suggestion.name,
+                        probability=suggestion.probability,
+                        family=suggestion.details.taxonomy.family,
+                        genus=suggestion.details.taxonomy.genus,
+                        gbif_id=str(suggestion.details.gbif_id) if suggestion.details.gbif_id else None,
+                        provider_entity_id=suggestion.details.entity_id,
+                    )
+                    for suggestion in result.classification.suggestions
+                ),
+                is_plant_probability=result.is_plant.probability if result.is_plant else None,
+                model_version=response.model_version,
+            ),),
         )
 
     async def assess_health(self, image_bytes: bytes) -> HealthAssessmentResult:
@@ -166,12 +193,14 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
         return self._parse_health(parse_json_object(r.content, _SERVICE))
 
     def _parse_health(self, data: JsonObject) -> HealthAssessmentResult:
-        result = parse_contract(_HealthResponse, data, _SERVICE).result
+        response = parse_contract(_HealthResponse, data, _SERVICE)
+        result = response.result
         _reject_non_plant(result.is_plant)
+        health_probability = result.is_healthy.probability if result.is_healthy else 1.0
 
         return HealthAssessmentResult(
             is_healthy=result.is_healthy.binary if result.is_healthy else True,
-            health_probability=result.is_healthy.probability if result.is_healthy else 1.0,
+            health_probability=health_probability,
             diseases=tuple(
                 DiseaseHint(
                     name=suggestion.name,
@@ -180,7 +209,16 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
                 )
                 for suggestion in result.disease.suggestions
             ),
-            raw_response=data,
+            signals=HealthSignals(
+                provider="kindwise",
+                is_healthy_probability=health_probability,
+                diseases=tuple(
+                    DiseaseSuggestion(name=suggestion.name, probability=suggestion.probability)
+                    for suggestion in result.disease.suggestions
+                ),
+                is_plant_probability=result.is_plant.probability if result.is_plant else None,
+                model_version=response.model_version,
+            ),
         )
 
 

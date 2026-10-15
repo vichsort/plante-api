@@ -4,7 +4,7 @@ from datetime import datetime
 
 from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.user_plant import UserPlant
-from src.domain.value_objects.ids import UserId, UserPlantId
+from src.domain.value_objects.ids import IdentificationId, UserId, UserPlantId
 
 
 @dataclass(frozen=True)
@@ -33,6 +33,12 @@ class IUserPlantRepository(ABC):
 
     @abstractmethod
     async def count_by_user(self, user_id: UserId) -> int:
+        """Plantas ativas no jardim (as apagadas não contam para o limite do plano)."""
+        ...
+
+    @abstractmethod
+    async def get_by_identification(self, identification_id: IdentificationId, user_id: UserId) -> UserPlant | None:
+        """Planta ativa criada a partir da identificação, se houver."""
         ...
 
     @abstractmethod

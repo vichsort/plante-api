@@ -11,6 +11,8 @@ logger = structlog.stdlib.get_logger()
 
 _IDENTIFICATION_PREFIX = "identifications"
 _REFERENCES_PREFIX = "species/references"
+# Dataset de treino: separado das fotos dos usuários (chave nova, nunca devolvida ao cliente)
+_TRAINING_PREFIX = "training/identifications"
 _DEFAULT_CONTENT_TYPE = "image/jpeg"
 
 def _sanitize(scientific_name: str) -> str:
@@ -21,6 +23,9 @@ def _build_identification_key(scientific_name: str) -> str:
 
 def _build_reference_key(scientific_name: str) -> str:
     return f"{_REFERENCES_PREFIX}/{_sanitize(scientific_name)}/{uuid.uuid4()}.jpg"
+
+def _build_training_key(scientific_name: str) -> str:
+    return f"{_TRAINING_PREFIX}/{_sanitize(scientific_name)}/{uuid.uuid4()}.jpg"
 
 class S3ImageStorage(IImageStorage):
     def __init__(
@@ -84,6 +89,11 @@ class S3ImageStorage(IImageStorage):
             source_url=external_url,
         )
         return url
+
+    async def upload_training_image(self, image_bytes: bytes, scientific_name: str) -> str:
+        key = _build_training_key(scientific_name)
+        await self._put_object(key=key, body=image_bytes, content_type=_DEFAULT_CONTENT_TYPE)
+        return key
 
     async def _put_object(
         self,

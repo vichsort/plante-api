@@ -1,7 +1,6 @@
 """
-Valor JSON arbitrário, para payloads que o domínio guarda sem interpretar (ex.: `raw_response`
-dos provedores, mantido para o dataset de treino). Quem precisa ler um campo usa um modelo
-próprio na borda, não navega neste tipo.
+Valor JSON arbitrário, para payloads que o domínio guarda sem interpretar (ex.: `details` dos
+erros). Quem precisa ler um campo usa um modelo próprio na borda, não navega neste tipo.
 
 `TypeAliasType` (e não a sintaxe `type X = ...`) porque o Pydantic 2.9 só entende o alias
 recursivo nessa forma.

@@ -6,14 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from src.adapters.persistence.repositories.achievement_repository import (
     AchievementRepository,
 )
-from src.adapters.persistence.repositories.health_identification_sample_repository import (
-    HealthIdentificationSampleRepository,
-)
 from src.adapters.persistence.repositories.health_record_repository import (
     HealthRecordRepository,
 )
-from src.adapters.persistence.repositories.identification_sample_repository import (
-    IdentificationSampleRepository,
+from src.adapters.persistence.repositories.identification_repository import (
+    IdentificationRepository,
 )
 from src.adapters.persistence.repositories.plant_nutritional_repository import (
     PlantNutritionalRepository,
@@ -24,6 +21,7 @@ from src.adapters.persistence.repositories.plant_reference_image_repository impo
 from src.adapters.persistence.repositories.plant_species_repository import (
     PlantSpeciesRepository,
 )
+from src.adapters.persistence.repositories.training_repository import TrainingRepository
 from src.adapters.persistence.repositories.user_plant_repository import (
     UserPlantRepository,
 )
@@ -48,9 +46,9 @@ class SqlAlchemyUnitOfWork(IUnitOfWork):
         self.species = PlantSpeciesRepository(session)
         self.nutritional = PlantNutritionalRepository(session)
         self.reference_images = PlantReferenceImageRepository(session)
-        self.identification_samples = IdentificationSampleRepository(session)
+        self.identifications = IdentificationRepository(session)
         self.health_records = HealthRecordRepository(session)
-        self.health_samples = HealthIdentificationSampleRepository(session)
+        self.training = TrainingRepository(session)
         self.achievements = AchievementRepository(session)
         return self
 

@@ -12,6 +12,10 @@ from src.domain.ports.plant_identifier import (
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.json_value import JsonObject
+from src.domain.value_objects.provider_signals import (
+    IdentificationSignals,
+    SpeciesSuggestion,
+)
 
 _SERVICE = "PlantNet"
 
@@ -27,7 +31,8 @@ _INVALID_IMAGE_MARKERS = ("Unsupported file type", "Species not found")
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
-# Contrato da API (PlantNet v2 identify), só com os campos usados; o resto vai no raw_response.
+# Contrato da API (PlantNet v2 identify), só com os campos usados. O resto é descartado (`query`
+# ecoa as imagens enviadas; `remainingIdentificationRequests` é dado operacional da conta).
 class _Model(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -68,6 +73,7 @@ class _Result(_Model):
 
 class _IdentifyResponse(_Model):
     results: list[_Result] = []
+    version: str | None = None
 
 
 class PlantNetAdapter(IPlantIdentifier):
@@ -130,5 +136,18 @@ class PlantNetAdapter(IPlantIdentifier):
                 for img in best.images
                 if img.url.m
             ),
-            raw_response=data,
+            signals=(IdentificationSignals(
+                provider="plantnet",
+                suggestions=tuple(
+                    SpeciesSuggestion(
+                        scientific_name=item.species.scientific_name_without_author,
+                        probability=item.score,
+                        family=item.species.family.scientific_name_without_author if item.species.family else None,
+                        genus=item.species.genus.scientific_name_without_author if item.species.genus else None,
+                        gbif_id=item.gbif.id if item.gbif else None,
+                    )
+                    for item in response.results
+                ),
+                model_version=response.version,
+            ),),
         )

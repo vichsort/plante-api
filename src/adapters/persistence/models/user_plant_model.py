@@ -19,6 +19,12 @@ class UserPlantModel(Base, AuditMixin):
         nullable=False,
         index=True,
     )
+    identification_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("identifications.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     scientific_name: Mapped[str] = mapped_column(String(255), nullable=False)
     identification_confidence: Mapped[float] = mapped_column(Float, nullable=False)
     identification_source: Mapped[IdentificationSource] = mapped_column(

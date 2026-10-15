@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from src.domain.value_objects.json_value import JsonObject
+from src.domain.value_objects.provider_signals import HealthSignals
 
 
 @dataclass(frozen=True)
@@ -15,7 +15,7 @@ class HealthAssessmentResult:
     is_healthy: bool
     health_probability: float
     diseases: tuple[DiseaseHint, ...]
-    raw_response: JsonObject
+    signals: HealthSignals
 
     @property
     def all_similar_images_urls(self) -> tuple[str, ...]:

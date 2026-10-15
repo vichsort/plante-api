@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Form, UploadFile
@@ -6,21 +7,21 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from src.api.deps import CurrentUserId
 from src.api.openapi import error_responses
 from src.api.response import ApiResponse
+from src.api.schemas.auth import MessageResponse
 from src.api.schemas.identification import (
-    ConfirmPlantIdentificationRequest,
-    ConfirmPlantIdentificationResponse,
+    IdentificationFeedbackRequest,
     IdentifyPlantResponse,
 )
 from src.domain.exceptions import UnauthorizedError
-from src.domain.use_cases.confirm_plant_identification_use_case import (
-    ConfirmPlantIdentificationInputDTO,
-    ConfirmPlantIdentificationUseCase,
+from src.domain.use_cases.give_identification_feedback_use_case import (
+    GiveIdentificationFeedbackInputDTO,
+    GiveIdentificationFeedbackUseCase,
 )
 from src.domain.use_cases.identify_plant_use_case import (
     IdentifyPlantInputDTO,
     IdentifyPlantUseCase,
 )
-from src.domain.value_objects.ids import IdentificationSampleId
+from src.domain.value_objects.ids import IdentificationId
 from src.infrastructure.container import Container
 
 router = APIRouter(prefix="/identify", tags=["identification"], responses=error_responses(UnauthorizedError))
@@ -37,8 +38,8 @@ async def identify_plant(
     image: Annotated[UploadFile, File()],
     use_case: Annotated[IdentifyPlantUseCase, Depends(Provide[Container.use_cases.identify_plant_use_case])],
     user_id: CurrentUserId,
-    latitude: Annotated[float | None, Form()] = None,
-    longitude: Annotated[float | None, Form()] = None,
+    latitude: Annotated[float | None, Form(ge=-90, le=90)] = None,
+    longitude: Annotated[float | None, Form(ge=-180, le=180)] = None,
 ) -> ApiResponse[IdentifyPlantResponse]:
     output = await use_case.execute(IdentifyPlantInputDTO(
         user_id=user_id,
@@ -50,22 +51,26 @@ async def identify_plant(
 
 
 @router.post(
-    "/confirm",
+    "/{identification_id}/feedback",
     status_code=200,
-    response_model=ApiResponse[ConfirmPlantIdentificationResponse],
-    responses=error_responses(*ConfirmPlantIdentificationUseCase.raises),
+    response_model=ApiResponse[MessageResponse],
+    responses=error_responses(*GiveIdentificationFeedbackUseCase.raises),
 )
 @inject
-async def confirm_plant_identification(
-    body: ConfirmPlantIdentificationRequest,
+async def give_identification_feedback(
+    identification_id: UUID,
+    body: IdentificationFeedbackRequest,
     use_case: Annotated[
-        ConfirmPlantIdentificationUseCase,
-        Depends(Provide[Container.use_cases.confirm_plant_identification]),
+        GiveIdentificationFeedbackUseCase,
+        Depends(Provide[Container.use_cases.give_identification_feedback_use_case]),
     ],
     user_id: CurrentUserId,
-) -> ApiResponse[ConfirmPlantIdentificationResponse]:
-    sample = await use_case.execute(ConfirmPlantIdentificationInputDTO(
+) -> ApiResponse[MessageResponse]:
+    """A identificação acertou, errou ou o usuário não sabe. Pode ser enviado a qualquer momento."""
+    await use_case.execute(GiveIdentificationFeedbackInputDTO(
         user_id=user_id,
-        sample_id=IdentificationSampleId(body.sample_id),
+        identification_id=IdentificationId(identification_id),
+        verdict=body.verdict,
+        suggested_name=body.suggested_name,
     ))
-    return ApiResponse.success(ConfirmPlantIdentificationResponse.from_domain(sample))
+    return ApiResponse.success(MessageResponse(message="Feedback recorded."))

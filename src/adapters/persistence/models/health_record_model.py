@@ -21,9 +21,16 @@ class HealthRecordModel(Base, AuditMixin):
     )
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="SET NULL"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=True,
         index=True,
+    )
+    # Vínculo de mão única com a amostra de treino de saúde (que não aponta de volta)
+    training_sample_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("training_health_samples.id", ondelete="RESTRICT"),
+        nullable=False,
+        unique=True,
     )
     scientific_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     diagnosed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

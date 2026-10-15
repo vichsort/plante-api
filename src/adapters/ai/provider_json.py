@@ -1,8 +1,8 @@
 """
 Leitura das respostas JSON dos provedores de IA.
 
-O corpo vira `JsonObject` (guardado como `raw_response`) e é validado contra o modelo Pydantic do
-contrato do provedor. Resposta fora do contrato é falha do provedor, não do usuário:
+O corpo vira `JsonObject` e é validado contra o modelo Pydantic do contrato do provedor (só os
+campos usados; o resto é descartado e nunca é guardado). Resposta fora do contrato é falha do provedor, não do usuário:
 `ExternalServiceError` não retryable, com log para investigar a mudança de formato.
 """
 import structlog
@@ -38,5 +38,5 @@ def parse_contract[M: BaseModel](model: type[M], data: JsonObject, service: str)
 
 
 def parse_contract_json[M: BaseModel](model: type[M], body: bytes | str, service: str) -> M:
-    """Como `parse_contract`, direto do corpo em texto (quando não há `raw_response` a guardar)."""
+    """Como `parse_contract`, direto do corpo em texto."""
     return parse_contract(model, parse_json_object(body, service), service)

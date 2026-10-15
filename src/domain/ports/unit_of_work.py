@@ -3,18 +3,14 @@ from types import TracebackType
 from typing import Self
 
 from src.domain.ports.achievement_repository import IAchievementRepository
-from src.domain.ports.health_identification_sample_repository import (
-    IHealthIdentificationSampleRepository,
-)
 from src.domain.ports.health_record_repository import IHealthRecordRepository
-from src.domain.ports.identification_sample_repository import (
-    IIdentificationSampleRepository,
-)
+from src.domain.ports.identification_repository import IIdentificationRepository
 from src.domain.ports.plant_nutritional_repository import IPlantNutritionalRepository
 from src.domain.ports.plant_reference_image_repository import (
     IPlantReferenceImageRepository,
 )
 from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
+from src.domain.ports.training_repository import ITrainingRepository
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
 
@@ -38,9 +34,9 @@ class IUnitOfWork(ABC):
     species: IPlantSpeciesRepository
     nutritional: IPlantNutritionalRepository
     reference_images: IPlantReferenceImageRepository
-    identification_samples: IIdentificationSampleRepository
+    identifications: IIdentificationRepository
     health_records: IHealthRecordRepository
-    health_samples: IHealthIdentificationSampleRepository
+    training: ITrainingRepository
     achievements: IAchievementRepository
 
     @abstractmethod

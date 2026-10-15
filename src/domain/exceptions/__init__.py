@@ -14,7 +14,6 @@ from src.domain.exceptions.botany import (
     LowConfidenceError,
     NotAPlantError,
     PlantIdentificationError,
-    SampleNotFoundError,
     SpeciesNotFoundError,
 )
 from src.domain.exceptions.external import ExternalServiceError, GeocodingError
@@ -25,7 +24,6 @@ from src.domain.exceptions.garden import (
 )
 from src.domain.exceptions.health import (
     HealthRecordNotFoundError,
-    RawResponseExpiredError,
 )
 from src.domain.exceptions.rate_limit import RateLimitExceededError
 from src.domain.exceptions.subscription import SubscriptionRequiredError
@@ -49,8 +47,6 @@ __all__ = [
     "PlantNotFoundError",
     "PlantNotReadyForWateringError",
     "RateLimitExceededError",
-    "RawResponseExpiredError",
-    "SampleNotFoundError",
     "SpeciesNotFoundError",
     "SubscriptionRequiredError",
     "UnauthorizedError",

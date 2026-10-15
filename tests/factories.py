@@ -3,16 +3,13 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from src.domain.entities.care_schedule import CareSchedule, CareType
-from src.domain.entities.health_identification_sample import (
-    HealthIdentificationSample,
-    HealthSampleStatus,
-)
 from src.domain.entities.health_record import HealthRecord, HealthSeverity
-from src.domain.entities.plant_identification_sample import (
-    PlantIdentificationSample,
-    SampleStatus,
-)
+from src.domain.entities.identification import Identification
 from src.domain.entities.plant_species import EnrichmentStatus, PlantSpecies
+from src.domain.entities.training import (
+    TrainingHealthSample,
+    TrainingIdentificationSample,
+)
 from src.domain.entities.user import User
 from src.domain.entities.user_plant import (
     IdentificationSource,
@@ -22,13 +19,21 @@ from src.domain.entities.user_plant import (
 from src.domain.value_objects.care_interval import CareInterval
 from src.domain.value_objects.ids import (
     HealthRecordId,
-    HealthSampleId,
-    IdentificationSampleId,
+    IdentificationId,
     PlantSpeciesId,
+    TrainingHealthSampleId,
+    TrainingIdentificationSampleId,
     UserId,
     UserPlantId,
 )
+from src.domain.value_objects.provider_signals import (
+    DiseaseSuggestion,
+    HealthSignals,
+    IdentificationSignals,
+    SpeciesSuggestion,
+)
 from src.domain.value_objects.subscription_tier import SubscriptionTier
+from src.domain.value_objects.training_location import TrainingLocation
 from src.domain.value_objects.user_location import UserLocation
 
 NOW = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)
@@ -40,7 +45,6 @@ def make_user(
     hashed_password: str = "hashed",
     is_verified: bool = True,
     tokens_used_today: int = 0,
-    garden_count: int = 0,
     subscription: SubscriptionTier = SubscriptionTier.FREE,
     subscription_expires_at: datetime | None = None,
 ) -> User:
@@ -53,7 +57,6 @@ def make_user(
         subscription=subscription,
         created_at=NOW,
         tokens_used_today=tokens_used_today,
-        garden_count=garden_count,
         subscription_expires_at=subscription_expires_at,
     )
 
@@ -73,6 +76,7 @@ def make_user_plant(
     user_id: UserId | None = None,
     scientific_name: str = "Monstera deliciosa",
     care_schedule: CareSchedule | None = None,
+    identification_id: IdentificationId | None = None,
 ) -> UserPlant:
     return UserPlant(
         id=plant_id or UserPlantId(uuid4()),
@@ -82,6 +86,7 @@ def make_user_plant(
         identification_source=IdentificationSource.CONSENSUS,
         status=IdentificationStatus.IDENTIFIED,
         care_schedule=care_schedule or make_care_schedule(),
+        identification_id=identification_id or IdentificationId(uuid4()),
         added_at=NOW,
     )
 
@@ -96,28 +101,88 @@ def make_species(scientific_name: str = "Monstera deliciosa") -> PlantSpecies:
     )
 
 
-def make_identification_sample(
-    user_id: UserId | None = None,
-    status: SampleStatus = SampleStatus.PENDING,
-) -> PlantIdentificationSample:
-    return PlantIdentificationSample(
-        id=IdentificationSampleId(uuid4()),
-        scientific_name="Monstera deliciosa",
-        species_id=PlantSpeciesId(uuid4()),
-        user_image_key="identifications/monstera.jpg",
-        identification_confidence=0.9,
-        identification_source="consensus",
-        raw_response={},
-        status=status,
+MONTH = NOW.date().replace(day=1)
+LOCATION = TrainingLocation(country="BR", state="Sp", grid_latitude=-23.5, grid_longitude=-46.6)
+
+
+def make_identification_signals() -> tuple[IdentificationSignals, ...]:
+    return (
+        IdentificationSignals(
+            provider="kindwise",
+            suggestions=(
+                SpeciesSuggestion("Monstera deliciosa", 0.9, family="Araceae", genus="Monstera"),
+                SpeciesSuggestion("Monstera adansonii", 0.05, family="Araceae", genus="Monstera"),
+            ),
+            is_plant_probability=0.99,
+            model_version="plant_id:5.0",
+        ),
+        IdentificationSignals(
+            provider="plantnet",
+            suggestions=(SpeciesSuggestion("Monstera deliciosa", 0.86, gbif_id="2868241"),),
+            model_version="2025-01-17 (7.3)",
+        ),
+    )
+
+
+def make_training_identification_sample(scientific_name: str = "Monstera deliciosa") -> TrainingIdentificationSample:
+    return TrainingIdentificationSample(
+        id=TrainingIdentificationSampleId(uuid4()),
+        image_key="training/identifications/monstera.jpg",
+        scientific_name=scientific_name,
+        confidence=0.9,
+        source="consensus",
+        low_confidence=False,
+        signals=make_identification_signals(),
+        period=MONTH,
+        location=LOCATION,
+        family="Araceae",
+        genus="Monstera",
+    )
+
+
+def make_identification(
+    user_id: UserId,
+    training_sample_id: TrainingIdentificationSampleId,
+    species_id: PlantSpeciesId,
+    scientific_name: str = "Monstera deliciosa",
+) -> Identification:
+    return Identification(
+        id=IdentificationId(uuid4()),
+        user_id=user_id,
+        training_sample_id=training_sample_id,
+        species_id=species_id,
+        scientific_name=scientific_name,
+        confidence=0.9,
+        source="consensus",
+        image_key="identifications/monstera.jpg",
         created_at=NOW,
-        user_id=user_id or UserId(uuid4()),
-        confirmed_at=NOW if status == SampleStatus.CONFIRMED else None,
+    )
+
+
+def make_training_health_sample() -> TrainingHealthSample:
+    return TrainingHealthSample(
+        id=TrainingHealthSampleId(uuid4()),
+        image_key="training/identifications/health.jpg",
+        scientific_name="Monstera deliciosa",
+        vitality_score=0.4,
+        severity=HealthSeverity.MODERATE,
+        source="kindwise",
+        signals=HealthSignals(
+            provider="kindwise",
+            is_healthy_probability=0.4,
+            diseases=(DiseaseSuggestion("leaf_spots", 0.7),),
+            is_plant_probability=0.98,
+        ),
+        period=MONTH,
+        location=LOCATION,
+        issues_detected=("leaf_spots",),
     )
 
 
 def make_health_record(
     user_id: UserId | None = None,
     user_plant_id: UserPlantId | None = None,
+    training_sample_id: TrainingHealthSampleId | None = None,
 ) -> HealthRecord:
     return HealthRecord(
         id=HealthRecordId(uuid4()),
@@ -127,29 +192,11 @@ def make_health_record(
         severity=HealthSeverity.MODERATE,
         source="kindwise",
         image_key="health/monstera.jpg",
+        training_sample_id=training_sample_id or TrainingHealthSampleId(uuid4()),
         diagnosed_at=NOW,
         user_id=user_id or UserId(uuid4()),
         issues_detected=("leaf_spots",),
         treatment_plan=("Remover folhas afetadas",),
-    )
-
-
-def make_health_sample(record: HealthRecord | None = None) -> HealthIdentificationSample:
-    record = record or make_health_record()
-    return HealthIdentificationSample(
-        id=HealthSampleId(uuid4()),
-        health_record_id=record.id,
-        scientific_name=record.scientific_name,
-        user_image_key=record.image_key,
-        vitality_score=record.vitality_score,
-        issues_detected=record.issues_detected,
-        treatment_plan=record.treatment_plan,
-        identification_source=record.source,
-        raw_response={},
-        status=HealthSampleStatus.CONFIRMED,
-        created_at=NOW,
-        user_id=record.user_id,
-        confirmed_at=NOW,
     )
 
 

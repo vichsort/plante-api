@@ -1,7 +1,12 @@
 from src.adapters.persistence.mappers.sources import to_health_source
 from src.adapters.persistence.models.health_record_model import HealthRecordModel
 from src.domain.entities.health_record import HealthRecord
-from src.domain.value_objects.ids import HealthRecordId, UserId, UserPlantId
+from src.domain.value_objects.ids import (
+    HealthRecordId,
+    TrainingHealthSampleId,
+    UserId,
+    UserPlantId,
+)
 
 
 class HealthRecordMapper:
@@ -17,6 +22,7 @@ class HealthRecordMapper:
             severity=model.severity,
             source=to_health_source(model.source),
             image_key=model.image_key or "",
+            training_sample_id=TrainingHealthSampleId(model.training_sample_id),
             issues_detected=tuple(model.issues_detected or []),
             treatment_plan=tuple(model.treatment_plan or []),
             recovery_estimate_days=model.recovery_estimate_days,
@@ -35,6 +41,7 @@ class HealthRecordMapper:
             severity=domain.severity,
             source=domain.source,
             image_key=domain.image_key,
+            training_sample_id=domain.training_sample_id,
             issues_detected=list(domain.issues_detected),
             treatment_plan=list(domain.treatment_plan),
             recovery_estimate_days=domain.recovery_estimate_days,

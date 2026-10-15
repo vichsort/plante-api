@@ -3,7 +3,6 @@ from dependency_injector import containers, providers
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.email_sender import IEmailSender
 from src.domain.ports.health_analyzer import IHealthAnalyzer
-from src.domain.ports.health_raw_response_repository import IHealthRawResponseRepository
 from src.domain.ports.image_sanitizer import IImageSanitizer
 from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.otp_repository import IOtpRepository
@@ -17,18 +16,16 @@ from src.domain.use_cases.add_plant_to_garden_use_case import AddPlantToGardenUs
 from src.domain.use_cases.break_streak_cron_use_case import BreakStreakCronUseCase
 from src.domain.use_cases.change_email_use_case import ChangeEmailUseCase
 from src.domain.use_cases.change_password_use_case import ChangePasswordUseCase
-from src.domain.use_cases.confirm_health_diagnosis_use_case import (
-    ConfirmHealthDiagnosisUseCase,
-)
-from src.domain.use_cases.confirm_plant_identification_use_case import (
-    ConfirmPlantIdentificationUseCase,
-)
 from src.domain.use_cases.delete_user_plant_use_case import DeleteUserPlantUseCase
 from src.domain.use_cases.diagnose_health_use_case import DiagnoseHealthUseCase
 from src.domain.use_cases.enrich_plant_species_use_case import EnrichPlantSpeciesUseCase
 from src.domain.use_cases.get_health_history_use_case import GetHealthHistoryUseCase
 from src.domain.use_cases.get_plant_details_use_case import GetPlantDetailsUseCase
 from src.domain.use_cases.get_user_garden_use_case import GetUserGardenUseCase
+from src.domain.use_cases.give_health_feedback_use_case import GiveHealthFeedbackUseCase
+from src.domain.use_cases.give_identification_feedback_use_case import (
+    GiveIdentificationFeedbackUseCase,
+)
 from src.domain.use_cases.identify_plant_use_case import IdentifyPlantUseCase
 from src.domain.use_cases.list_user_achievements_use_case import (
     ListUserAchievementsUseCase,
@@ -54,7 +51,6 @@ class UseCasesContainer(containers.DeclarativeContainer):
     unit_of_work: providers.Dependency[IUnitOfWork] = providers.Dependency()
     token_repository: providers.Dependency[ITokenRepository] = providers.Dependency()
     otp_repository: providers.Dependency[IOtpRepository] = providers.Dependency()
-    health_raw_response_repository: providers.Dependency[IHealthRawResponseRepository] = providers.Dependency()
 
     password_hasher: providers.Dependency[IPasswordHasher] = providers.Dependency()
     email_sender: providers.Dependency[IEmailSender] = providers.Dependency()
@@ -131,18 +127,14 @@ class UseCasesContainer(containers.DeclarativeContainer):
         publisher=domain_publisher,
     )
 
-    confirm_plant_identification = providers.Factory(
-        ConfirmPlantIdentificationUseCase,
+    give_identification_feedback_use_case = providers.Factory(
+        GiveIdentificationFeedbackUseCase,
         uow=unit_of_work,
-        publisher=domain_publisher,
     )
 
-    confirm_health_diagnosis = providers.Factory(
-        ConfirmHealthDiagnosisUseCase,
+    give_health_feedback_use_case = providers.Factory(
+        GiveHealthFeedbackUseCase,
         uow=unit_of_work,
-        health_raw_repo=health_raw_response_repository,
-        storage=image_storage,
-        publisher=domain_publisher,
     )
 
     delete_user_plant_use_case = providers.Factory(
@@ -199,7 +191,6 @@ class UseCasesContainer(containers.DeclarativeContainer):
         health_analyzer=health_analyzer,
         plant_enricher=plant_enricher,
         storage=image_storage,
-        health_raw_repo=health_raw_response_repository,
     )
 
     get_health_history_use_case = providers.Factory(

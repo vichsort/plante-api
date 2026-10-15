@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 import pytest
 
@@ -11,6 +12,7 @@ from src.domain.entities.user_plant import (
 )
 from src.domain.exceptions import PlantNotReadyForWateringError
 from src.domain.value_objects.care_interval import CareInterval
+from src.domain.value_objects.ids import IdentificationId
 from src.domain.value_objects.streak import Streak
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
@@ -58,6 +60,7 @@ def test_user_plant_watering_streak():
         status=IdentificationStatus.IDENTIFIED,
         added_at=now - timedelta(days=10),
         care_schedule=care,
+        identification_id=IdentificationId(uuid4()),
         watering_streak=Streak(current_count=1, last_action_time=now - timedelta(days=1)),
     )
 
@@ -89,6 +92,7 @@ def test_user_plant_water_too_early_raises():
         status=IdentificationStatus.IDENTIFIED,
         added_at=now,
         care_schedule=care,
+        identification_id=IdentificationId(uuid4()),
     )
 
     with pytest.raises(PlantNotReadyForWateringError):

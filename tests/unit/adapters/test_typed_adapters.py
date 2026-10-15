@@ -1,58 +1,13 @@
-import json
-from uuid import uuid4
 
 import httpx
 import pytest
 
-from src.adapters.cache.redis_health_raw_response_repository import (
-    RedisHealthRawResponseRepository,
-)
 from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
 from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
 from src.domain.exceptions import ExternalServiceError, GeocodingError
-from src.domain.ports.health_raw_response_repository import PendingHealthAssessment
 from src.domain.ports.weather_service import WeatherSeverity
 from src.domain.value_objects.geo_coordinates import GeoCoordinates
-from src.domain.value_objects.ids import HealthRecordId
 from src.domain.value_objects.user_location import UserLocation
-
-
-class _MemoryRedis:
-    def __init__(self) -> None:
-        self.values: dict[str, bytes] = {}
-
-    async def get(self, key: str) -> bytes | None:
-        return self.values.get(key)
-
-    async def set(self, key: str, value: str | bytes, ttl_seconds: int) -> None:
-        self.values[key] = value.encode() if isinstance(value, str) else value
-
-    async def delete(self, key: str) -> None:
-        self.values.pop(key, None)
-
-
-@pytest.mark.asyncio
-async def test_pending_health_assessment_round_trip():
-    redis = _MemoryRedis()
-    repo = RedisHealthRawResponseRepository(redis)
-    record_id = HealthRecordId(uuid4())
-    assessment = PendingHealthAssessment(raw_response={"result": {"is_plant": True}}, similar_images_urls=("u1",))
-
-    await repo.save(record_id, assessment)
-    assert await repo.get(record_id) == assessment
-
-    await repo.delete(record_id)
-    assert await repo.get(record_id) is None
-
-
-@pytest.mark.asyncio
-async def test_pending_health_assessment_in_unknown_format_counts_as_expired():
-    redis = _MemoryRedis()
-    repo = RedisHealthRawResponseRepository(redis)
-    record_id = HealthRecordId(uuid4())
-    redis.values[f"health_raw:{record_id}"] = json.dumps({"result": {}}).encode()  # formato antigo: só o raw
-
-    assert await repo.get(record_id) is None
 
 
 def _client(body: object) -> httpx.AsyncClient:

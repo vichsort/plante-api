@@ -1,17 +1,16 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.domain.entities.user_plant import UserPlant
 
 
 class AddPlantToGardenRequest(BaseModel):
-    user_plant_id: UUID
-    sample_id: UUID
+    """Adiciona ao jardim a planta de uma identificação (`POST /identify` devolve o ID)."""
+    identification_id: UUID
+    nickname: str | None = Field(default=None, min_length=1, max_length=100)
 
-class DeleteUserPlantRequest(BaseModel):
-    sample_id: UUID
 
 class WaterPlantResponse(BaseModel):
     user_plant_id: UUID

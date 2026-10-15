@@ -24,8 +24,7 @@ class ConsensusIdentifier(IPlantIdentifier):
     - `NotAPlantError` do Kindwise veta o PlantNet; outras falhas de um provedor deixam o outro decidir.
     - `similar_images` vêm do provedor cujos dados venceram (`ConsensusResult.provider`;
       Kindwise no acordo exato), cada uma com o próprio `ImageSource`.
-    - `raw_response` guarda as duas respostas: `{"kindwise": ..., "plantnet": ...}`
-      (`None` para o provedor que falhou).
+    - `signals` junta o que cada provedor que respondeu disse (o que falhou fica de fora).
     """
 
     def __init__(
@@ -86,10 +85,12 @@ class ConsensusIdentifier(IPlantIdentifier):
             common_names=consensus.common_names,
             similar_images=winner.similar_images,
             low_confidence=consensus.low_confidence,
-            raw_response={
-                "kindwise": kindwise_result.raw_response if kindwise_result else None,
-                "plantnet": plantnet_result.raw_response if plantnet_result else None,
-            },
+            signals=tuple(
+                signal
+                for result in (kindwise_result, plantnet_result)
+                if result is not None
+                for signal in result.signals
+            ),
         )
 
     async def _call_with_timeout(

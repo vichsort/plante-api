@@ -4,8 +4,9 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
+from src.domain.entities.training import FeedbackVerdict
 from src.domain.use_cases.diagnose_health_use_case import DiagnoseHealthOutput
-from tests.factories import make_health_record, make_health_sample
+from tests.factories import make_health_record
 
 
 def test_diagnose_health_route_success(client: TestClient, auth_headers: dict[str, str]):
@@ -35,25 +36,21 @@ def test_diagnose_health_route_success(client: TestClient, auth_headers: dict[st
     assert payload["data"]["health_record_id"] == health_record_id
     assert payload["data"]["severity"] == "moderate"
 
-def test_confirm_health_diagnosis_route_success(client: TestClient, auth_headers: dict[str, str]):
-    sample = make_health_sample()
-    health_record_id = str(sample.health_record_id)
-
+def test_health_feedback_route(client: TestClient, auth_headers: dict[str, str]):
+    health_record_id = uuid.uuid4()
     mock_use_case = AsyncMock()
-    mock_use_case.execute.return_value = sample
 
-    with client.app.state.container.use_cases.confirm_health_diagnosis.override(mock_use_case):
+    with client.app.state.container.use_cases.give_health_feedback_use_case.override(mock_use_case):
         response = client.post(
-            "/diagnose/confirm",
-            json={"health_record_id": health_record_id},
+            f"/diagnose/{health_record_id}/feedback",
+            json={"verdict": "correct"},
             headers=auth_headers,
         )
 
     assert response.status_code == 200
-    payload = response.json()
-    assert payload["ok"] is True
-    assert payload["data"]["health_record_id"] == health_record_id
-    assert payload["data"]["status"] == "confirmed"
+    dto = mock_use_case.execute.call_args.args[0]
+    assert dto.health_record_id == health_record_id
+    assert dto.verdict == FeedbackVerdict.CORRECT
 
 def test_health_history_route_success(client: TestClient, auth_headers: dict[str, str]):
     user_plant_id = str(uuid.uuid4())

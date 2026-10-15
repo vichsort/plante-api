@@ -2,21 +2,15 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from src.domain.entities.care_schedule import CareSchedule, CareType
-from src.domain.entities.plant_identification_sample import PlantIdentificationSample
+from src.domain.entities.identification import Identification
 from src.domain.entities.plant_reference_image import PlantReferenceImage
 from src.domain.entities.plant_species import PlantSpecies
-from src.domain.entities.user_plant import (
-    IdentificationSource,
-    IdentificationStatus,
-    UserPlant,
-)
+from src.domain.entities.training import TrainingIdentificationSample
 from src.domain.events.domain_events import PlantIdentifiedEvent
 from src.domain.exceptions import (
     ExternalServiceError,
     InvalidImageError,
     LowConfidenceError,
-    PlantLimitExceededError,
     SubscriptionRequiredError,
     UserNotFoundError,
 )
@@ -26,15 +20,9 @@ from src.domain.ports.image_sanitizer import IImageSanitizer
 from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.plant_identifier import IPlantIdentifier
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.care_interval import CareInterval
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.ids import (
-    IdentificationSampleId,
-    ReferenceImageId,
-    UserId,
-    UserPlantId,
-)
-from src.domain.value_objects.sources import IdentificationOrigin
+from src.domain.value_objects.ids import IdentificationId, ReferenceImageId, UserId
+from src.domain.value_objects.training_location import TrainingLocation, month_of
 
 
 @dataclass(frozen=True)
@@ -47,29 +35,27 @@ class IdentifyPlantInputDTO:
 
 @dataclass(frozen=True)
 class IdentifyPlantOutput:
-    user_plant_id: UserPlantId
-    sample_id: IdentificationSampleId
+    identification_id: IdentificationId
     scientific_name: str
     confidence: ConfidenceScore
     image_url: str
     needs_human_review: bool
 
 
-# Origem da identificação -> como a planta registra quem a identificou
-_IDENTIFICATION_SOURCE: dict[IdentificationOrigin, IdentificationSource] = {
-    "kindwise": IdentificationSource.KINDWISE,
-    "plantnet": IdentificationSource.PLANTNET,
-    "consensus": IdentificationSource.CONSENSUS,
-    "consensus_partial": IdentificationSource.CONSENSUS,
-}
-
-
 class IdentifyPlantUseCase:
+    """
+    Identifica a foto e grava duas coisas sem ligação de volta entre elas:
+    - a **identificação** (histórico do usuário, dado pessoal), que guarda o vínculo de mão única
+      para a amostra de treino;
+    - a **amostra de treino** (anônima): cópia própria da foto, rótulo, sinais dos provedores,
+      mês e localização aproximada.
+    Não cria planta no jardim: isso é uma ação separada (`AddPlantToGardenUseCase`).
+    """
+
     raises = (
         ExternalServiceError,
         InvalidImageError,
         LowConfidenceError,
-        PlantLimitExceededError,
         SubscriptionRequiredError,
         UserNotFoundError,
     )
@@ -115,6 +101,10 @@ class IdentifyPlantUseCase:
             confidence_value=result.confidence.value,
             user_id=dto.user_id,
         )
+        training_image_key = await self.storage.upload_training_image(
+            image_bytes=image_bytes,
+            scientific_name=result.scientific_name,
+        )
 
         rehosted = [
             (await self.storage.download_and_rehost(
@@ -151,33 +141,31 @@ class IdentifyPlantUseCase:
                     gbif_id=result.gbif_id,
                 ))
 
-            care_schedule = CareSchedule(
-                care_type=CareType.WATER,
-                interval=CareInterval(days=7),
-                is_active=True,
-                created_at=now,
+            training_sample = TrainingIdentificationSample(
+                id=TrainingIdentificationSample.new_id(),
+                image_key=training_image_key,
+                scientific_name=result.scientific_name,
+                confidence=result.confidence.value,
+                source=result.source,
+                low_confidence=result.low_confidence,
+                signals=result.signals,
+                period=month_of(now),
+                location=TrainingLocation.coarse(user.location, dto.latitude, dto.longitude),
+                family=result.family,
+                genus=result.genus,
+                gbif_id=result.gbif_id,
+                provider_entity_id=result.provider_entity_id,
             )
+            await uow.training.add_identification_sample(training_sample)
 
-            user_plant = await uow.user_plants.save(UserPlant(
-                id=UserPlantId(uuid4()),
+            identification = await uow.identifications.save(Identification.create(
                 user_id=user.id,
-                scientific_name=result.scientific_name,
-                identification_confidence=result.confidence.value,
-                identification_source=_IDENTIFICATION_SOURCE[result.source],
-                status=IdentificationStatus.IDENTIFIED,
-                care_schedule=care_schedule,
-                primary_image_url=user_image_key,
-                added_at=now,
-            ))
-
-            sample = await uow.identification_samples.save(PlantIdentificationSample.create(
-                scientific_name=result.scientific_name,
+                training_sample_id=training_sample.id,
                 species_id=species.id,
-                user_image_key=user_image_key,
-                identification_confidence=result.confidence.value,
-                identification_source=result.source,
-                raw_response=result.raw_response,
-                user_id=user.id,
+                scientific_name=result.scientific_name,
+                confidence=result.confidence.value,
+                source=result.source,
+                image_key=user_image_key,
                 created_at=now,
             ))
 
@@ -192,8 +180,7 @@ class IdentifyPlantUseCase:
         ))
 
         return IdentifyPlantOutput(
-            user_plant_id=user_plant.id,
-            sample_id=sample.id,
+            identification_id=identification.id,
             scientific_name=species.scientific_name,
             confidence=result.confidence,
             image_url=user_image_key,

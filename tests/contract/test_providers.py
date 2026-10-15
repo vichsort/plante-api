@@ -61,7 +61,9 @@ async def test_kindwise_identifies_plant(kindwise: KindwiseAdapter, monstera: by
     result = await kindwise.identify(monstera)
     assert result.scientific_name == "Monstera deliciosa"
     assert result.similar_images
-    assert result.raw_response["result"]["is_plant"]["binary"] is True
+    (signals,) = result.signals
+    assert signals.is_plant_probability is not None and signals.is_plant_probability > 0.5
+    assert signals.suggestions[0].scientific_name == "Monstera deliciosa"
 
 
 async def test_kindwise_rejects_non_plant(kindwise: KindwiseAdapter, cat: bytes) -> None:

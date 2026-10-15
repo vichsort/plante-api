@@ -27,7 +27,6 @@ class User:
     subscription: SubscriptionTier
     created_at: datetime | None = None
     tokens_used_today: int = 0
-    garden_count: int = 0
     fcm_token: str | None = None
     fcm_token_updated_at: datetime | None = None
     subscription_expires_at: datetime | None = None
@@ -40,8 +39,6 @@ class User:
 
         if self.tokens_used_today < 0:
             raise ValueError("tokens_used_today cannot be negative.")
-        if self.garden_count < 0:
-            raise ValueError("garden_count cannot be negative.")
         if self.subscription == SubscriptionTier.PRO and self.subscription_expires_at is None:
             raise ValueError("PRO subscription requires an expiration date.")
 
@@ -66,14 +63,6 @@ class User:
 
     def verify_email(self) -> None:
         self.is_verified = True
-
-    def add_plant_to_garden(self) -> None:
-        self.garden_count += 1
-
-    def remove_plant_from_garden(self) -> None:
-        if self.garden_count <= 0:
-            raise ValueError("Cannot remove plant: garden is already empty.")
-        self.garden_count -= 1
 
     def consume_identify_token(self) -> None:
         """1 token por identificação simples."""

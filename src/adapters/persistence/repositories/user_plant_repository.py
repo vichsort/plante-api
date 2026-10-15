@@ -9,7 +9,7 @@ from src.adapters.persistence.models.plant_species_model import PlantSpeciesMode
 from src.adapters.persistence.models.user_plant_model import UserPlantModel
 from src.domain.entities.user_plant import UserPlant
 from src.domain.ports.user_plant_repository import IUserPlantRepository, PlantDetails
-from src.domain.value_objects.ids import UserId, UserPlantId
+from src.domain.value_objects.ids import IdentificationId, UserId, UserPlantId
 
 
 class UserPlantRepository(IUserPlantRepository):
@@ -58,6 +58,16 @@ class UserPlantRepository(IUserPlantRepository):
             await self._session.flush()
             return True
         return False
+
+    async def get_by_identification(self, identification_id: IdentificationId, user_id: UserId) -> UserPlant | None:
+        stmt = (
+            select(UserPlantModel)
+            .where(UserPlantModel.identification_id == identification_id)
+            .where(UserPlantModel.user_id == user_id)
+            .where(UserPlantModel.deleted_at.is_(None))
+        )
+        model = (await self._session.execute(stmt)).scalar_one_or_none()
+        return UserPlantMapper.to_domain(model) if model else None
 
     async def count_by_user(self, user_id: UserId) -> int:
         stmt = (

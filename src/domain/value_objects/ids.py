@@ -11,8 +11,12 @@ from uuid import UUID
 UserId = NewType("UserId", UUID)
 UserPlantId = NewType("UserPlantId", UUID)
 PlantSpeciesId = NewType("PlantSpeciesId", UUID)
-IdentificationSampleId = NewType("IdentificationSampleId", UUID)
+IdentificationId = NewType("IdentificationId", UUID)
 HealthRecordId = NewType("HealthRecordId", UUID)
-HealthSampleId = NewType("HealthSampleId", UUID)
 ReferenceImageId = NewType("ReferenceImageId", UUID)
 AchievementId = NewType("AchievementId", UUID)
+
+# Dados de treino: anônimos, sem ligação de volta com o usuário
+TrainingIdentificationSampleId = NewType("TrainingIdentificationSampleId", UUID)
+TrainingHealthSampleId = NewType("TrainingHealthSampleId", UUID)
+TrainingFeedbackId = NewType("TrainingFeedbackId", UUID)

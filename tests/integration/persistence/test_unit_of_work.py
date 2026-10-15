@@ -15,7 +15,13 @@ from src.domain.use_cases.register_user_use_case import (
     RegisterUserInputDTO,
     RegisterUserUseCase,
 )
-from tests.factories import make_user, make_user_plant
+from tests.factories import (
+    make_identification,
+    make_species,
+    make_training_identification_sample,
+    make_user,
+    make_user_plant,
+)
 
 
 async def _user_exists(session_factory: async_sessionmaker[AsyncSession], email: str) -> bool:
@@ -49,9 +55,16 @@ async def test_exception_discards_changes(session_factory: async_sessionmaker[As
 
 async def test_repositories_share_one_transaction(session_factory: async_sessionmaker[AsyncSession]) -> None:
     async with SqlAlchemyUnitOfWork(session_factory) as uow:
+        # A cadeia de FKs (usuário → identificação → planta, espécie, amostra de treino) só é
+        # satisfeita se todos os repositórios usam a mesma transação
         user = await uow.users.save(make_user(email="shared@plante.org"))
-        # A FK user_plants.user_id só é satisfeita se os dois repositórios usam a mesma transação
-        plant = await uow.user_plants.save(make_user_plant(user_id=user.id))
+        species = await uow.species.save(make_species("Pilea peperomioides"))
+        training = make_training_identification_sample("Pilea peperomioides")
+        await uow.training.add_identification_sample(training)
+        identification = await uow.identifications.save(make_identification(
+            user_id=user.id, training_sample_id=training.id, species_id=species.id, scientific_name="Pilea peperomioides",
+        ))
+        plant = await uow.user_plants.save(make_user_plant(user_id=user.id, identification_id=identification.id))
         await uow.commit()
 
     async with SqlAlchemyUnitOfWork(session_factory) as uow:

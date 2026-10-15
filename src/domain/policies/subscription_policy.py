@@ -14,14 +14,9 @@ class SubscriptionPolicy:
     @staticmethod
     def enforce_can_identify_plant(user: User) -> None:
         """
-        Garante que o usuário pode identificar e adicionar uma nova planta.
-        Avalia tanto o limite do jardim quanto o saldo de tokens diários.
+        Garante saldo de tokens para uma identificação. O limite do jardim não entra aqui:
+        identificar não adiciona planta ao jardim.
         """
-        # Verifica limite de plantas no jardim (apenas Free tem limite)
-        if not user.subscription.can_add_plant(user.garden_count):
-            raise PlantLimitExceededError(limit=user.subscription.max_plants)
-
-        # Verifica se tem tokens suficientes para a identificação
         if not user.subscription.can_consume(FeatureCost.IDENTIFY, user.tokens_used_today):
             raise SubscriptionRequiredError(feature="Mais identificações diárias")
 
@@ -34,12 +29,12 @@ class SubscriptionPolicy:
             raise SubscriptionRequiredError(feature="Análise Profunda com IA")
 
     @staticmethod
-    def enforce_can_add_to_garden(user: User) -> None:
+    def enforce_can_add_to_garden(user: User, plants_in_garden: int) -> None:
         """
-        Garante que o usuário pode adicionar uma planta ao jardim.
-        Tokens não são verificados aqui — já foram consumidos na identificação.
+        Garante que o usuário pode adicionar uma planta ao jardim (`plants_in_garden` = plantas
+        ativas hoje). Tokens não são verificados aqui — já foram consumidos na identificação.
         """
-        if not user.subscription.can_add_plant(user.garden_count):
+        if not user.subscription.can_add_plant(plants_in_garden):
             raise PlantLimitExceededError(limit=user.subscription.max_plants)
 
     @staticmethod

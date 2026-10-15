@@ -26,7 +26,6 @@ class Container(containers.DeclarativeContainer):
         unit_of_work=infra.unit_of_work,
         token_repository=adapters.token_repository,
         otp_repository=adapters.otp_repository,
-        health_raw_response_repository=adapters.health_raw_response_repository,
         password_hasher=adapters.password_hasher,
         email_sender=adapters.email_sender,
         domain_publisher=adapters.domain_publisher,

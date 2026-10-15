@@ -4,7 +4,7 @@ from src.domain.entities.user_plant import (
     UserPlant,
 )
 from src.domain.value_objects.care_interval import CareInterval
-from src.domain.value_objects.ids import UserId, UserPlantId
+from src.domain.value_objects.ids import IdentificationId, UserId, UserPlantId
 from src.domain.value_objects.streak import Streak
 
 
@@ -23,6 +23,7 @@ class UserPlantMapper:
         return UserPlant(
             id=UserPlantId(model.id),
             user_id=UserId(model.user_id),
+            identification_id=IdentificationId(model.identification_id),
             scientific_name=model.scientific_name,
             identification_confidence=model.identification_confidence,
             identification_source=model.identification_source,
@@ -44,6 +45,7 @@ class UserPlantMapper:
         return UserPlantModel(
             id=entity.id,
             user_id=entity.user_id,
+            identification_id=entity.identification_id,
             scientific_name=entity.scientific_name,
             identification_confidence=entity.identification_confidence,
             identification_source=entity.identification_source,
