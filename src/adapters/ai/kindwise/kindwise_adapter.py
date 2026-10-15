@@ -18,6 +18,10 @@ from src.domain.value_objects.confidence_score import ConfidenceScore
 
 _BASE_URL = "https://plant.id/api/v3/"
 _DETAILS = "common_names,taxonomy,gbif_id,image,edible_parts,watering"
+# Kindwise responde 400 tanto para imagem inválida ("Invalid image data") quanto para payload
+# malformado ("Images have to be list of base64 strings"); só o primeiro é erro do usuário.
+# Verificado contra a API real em 2026-10-14 (identification e health_assessment).
+_INVALID_IMAGE_MARKER = "Invalid image"
 
 class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
     _headers: dict[str, str]
@@ -43,7 +47,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             "details": _DETAILS,
             "language": "pt",
         }
-        async with translate_provider_errors("Kindwise"), httpx.AsyncClient() as client:
+        async with translate_provider_errors("Kindwise", invalid_image_marker=_INVALID_IMAGE_MARKER), httpx.AsyncClient() as client:
             r = await client.post(
                 f"{_BASE_URL}identification",
                 headers=self._headers,
@@ -55,6 +59,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             return self._parse_identification(data)
 
     def _parse_identification(self, data: dict) -> IdentificationResult:
+        _reject_non_plant(data)
         suggestions = (
             data.get("result", {})
             .get("classification", {})
@@ -97,7 +102,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             "images": [image_b64],
             "similar_images": True,
         }
-        async with translate_provider_errors("Kindwise"), httpx.AsyncClient() as client:
+        async with translate_provider_errors("Kindwise", invalid_image_marker=_INVALID_IMAGE_MARKER), httpx.AsyncClient() as client:
             r = await client.post(
                 f"{_BASE_URL}health_assessment",
                 headers=self._headers,
@@ -108,6 +113,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             return self._parse_health(data)
 
     def _parse_health(self, data: dict) -> HealthAssessmentResult:
+        _reject_non_plant(data)
         result = data.get("result", {})
         is_healthy_block = result.get("is_healthy", {})
 
@@ -130,3 +136,11 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             diseases=diseases,
             raw_response=data,
         )
+
+def _reject_non_plant(data: dict) -> None:
+    """
+    Foto que não é planta volta 201 com sugestões de baixa confiança e `is_plant.binary == false`.
+    Só rejeita com `false` explícito: campo ausente ou em outro formato segue o fluxo normal.
+    """
+    if (data.get("result") or {}).get("is_plant", {}).get("binary") is False:
+        raise InvalidImageError()

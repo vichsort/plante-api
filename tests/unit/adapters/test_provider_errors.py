@@ -71,8 +71,9 @@ async def test_non_http_errors_pass_through():
     assert isinstance(error, ValueError)
 
 
-def _patch_transport(monkeypatch, module, status: int) -> None:
-    transport = httpx.MockTransport(lambda request: httpx.Response(status, json={}))
+def _patch_transport(monkeypatch, module, status: int, **response_kwargs) -> None:
+    response_kwargs = response_kwargs or {"json": {}}
+    transport = httpx.MockTransport(lambda request: httpx.Response(status, **response_kwargs))
     monkeypatch.setattr(module.httpx, "AsyncClient", lambda: _RealAsyncClient(transport=transport))
 
 
@@ -80,7 +81,7 @@ def _patch_transport(monkeypatch, module, status: int) -> None:
 async def test_kindwise_adapter_translates_provider_errors(monkeypatch):
     adapter = KindwiseAdapter(api_key="test")
 
-    _patch_transport(monkeypatch, kindwise_adapter, 400)
+    _patch_transport(monkeypatch, kindwise_adapter, 400, text="Invalid image data")
     with pytest.raises(InvalidImageError):
         await adapter.identify(b"img")
 
@@ -88,6 +89,47 @@ async def test_kindwise_adapter_translates_provider_errors(monkeypatch):
     with pytest.raises(ExternalServiceError) as raised:
         await adapter.assess_health(b"img")
     assert raised.value.retryable is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", ["identify", "assess_health"])
+async def test_kindwise_malformed_request_is_not_invalid_image(monkeypatch, method):
+    # Kindwise também responde 400 para payload nosso malformado
+    _patch_transport(monkeypatch, kindwise_adapter, 400, text="Images have to be list of base64 strings")
+    with capture_logs() as logs, pytest.raises(ExternalServiceError) as raised:
+        await getattr(KindwiseAdapter(api_key="test"), method)(b"img")
+    assert raised.value.retryable is False
+    assert any(e["event"] == "provider.request_rejected" and e["log_level"] == "error" for e in logs)
+
+
+def _kindwise_body(is_plant: dict | None) -> dict:
+    # Formato observado na API real (gato: probability 0.09, binary false)
+    result: dict = {
+        "classification": {"suggestions": [{"name": "Magnolia kobus", "probability": 0.06, "details": {}}]},
+        "disease": {"suggestions": []},
+        "is_healthy": {"binary": False, "probability": 0.05, "threshold": 0.5},
+    }
+    if is_plant is not None:
+        result["is_plant"] = is_plant
+    return {"status": "COMPLETED", "result": result}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", ["identify", "assess_health"])
+async def test_kindwise_non_plant_is_invalid_image(monkeypatch, method):
+    body = _kindwise_body({"probability": 0.09, "threshold": 0.5, "binary": False})
+    _patch_transport(monkeypatch, kindwise_adapter, 201, json=body)
+    with pytest.raises(InvalidImageError):
+        await getattr(KindwiseAdapter(api_key="test"), method)(b"img")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("is_plant", [{"probability": 0.82, "threshold": 0.5, "binary": True}, None])
+async def test_kindwise_plant_or_missing_is_plant_is_parsed(monkeypatch, is_plant):
+    _patch_transport(monkeypatch, kindwise_adapter, 201, json=_kindwise_body(is_plant))
+    adapter = KindwiseAdapter(api_key="test")
+    assert (await adapter.identify(b"img")).scientific_name == "Magnolia kobus"
+    assert (await adapter.assess_health(b"img")).is_healthy is False
 
 
 @pytest.mark.asyncio

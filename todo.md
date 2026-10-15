@@ -7,7 +7,7 @@ Pendências levantadas na revisão da Fase 6 (middlewares, probes, circuit break
 Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; os blocos abaixo continuam como detalhamento dos itens.
 
 **Crítico — fazer agora, nesta ordem:**
-1. **Kindwise: confirmar contrato de erro e `is_plant`** (Bloco 1) — bug visível ao usuário: foto que não é planta vira identificação.
+1. ~~**Kindwise: confirmar contrato de erro e `is_plant`**~~ ✅ (Bloco 1) — bug visível ao usuário: foto que não é planta vira identificação.
 2. **Rate limit: chave por usuário em vez de IP + `--proxy-headers`** (Bloco 2) — atrás de load balancer o limite vira global e bloqueia todos.
 3. **Redis: timeouts curtos + backoff quando cai** (Bloco 2) — Redis lento hoje deixa todas as rotas lentas.
 
@@ -20,7 +20,7 @@ Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; o
 7. Propagar Correlation ID para Celery e chamadas HTTP aos provedores (Bloco 3).
 8. Itens de deploy em "Fora do código".
 
-Próximo passo: **Kindwise `is_plant`** (item 1).
+Próximo passo: **Rate limit por usuário** (item 2).
 
 ---
 
@@ -52,10 +52,15 @@ Próximo passo: **Kindwise `is_plant`** (item 1).
     - 401/403 do provedor logam `provider.misconfigured` (nível error); circuito não abre.
     - Gemini traduz erros do SDK, de rede e JSON inválido; `/diagnose` degrada para só Kindwise se o Gemini falhar, e o token extra só é cobrado quando ele responde.
 
-- [ ] **Kindwise: confirmar contrato de erro e `is_plant`**
+- [x] **Kindwise: confirmar contrato de erro e `is_plant`**
   - Conferir numa resposta real (`raw_response` no banco ou chamada manual — gasta créditos) o formato de `result.is_plant` e mapear `is_plant.binary == false` → `InvalidImageError`.
   - Confirmar que 400 do Kindwise significa imagem inválida, e não payload nosso malformado (premissa do helper, não documentada publicamente).
   - Motivo: hoje foto que não é planta passa como identificação de baixa confiança.
+  - Verificado contra a API real em 2026-10-14 (~3 créditos):
+    - `identification` e `health_assessment` devolvem `result.is_plant = {probability, threshold, binary}`. Gato: 201, `binary: false`, sugestão "Magnolia kobus" 6% / doença "Lepidoptera".
+    - 400 é ambíguo: `Invalid image data` (bytes que não são imagem) **e** `Images have to be list of base64 strings` (payload nosso sem `images`). `images` com tipo errado → 500 HTML.
+  - Regra aplicada: `is_plant.binary == false` explícito → `InvalidImageError` nos dois endpoints (campo ausente segue normal). 400 só vira `InvalidImageError` se o corpo contiver `Invalid image`; outro 400 → `ExternalServiceError(retryable=False)` + log `provider.request_rejected` (error).
+  - Pendente: documentar essa regra no `PLANTE_4013` quando o catálogo do `ARCHITECTURE.md` for atualizado (item 6).
 
 - [x] **Security headers** (`src/api/middleware/security.py`)
   - Remover `X-XSS-Protection` (obsoleto; já causou vulnerabilidades em navegadores antigos).
