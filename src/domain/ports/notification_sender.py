@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 class NotificationType(Enum):
@@ -17,7 +18,7 @@ class Notification:
     notification_type: NotificationType
     title: str
     body: str
-    data: dict
+    data: dict[str, Any]
 
 class INotificationSender(ABC):
     @abstractmethod

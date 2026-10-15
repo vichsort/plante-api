@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class IHealthRawResponseRepository(ABC):
     @abstractmethod
-    async def save(self, health_record_id: int, raw_response: dict) -> None:
+    async def save(self, health_record_id: int, raw_response: dict[str, Any]) -> None:
         """Persiste o raw_response do Kindwise com TTL de 24h."""
         ...
 
     @abstractmethod
-    async def get(self, health_record_id: int) -> dict | None:
+    async def get(self, health_record_id: int) -> dict[str, Any] | None:
         """Retorna o raw_response associado ao health_record_id, ou None se expirado."""
         ...
 

@@ -14,7 +14,7 @@ class GetPlantDetailsUseCase:
     def __init__(self, user_plant_repo: IUserPlantRepository):
         self.user_plant_repo = user_plant_repo
 
-    async def execute(self, dto: GetPlantDetailsInputDTO) -> dict:
+    async def execute(self, dto: GetPlantDetailsInputDTO) -> dict[str, Any]:
         plant_view = await self.user_plant_repo.get_plant_details_view(dto.user_plant_id, dto.user_id)
         
         if not plant_view:

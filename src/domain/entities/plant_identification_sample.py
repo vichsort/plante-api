@@ -21,7 +21,7 @@ class PlantIdentificationSample:
     user_image_key: str
     identification_confidence: float
     identification_source: str
-    raw_response: dict
+    raw_response: dict[str, Any]
     status: SampleStatus
     created_at: datetime
 
@@ -54,7 +54,7 @@ class PlantIdentificationSample:
         user_image_key: str,
         identification_confidence: float,
         identification_source: str,
-        raw_response: dict,
+        raw_response: dict[str, Any],
         user_id: Any,
         created_at: datetime,
     ) -> "PlantIdentificationSample":
@@ -104,6 +104,6 @@ class PlantIdentificationSample:
             and self.has_nutritional_analysis
         )
 
-    def _replace(self, **changes) -> "PlantIdentificationSample":
+    def _replace(self, **changes: Any) -> "PlantIdentificationSample":
         from dataclasses import replace
         return replace(self, **changes)

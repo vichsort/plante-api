@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 
 from src.domain.events.domain_events import StreakBrokenEvent
 from src.domain.ports.domain_publisher import IDomainPublisher
@@ -14,7 +15,7 @@ class BreakStreakCronUseCase:
         self.user_plant_repo = user_plant_repo
         self.publisher = publisher
 
-    async def execute(self) -> dict:
+    async def execute(self) -> dict[str, Any]:
         now = datetime.now(UTC)
         
         overdue_plants = await self.user_plant_repo.get_overdue_plants(now)

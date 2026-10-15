@@ -58,7 +58,7 @@ class IdentifyPlantUseCase:
         self.storage = storage
         self.publisher = publisher
 
-    async def execute(self, dto: IdentifyPlantInputDTO) -> dict:
+    async def execute(self, dto: IdentifyPlantInputDTO) -> dict[str, Any]:
         now = datetime.now(UTC)
 
         user = await self.user_repo.get_by_id(dto.user_id)

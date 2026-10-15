@@ -58,7 +58,7 @@ class DiagnoseHealthUseCase:
         self._storage = storage
         self._health_raw_repo = health_raw_repo
 
-    async def execute(self, dto: DiagnoseHealthInputDTO) -> dict:
+    async def execute(self, dto: DiagnoseHealthInputDTO) -> dict[str, Any]:
         now = datetime.now(UTC)
 
         user = await self._user_repo.get_by_id(dto.user_id)
@@ -74,7 +74,7 @@ class DiagnoseHealthUseCase:
         assessment = await self._health_analyzer.assess_health(dto.image_bytes)
 
         issues = [d.name for d in assessment.diseases]
-        gemini_data: dict = {}
+        gemini_data: dict[str, Any] = {}
 
         if assessment.health_probability < SubscriptionPolicy.health_unhealthy_threshold():
             # Gemini é complementar: se falhar, o diagnóstico segue só com o Kindwise

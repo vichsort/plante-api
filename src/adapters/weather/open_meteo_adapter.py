@@ -80,7 +80,7 @@ class OpenMeteoAdapter(IWeatherService):
 
     async def _fetch_forecast(
         self, coords: GeoCoordinates, forecast_days: int
-    ) -> dict:
+    ) -> dict[str, Any]:
         params: dict[str, Any] = {
             "latitude": coords.latitude,
             "longitude": coords.longitude,
@@ -97,9 +97,10 @@ class OpenMeteoAdapter(IWeatherService):
         log.debug("weather.request", lat=coords.latitude, lon=coords.longitude)
         response = await self._client.get(_FORECAST_URL, params=params, timeout=8.0)
         response.raise_for_status()
-        return response.json()
+        data: dict[str, Any] = response.json()
+        return data
 
-    def _parse_days(self, data: dict) -> list[DailyWeather]:
+    def _parse_days(self, data: dict[str, Any]) -> list[DailyWeather]:
         daily = data["daily"]
         days = []
         for i, iso_date in enumerate(daily["time"]):

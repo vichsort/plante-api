@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from celery import shared_task
 from structlog import get_logger
@@ -17,7 +18,7 @@ RETENTION_DAYS = 30
     acks_late=True,
 )
 @run_async
-async def anonymize_confirmed_samples(container: Container | None = None) -> dict:
+async def anonymize_confirmed_samples(container: Container | None = None) -> dict[str, Any]:
     """
     Anonimiza samples confirmadas há mais de RETENTION_DAYS dias.
     Idempotente: rodar duas vezes não causa efeito colateral.

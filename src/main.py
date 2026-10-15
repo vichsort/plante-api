@@ -1,4 +1,5 @@
 import inspect
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from functools import partial
 
@@ -21,7 +22,7 @@ from src.infrastructure.container import Container
 log = structlog.get_logger()
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     container = app.state.container
 
     # init/shutdown_resources só retornam awaitable quando há Resources assíncronos

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import JSON, Boolean, DateTime, Integer, String
 from sqlalchemy import Enum as SAEnum
@@ -29,7 +30,7 @@ class PlantSpeciesModel(Base, AuditMixin):
     genus: Mapped[str | None] = mapped_column(String(100), nullable=True)
     order: Mapped[str | None] = mapped_column(String(100), nullable=True)
     plant_class: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    common_names: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    common_names: Mapped[list[Any] | None] = mapped_column(JSON, nullable=True)
 
     kindwise_entity_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     gbif_id: Mapped[str | None] = mapped_column(String(100), nullable=True)

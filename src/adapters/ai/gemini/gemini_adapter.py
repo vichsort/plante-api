@@ -1,5 +1,6 @@
 import asyncio
 import json
+from typing import Any
 
 from google import genai
 from google.genai import errors as genai_errors
@@ -77,12 +78,12 @@ class GeminiAdapter(IPlantEnricher):
             recovery_estimate_days=parsed.get("recovery_estimate_days"),
         )
 
-    async def diagnose_health(self, scientific_name: str, issues: list[str]) -> dict:
+    async def diagnose_health(self, scientific_name: str, issues: list[str]) -> dict[str, Any]:
         prompt = self._builder.health_diagnosis(scientific_name, issues)
         raw = await self._generate(prompt)
         return self._parser.parse_health_diagnosis(raw)
 
-    async def _generate(self, prompt: str) -> dict:
+    async def _generate(self, prompt: str) -> dict[str, Any]:
         try:
             # Gemini não recebe imagem: nenhum status do provedor significa imagem inválida
             async with translate_provider_errors(_SERVICE, invalid_image_statuses=frozenset()):
@@ -99,6 +100,9 @@ class GeminiAdapter(IPlantEnricher):
 
         raw_text = response.text if response and response.text else "{}"
         try:
-            return json.loads(raw_text)
+            data = json.loads(raw_text)
         except json.JSONDecodeError as exc:
             raise ExternalServiceError(message="Invalid JSON response.", service=_SERVICE) from exc
+        if not isinstance(data, dict):
+            raise ExternalServiceError(message="Unexpected JSON response.", service=_SERVICE)
+        return data

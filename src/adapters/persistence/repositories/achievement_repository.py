@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +14,7 @@ class AchievementRepository(IAchievementRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get_user_achievements_view(self, user_id: int) -> list[dict]:
+    async def get_user_achievements_view(self, user_id: int) -> list[dict[str, Any]]:
         stmt = select(AchievementModel).where(AchievementModel.user_id == user_id)
         result = await self._session.execute(stmt)
         return [AchievementMapper.to_dict(m) for m in result.scalars().all()]

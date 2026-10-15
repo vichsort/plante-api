@@ -27,7 +27,7 @@ class HealthRecord:
     recovery_estimate_days: int | None = None
     notes: str | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not 0.0 <= self.vitality_score <= 1.0:
             raise ValueError("vitality_score needs to be between 0.0 and 1.0.")
 

@@ -23,10 +23,11 @@ from src.adapters.security.bcrypt_hasher import BcryptHasher
 from src.adapters.storage.s3_image_storage import S3ImageStorage
 from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
 from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
+from src.infrastructure.settings import Settings
 
 
 class AdaptersContainer(containers.DeclarativeContainer):
-    settings: providers.Dependency = providers.Dependency()
+    settings: providers.Dependency[Settings] = providers.Dependency()
 
     weather_http = providers.Singleton(httpx.AsyncClient)
     password_hasher = providers.Singleton(BcryptHasher)

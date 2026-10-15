@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import JSON, UUID, Boolean, DateTime, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -19,7 +20,7 @@ class PlantIdentificationSampleModel(Base, AuditMixin):
     user_image_key: Mapped[str] = mapped_column(String(500), nullable=False)
     identification_confidence: Mapped[float] = mapped_column(Float, nullable=False)
     identification_source: Mapped[str] = mapped_column(String(50), nullable=False)
-    raw_response: Mapped[dict] = mapped_column(JSON, nullable=False)
+    raw_response: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),

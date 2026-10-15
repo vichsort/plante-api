@@ -18,7 +18,7 @@ router = APIRouter(prefix="/plants", tags=["plants"], responses=error_responses(
 @router.get(
     "/{user_plant_id}",
     status_code=200,
-    response_model=ApiResponse[dict],
+    response_model=ApiResponse[dict[str, Any]],
     responses=error_responses(PlantNotFoundError),
 )
 @inject
@@ -26,7 +26,7 @@ async def get_plant_details(
     user_plant_id: str,
     use_case: GetPlantDetailsUseCase = Depends(Provide[Container.use_cases.get_plant_details_use_case]),
     user_id: Any = Depends(get_current_user_id),
-) -> ApiResponse[dict]:
+) -> ApiResponse[dict[str, Any]]:
     result = await use_case.execute(GetPlantDetailsInputDTO(
         user_id=user_id,
         user_plant_id=user_plant_id,

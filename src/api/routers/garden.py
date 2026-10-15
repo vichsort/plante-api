@@ -45,7 +45,7 @@ router = APIRouter(prefix="/garden", tags=["garden"], responses=error_responses(
 @router.post(
     "",
     status_code=201,
-    response_model=ApiResponse[dict],
+    response_model=ApiResponse[dict[str, Any]],
     responses=error_responses(
         ForbiddenError,
         PlantNotFoundError,
@@ -60,7 +60,7 @@ async def add_plant_to_garden(
     body: AddPlantToGardenRequest,
     use_case: AddPlantToGardenUseCase = Depends(Provide[Container.use_cases.add_plant_to_garden_use_case]),
     user_id: Any = Depends(get_current_user_id),
-) -> ApiResponse[dict]:
+) -> ApiResponse[dict[str, Any]]:
     await use_case.execute(AddPlantToGardenInputDTO(
         user_id=user_id,
         user_plant_id=body.user_plant_id,
@@ -80,7 +80,7 @@ async def get_user_garden(
 @router.delete(
     "/{user_plant_id}",
     status_code=200,
-    response_model=ApiResponse[dict],
+    response_model=ApiResponse[dict[str, Any]],
     responses=error_responses(
         ForbiddenError,
         PlantNotFoundError,
@@ -94,7 +94,7 @@ async def delete_user_plant(
     body: DeleteUserPlantRequest,
     use_case: DeleteUserPlantUseCase = Depends(Provide[Container.use_cases.delete_user_plant_use_case]),
     user_id: Any = Depends(get_current_user_id),
-) -> ApiResponse[dict]:
+) -> ApiResponse[dict[str, Any]]:
     await use_case.execute(DeleteUserPlantInputDTO(
         user_id=user_id,
         user_plant_id=user_plant_id,

@@ -1,3 +1,5 @@
+from typing import Any
+
 import firebase_admin
 from firebase_admin import credentials, messaging
 
@@ -15,7 +17,7 @@ class FirebaseAdapter(INotificationSender):
         fcm_token: str,
         title: str,
         body: str,
-        data: dict | None = None,
+        data: dict[str, Any] | None = None,
     ) -> None:
         message = messaging.Message(
             notification=messaging.Notification(title=title, body=body),

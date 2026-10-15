@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from src.domain.entities.user import User
 from src.domain.events.domain_events import UserRegisteredEvent
@@ -28,7 +29,7 @@ class RegisterUserUseCase:
         self.hasher = hasher
         self.publisher = publisher
 
-    async def execute(self, dto: RegisterUserInputDTO) -> dict:
+    async def execute(self, dto: RegisterUserInputDTO) -> dict[str, Any]:
         if await self.user_repo.get_by_email(dto.email):
             raise EmailAlreadyInUseError()
 

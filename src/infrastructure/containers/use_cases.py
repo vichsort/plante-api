@@ -1,5 +1,30 @@
 from dependency_injector import containers, providers
 
+from src.domain.ports.achievement_repository import IAchievementRepository
+from src.domain.ports.domain_publisher import IDomainPublisher
+from src.domain.ports.email_sender import IEmailSender
+from src.domain.ports.health_analyzer import IHealthAnalyzer
+from src.domain.ports.health_identification_sample_repository import (
+    IHealthIdentificationSampleRepository,
+)
+from src.domain.ports.health_raw_response_repository import IHealthRawResponseRepository
+from src.domain.ports.health_record_repository import IHealthRecordRepository
+from src.domain.ports.identification_sample_repository import (
+    IIdentificationSampleRepository,
+)
+from src.domain.ports.image_storage import IImageStorage
+from src.domain.ports.otp_repository import IOtpRepository
+from src.domain.ports.password_hasher import IPasswordHasher
+from src.domain.ports.plant_enricher import IPlantEnricher
+from src.domain.ports.plant_identifier import IPlantIdentifier
+from src.domain.ports.plant_nutritional_repository import IPlantNutritionalRepository
+from src.domain.ports.plant_reference_image_repository import (
+    IPlantReferenceImageRepository,
+)
+from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
+from src.domain.ports.token_repository import ITokenRepository
+from src.domain.ports.user_plant_repository import IUserPlantRepository
+from src.domain.ports.user_repository import IUserRepository
 from src.domain.use_cases.add_plant_to_garden_use_case import AddPlantToGardenUseCase
 from src.domain.use_cases.break_streak_cron_use_case import BreakStreakCronUseCase
 from src.domain.use_cases.change_email_use_case import ChangeEmailUseCase
@@ -32,32 +57,33 @@ from src.domain.use_cases.upgrade_subscription_use_case import (
 )
 from src.domain.use_cases.verify_email_use_case import VerifyEmailUseCase
 from src.domain.use_cases.water_plant_use_case import WaterPlantUseCase
+from src.infrastructure.settings import Settings
 
 
 class UseCasesContainer(containers.DeclarativeContainer):
-    settings: providers.Dependency = providers.Dependency()
+    settings: providers.Dependency[Settings] = providers.Dependency()
 
-    user_repository: providers.Dependency = providers.Dependency()
-    token_repository: providers.Dependency = providers.Dependency()
-    otp_repository: providers.Dependency = providers.Dependency()
-    user_plant_repository: providers.Dependency = providers.Dependency()
-    plant_species_repository: providers.Dependency = providers.Dependency()
-    identification_sample_repository: providers.Dependency = providers.Dependency()
-    health_record_repository: providers.Dependency = providers.Dependency()
-    health_identification_sample_repository: providers.Dependency = providers.Dependency()
-    health_raw_response_repository: providers.Dependency = providers.Dependency()
-    plant_nutritional_repository: providers.Dependency = providers.Dependency()
-    achievement_repository: providers.Dependency = providers.Dependency()
-    plant_reference_image_repository: providers.Dependency = providers.Dependency()
+    user_repository: providers.Dependency[IUserRepository] = providers.Dependency()
+    token_repository: providers.Dependency[ITokenRepository] = providers.Dependency()
+    otp_repository: providers.Dependency[IOtpRepository] = providers.Dependency()
+    user_plant_repository: providers.Dependency[IUserPlantRepository] = providers.Dependency()
+    plant_species_repository: providers.Dependency[IPlantSpeciesRepository] = providers.Dependency()
+    identification_sample_repository: providers.Dependency[IIdentificationSampleRepository] = providers.Dependency()
+    health_record_repository: providers.Dependency[IHealthRecordRepository] = providers.Dependency()
+    health_identification_sample_repository: providers.Dependency[IHealthIdentificationSampleRepository] = providers.Dependency()
+    health_raw_response_repository: providers.Dependency[IHealthRawResponseRepository] = providers.Dependency()
+    plant_nutritional_repository: providers.Dependency[IPlantNutritionalRepository] = providers.Dependency()
+    achievement_repository: providers.Dependency[IAchievementRepository] = providers.Dependency()
+    plant_reference_image_repository: providers.Dependency[IPlantReferenceImageRepository] = providers.Dependency()
 
-    password_hasher: providers.Dependency = providers.Dependency()
-    email_sender: providers.Dependency = providers.Dependency()
-    domain_publisher: providers.Dependency = providers.Dependency()
-    plant_identifier: providers.Dependency = providers.Dependency()
-    health_analyzer: providers.Dependency = providers.Dependency()
-    plant_enricher: providers.Dependency = providers.Dependency()
+    password_hasher: providers.Dependency[IPasswordHasher] = providers.Dependency()
+    email_sender: providers.Dependency[IEmailSender] = providers.Dependency()
+    domain_publisher: providers.Dependency[IDomainPublisher] = providers.Dependency()
+    plant_identifier: providers.Dependency[IPlantIdentifier] = providers.Dependency()
+    health_analyzer: providers.Dependency[IHealthAnalyzer] = providers.Dependency()
+    plant_enricher: providers.Dependency[IPlantEnricher] = providers.Dependency()
 
-    image_storage: providers.Dependency = providers.Dependency()
+    image_storage: providers.Dependency[IImageStorage] = providers.Dependency()
 
     login_use_case = providers.Factory(
         LoginUseCase,

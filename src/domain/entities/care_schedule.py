@@ -26,7 +26,7 @@ class CareSchedule:
     last_completed_at: datetime | None = None
     climate_adjusted: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.climate_adjusted and not self.last_completed_at:
             raise ValueError(
                 "climate_adjusted só pode ser True se houve ao menos uma execução."

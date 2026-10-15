@@ -1,10 +1,12 @@
+from typing import Any
+
 from src.domain.entities.health_record import HealthSeverity
 from src.domain.entities.plant_species import LightRequirement, SoilType
 
 
 class GeminiResponseParser:
     @staticmethod
-    def parse_enrich_species(data: dict) -> dict:
+    def parse_enrich_species(data: dict[str, Any]) -> dict[str, Any]:
         return {
             "common_names": tuple(data.get("common_names", [])),
             "is_edible": bool(data.get("is_edible")),
@@ -17,7 +19,7 @@ class GeminiResponseParser:
         }
 
     @staticmethod
-    def parse_nutritional(data: dict) -> dict:
+    def parse_nutritional(data: dict[str, Any]) -> dict[str, Any]:
         return {
             "tea_preparation": data.get("tea_preparation"),
             "tea_benefits": data.get("tea_benefits"),
@@ -28,7 +30,7 @@ class GeminiResponseParser:
         }
 
     @staticmethod
-    def parse_health_diagnosis(data: dict) -> dict:
+    def parse_health_diagnosis(data: dict[str, Any]) -> dict[str, Any]:
         return {
             "severity": HealthSeverity(data.get("severity", "healthy")),
             "vitality_score": float(data.get("vitality_score", 1.0)),

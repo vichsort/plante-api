@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 from redis.asyncio import Redis
 
@@ -14,14 +15,14 @@ class RedisHealthRawResponseRepository(IHealthRawResponseRepository):
     def _key(self, health_record_id: int) -> str:
         return f"{_KEY_PREFIX}{health_record_id}"
 
-    async def save(self, health_record_id: int, raw_response: dict) -> None:
+    async def save(self, health_record_id: int, raw_response: dict[str, Any]) -> None:
         await self._redis.set(
             self._key(health_record_id),
             json.dumps(raw_response),
             ex=_TTL_SECONDS,
         )
 
-    async def get(self, health_record_id: int) -> dict | None:
+    async def get(self, health_record_id: int) -> dict[str, Any] | None:
         value = await self._redis.get(self._key(health_record_id))
         return json.loads(value) if value else None
 

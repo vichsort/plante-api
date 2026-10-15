@@ -5,7 +5,7 @@ from dataclasses import dataclass
 class ConfidenceScore:
     value: float
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Garante a invariante: o score nunca pode existir fora de 0.0 a 1.0"""
         if not isinstance(self.value, float):
             raise TypeError("Confidence score must be a float.")

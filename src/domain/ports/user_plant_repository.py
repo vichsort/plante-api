@@ -27,11 +27,11 @@ class IUserPlantRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_garden_view_for_user(self, user_id: Any) -> list[dict]:
+    async def get_garden_view_for_user(self, user_id: Any) -> list[dict[str, Any]]:
         ...
 
     @abstractmethod
-    async def get_plant_details_view(self, user_plant_id: Any, user_id: Any) -> dict | None:
+    async def get_plant_details_view(self, user_plant_id: Any, user_id: Any) -> dict[str, Any] | None:
         ...
 
     @abstractmethod

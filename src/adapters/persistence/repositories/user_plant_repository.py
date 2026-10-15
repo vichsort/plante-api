@@ -66,7 +66,7 @@ class UserPlantRepository(IUserPlantRepository):
         result = await self._session.execute(stmt)
         return result.scalar_one()
 
-    async def get_garden_view_for_user(self, user_id: Any) -> list[dict]:
+    async def get_garden_view_for_user(self, user_id: Any) -> list[dict[str, Any]]:
         stmt = (
             select(UserPlantModel)
             .where(UserPlantModel.user_id == user_id)
@@ -91,7 +91,7 @@ class UserPlantRepository(IUserPlantRepository):
             })
         return items
 
-    async def get_plant_details_view(self, user_plant_id: Any, user_id: Any) -> dict | None:
+    async def get_plant_details_view(self, user_plant_id: Any, user_id: Any) -> dict[str, Any] | None:
         stmt = (
             select(UserPlantModel, PlantSpeciesModel)
             .outerjoin(PlantSpeciesModel, UserPlantModel.scientific_name == PlantSpeciesModel.scientific_name)

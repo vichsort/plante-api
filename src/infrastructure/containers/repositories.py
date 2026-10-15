@@ -1,4 +1,5 @@
 from dependency_injector import containers, providers
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.persistence.repositories.achievement_repository import (
     AchievementRepository,
@@ -28,7 +29,7 @@ from src.adapters.persistence.repositories.user_repository import UserRepository
 
 
 class RepositoriesContainer(containers.DeclarativeContainer):
-    session: providers.Dependency = providers.Dependency()
+    session: providers.Dependency[AsyncSession] = providers.Dependency()
     
     user_repository = providers.Factory(
         UserRepository,

@@ -56,7 +56,7 @@ class PlantNetAdapter(IPlantIdentifier):
             data = r.json()
             return self._parse(data)
 
-    def _parse(self, data: dict) -> IdentificationResult:
+    def _parse(self, data: dict[str, Any]) -> IdentificationResult:
         results = data.get("results", [])
         if not results:
             raise InvalidImageError()
@@ -94,5 +94,5 @@ class PlantNetAdapter(IPlantIdentifier):
         )
 
 
-def _taxon_name(taxon: dict | None) -> str | None:
+def _taxon_name(taxon: dict[str, Any] | None) -> str | None:
     return (taxon or {}).get("scientificNameWithoutAuthor") or None

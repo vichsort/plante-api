@@ -21,7 +21,7 @@ class VerifyEmailUseCase:
         self.user_repo = user_repo
         self.otp_repo = otp_repo
 
-    async def execute(self, dto: VerifyEmailInputDTO) -> dict:
+    async def execute(self, dto: VerifyEmailInputDTO) -> dict[str, Any]:
         user = await self.user_repo.get_by_id(dto.user_id)
         if not user:
             raise UserNotFoundError(user_id=dto.user_id)

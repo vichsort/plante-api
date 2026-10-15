@@ -21,7 +21,7 @@ class GetHealthHistoryUseCase:
         self._user_plant_repo = user_plant_repo
         self._health_repo = health_repo
 
-    async def execute(self, dto: GetHealthHistoryInputDTO) -> list[dict]:
+    async def execute(self, dto: GetHealthHistoryInputDTO) -> list[dict[str, Any]]:
         user_plant = await self._user_plant_repo.get_by_id(dto.user_plant_id, dto.user_id)
         if not user_plant:
             raise PlantNotFoundError(dto.user_plant_id)

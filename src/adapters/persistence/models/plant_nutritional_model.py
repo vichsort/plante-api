@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import JSON, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -13,7 +14,7 @@ class PlantNutritionalModel(Base):
     tea_preparation: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     tea_benefits: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     food_recipe_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    food_recipe_ingredients: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    food_recipe_ingredients: Mapped[list[Any] | None] = mapped_column(JSON, nullable=True)
     medicinal_uses: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     seasoning_pairings: Mapped[str | None] = mapped_column(String(500), nullable=True)
     enriched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -24,7 +24,7 @@ class HealthIdentificationSample:
     issues_detected: tuple[str, ...]
     treatment_plan: tuple[str, ...]
     identification_source: str
-    raw_response: dict
+    raw_response: dict[str, Any]
     status: HealthSampleStatus
     created_at: datetime
 

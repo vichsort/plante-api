@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -13,7 +14,7 @@ class HealthAssessmentResult:
     is_healthy: bool
     health_probability: float
     diseases: tuple[DiseaseHint, ...]
-    raw_response: dict
+    raw_response: dict[str, Any]
 
     @property
     def all_similar_images_urls(self) -> tuple[str, ...]:

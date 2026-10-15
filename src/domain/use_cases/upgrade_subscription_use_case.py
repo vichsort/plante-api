@@ -22,7 +22,7 @@ class UpgradeSubscriptionUseCase:
         self.user_repo = user_repo
         self.publisher = publisher
 
-    async def execute(self, dto: UpgradeSubscriptionInputDTO) -> dict:
+    async def execute(self, dto: UpgradeSubscriptionInputDTO) -> dict[str, Any]:
         user = await self.user_repo.get_by_id(dto.user_id)
         if not user:
             raise UserNotFoundError(user_id=dto.user_id)

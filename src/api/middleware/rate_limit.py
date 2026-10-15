@@ -6,8 +6,9 @@ import structlog
 from fastapi import Request
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import JSONResponse, Response
+from starlette.types import ASGIApp
 
 from src.api.response import ApiResponse
 from src.domain.exceptions import (
@@ -64,7 +65,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     """
     def __init__(
         self,
-        app,
+        app: ASGIApp,
         requests_per_minute: int = _DEFAULT_RATE_LIMIT,
         sensitive_requests_per_minute: int = _SENSITIVE_RATE_LIMIT,
         redis_provider: Callable[[], Redis] | None = None,
@@ -80,7 +81,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._memory_window = 0
         self._memory_counters: dict[str, int] = {}
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         # Pula rate limit para docs e health-checks
         path = request.url.path
         if path.startswith(_EXEMPT_PATHS):

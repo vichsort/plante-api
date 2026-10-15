@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import JSON, UUID, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
@@ -34,7 +35,7 @@ class HealthRecordModel(Base, AuditMixin):
     )
     source: Mapped[str] = mapped_column(String(50), nullable=False)
     image_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    issues_detected: Mapped[list | None] = mapped_column(JSON, nullable=True)
-    treatment_plan: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    issues_detected: Mapped[list[Any] | None] = mapped_column(JSON, nullable=True)
+    treatment_plan: Mapped[list[Any] | None] = mapped_column(JSON, nullable=True)
     recovery_estimate_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     notes: Mapped[str | None] = mapped_column(String(1000), nullable=True)

@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import JSON, UUID, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
@@ -22,12 +23,12 @@ class HealthIdentificationSampleModel(Base, AuditMixin):
     )
     scientific_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     user_image_key: Mapped[str] = mapped_column(String(500), nullable=False)
-    reference_image_keys: Mapped[list] = mapped_column(JSON, nullable=False)
+    reference_image_keys: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
     vitality_score: Mapped[float] = mapped_column(Float, nullable=False)
-    issues_detected: Mapped[list] = mapped_column(JSON, nullable=False)
-    treatment_plan: Mapped[list] = mapped_column(JSON, nullable=False)
+    issues_detected: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
+    treatment_plan: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
     identification_source: Mapped[str] = mapped_column(String(50), nullable=False)
-    raw_response: Mapped[dict] = mapped_column(JSON, nullable=False)
+    raw_response: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     status: Mapped[str] = mapped_column(
         SAEnum(HealthSampleStatus, values_callable=lambda e: [x.value for x in e], name="healthSampleStatus"),
         nullable=False,

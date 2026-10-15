@@ -28,7 +28,7 @@ class EnrichPlantSpeciesUseCase:
         self.species_repo = species_repo
         self.enricher = enricher
 
-    async def execute(self, dto: EnrichPlantInputDTO) -> dict:
+    async def execute(self, dto: EnrichPlantInputDTO) -> dict[str, Any]:
         user = await self.user_repo.get_by_id(dto.user_id)
         if not user:
             raise UserNotFoundError(user_id=dto.user_id)

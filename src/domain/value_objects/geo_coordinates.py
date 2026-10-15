@@ -6,7 +6,7 @@ class GeoCoordinates:
     latitude: float
     longitude: float
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Garante que as coordenadas matematicamente existem no planeta Terra."""
         if not (-90.0 <= self.latitude <= 90.0):
             raise ValueError(f"Latitude must be between -90 and 90. Got: {self.latitude}")

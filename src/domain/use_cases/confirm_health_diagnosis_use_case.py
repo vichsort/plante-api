@@ -45,7 +45,7 @@ class ConfirmHealthDiagnosisUseCase:
         self._storage = storage
         self._publisher = publisher
 
-    async def execute(self, dto: ConfirmHealthDiagnosisInputDTO) -> dict:
+    async def execute(self, dto: ConfirmHealthDiagnosisInputDTO) -> dict[str, Any]:
         now = datetime.now(UTC)
 
         user = await self._user_repo.get_by_id(dto.user_id)

@@ -27,7 +27,7 @@ class ConfirmPlantIdentificationUseCase:
         self._sample_repo = sample_repo
         self._publisher = publisher
 
-    async def execute(self, dto: ConfirmPlantIdentificationInputDTO) -> dict:
+    async def execute(self, dto: ConfirmPlantIdentificationInputDTO) -> dict[str, Any]:
         now = datetime.now(UTC)
 
         user = await self._user_repo.get_by_id(dto.user_id)

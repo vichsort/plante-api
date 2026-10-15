@@ -52,7 +52,7 @@ class PlantSpecies:
     enriched_at: datetime | None = None
     enrichment_source: EnrichmentSource | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.scientific_name:
             raise ValueError("scientific_name cannot be null.")
 

@@ -1,4 +1,5 @@
 import base64
+from typing import Any
 
 import httpx
 
@@ -59,7 +60,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             data = r.json()
             return self._parse_identification(data)
 
-    def _parse_identification(self, data: dict) -> IdentificationResult:
+    def _parse_identification(self, data: dict[str, Any]) -> IdentificationResult:
         _reject_non_plant(data)
         suggestions = (
             data.get("result", {})
@@ -114,7 +115,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             data = r.json()
             return self._parse_health(data)
 
-    def _parse_health(self, data: dict) -> HealthAssessmentResult:
+    def _parse_health(self, data: dict[str, Any]) -> HealthAssessmentResult:
         _reject_non_plant(data)
         result = data.get("result", {})
         is_healthy_block = result.get("is_healthy", {})
@@ -139,7 +140,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             raw_response=data,
         )
 
-def _reject_non_plant(data: dict) -> None:
+def _reject_non_plant(data: dict[str, Any]) -> None:
     """
     Foto que não é planta volta 201 com sugestões de baixa confiança e `is_plant.binary == false`.
     Só rejeita com `false` explícito: campo ausente ou em outro formato segue o fluxo normal.

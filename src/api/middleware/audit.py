@@ -2,7 +2,7 @@ import time
 
 import structlog
 from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
 log = structlog.get_logger()
@@ -12,7 +12,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
     Middleware de auditoria estruturada para todas as requisições HTTP da API.
     Mede tempo de resposta, identifica o controller/tags, status_code e registra via structlog.
     """
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         start_time = time.perf_counter()
 
         try:

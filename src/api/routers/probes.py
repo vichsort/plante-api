@@ -1,6 +1,7 @@
 import asyncio
 import time
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 import structlog
 from dependency_injector.wiring import Provide, inject
@@ -57,8 +58,8 @@ readiness_cache = ReadinessCache()
 router = APIRouter(prefix="/health", tags=["infra"])
 
 
-@router.get("/liveness", status_code=200, response_model=ApiResponse[dict])
-async def liveness():
+@router.get("/liveness", status_code=200, response_model=ApiResponse[dict[str, Any]])
+async def liveness() -> ApiResponse[dict[str, Any]]:
     """Processo está de pé. Não verifica dependências externas."""
     return ApiResponse.success(data={"status": "alive"})
 
@@ -66,14 +67,14 @@ async def liveness():
 @router.get(
     "/readiness",
     status_code=200,
-    response_model=ApiResponse[dict],
+    response_model=ApiResponse[dict[str, Any]],
     responses={503: {"model": ApiResponse[None], "description": "PLANTE_5003_SERVICE_NOT_READY"}},
 )
 @inject
 async def readiness(
     engine: AsyncEngine = Depends(Provide[Container.infra.engine]),
     redis: Redis = Depends(Provide[Container.adapters.redis]),
-):
+) -> ApiResponse[dict[str, Any]] | JSONResponse:
     """Instância pronta para receber tráfego: Postgres e Redis respondendo."""
     async def run_checks() -> dict[str, bool]:
         database_ok, redis_ok = await asyncio.gather(

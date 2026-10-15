@@ -12,5 +12,5 @@ class GetUserGardenUseCase:
     def __init__(self, user_plant_repo: IUserPlantRepository):
         self.user_plant_repo = user_plant_repo
 
-    async def execute(self, dto: GetUserGardenInputDTO) -> list[dict]:
+    async def execute(self, dto: GetUserGardenInputDTO) -> list[dict[str, Any]]:
         return await self.user_plant_repo.get_garden_view_for_user(dto.user_id)

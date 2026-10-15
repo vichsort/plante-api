@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -57,6 +58,6 @@ class IPlantEnricher(ABC):
     @abstractmethod
     async def diagnose_health(
         self, scientific_name: str, issues: list[str]
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Enriquece o diagnóstico de saúde de uma planta."""
         ...

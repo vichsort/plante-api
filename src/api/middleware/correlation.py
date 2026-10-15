@@ -3,7 +3,7 @@ import uuid
 
 import structlog
 from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
 _HEADER_NAME = "X-Correlation-ID"
@@ -18,7 +18,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
     O cabeçalho recebido só é aceito se respeitar `^[A-Za-z0-9._-]{1,128}$` (sem exigir formato
     UUID, para compatibilidade com IDs de gateways); caso contrário, um novo UUID4 é gerado.
     """
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         incoming = request.headers.get(_HEADER_NAME)
         if incoming and _VALID_CORRELATION_ID.fullmatch(incoming):
             correlation_id = incoming

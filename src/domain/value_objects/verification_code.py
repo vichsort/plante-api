@@ -11,7 +11,7 @@ class VerificationCode:
     """
     raw_code: str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Removemos hífens e espaços para padronizar
         clean_code = self.raw_code.replace("-", "").strip().upper()
         
@@ -45,5 +45,5 @@ class VerificationCode:
         raw = f"PLA-{''.join(map(str, first))}-{v}-{''.join(map(str, second))}"
         return cls(raw)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.raw_code

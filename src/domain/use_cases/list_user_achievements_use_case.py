@@ -12,5 +12,5 @@ class ListUserAchievementsUseCase:
     def __init__(self, achievement_repo: IAchievementRepository) -> None:
         self.achievement_repo = achievement_repo
 
-    async def execute(self, dto: ListUserAchievementsInputDTO) -> list[dict]:
+    async def execute(self, dto: ListUserAchievementsInputDTO) -> list[dict[str, Any]]:
         return await self.achievement_repo.get_user_achievements_view(dto.user_id)

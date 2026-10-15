@@ -22,7 +22,7 @@ class WaterPlantUseCase:
         self.user_plant_repo = user_plant_repo
         self.publisher = publisher
 
-    async def execute(self, dto: WaterPlantInputDTO) -> dict:
+    async def execute(self, dto: WaterPlantInputDTO) -> dict[str, Any]:
         plant = await self.user_plant_repo.get_by_id(dto.user_plant_id, dto.user_id)
         if not plant:
             raise PlantNotFoundError(dto.user_plant_id)

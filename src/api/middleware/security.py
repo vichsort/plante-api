@@ -1,5 +1,5 @@
 from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
 _CONTENT_SECURITY_POLICY = "default-src 'none'; frame-ancestors 'none'"
@@ -12,7 +12,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
     Middleware que injeta cabeçalhos HTTP de segurança seguindo as recomendações OWASP.
     """
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         response: Response = await call_next(request)
 
         response.headers["X-Content-Type-Options"] = "nosniff"
