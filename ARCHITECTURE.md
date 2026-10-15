@@ -216,6 +216,7 @@ Todas as respostas HTTP do sistema (sucesso ou erro) são embrulhadas na mesma e
 Para evitar vazamento de conexões de banco de dados e loops de eventos concorrentes:
 - Todas as tarefas do Celery que chamam Use Cases ou Repositórios assíncronos **DEVEM** utilizar o decorator `@run_async` de `src/workers/async_runner.py`.
 - O worker aceita injeção defensiva de `container: Container | None = None` para permitir testes unitários isolados com mocks.
+- Subir: `celery -A src.workers worker` e, para as tarefas agendadas, `celery -A src.workers beat` (uma instância só). Todo módulo com tasks precisa estar no `include` do `celery_app` (`src/infrastructure/celery_config.py`); `tests/unit/workers/test_celery_app.py` confere que as tasks publicadas e agendadas são registradas.
 
 ---
 

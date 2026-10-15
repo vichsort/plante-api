@@ -18,6 +18,12 @@ celery_app = Celery(
     "plante",
     broker=broker_url,
     backend=broker_url,
+    # Carregados pelo worker ao subir; sem isto ele não registra nenhuma task (só nomes, sem
+    # importar: `src.workers` fica acima desta camada)
+    include=[
+        "src.workers.notification_tasks",
+        "src.workers.anonimization_worker",
+    ],
 )
 
 celery_app.conf.beat_schedule = {
