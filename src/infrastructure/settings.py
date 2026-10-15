@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     kindwise_api_key: str | None = None
     plantnet_api_key: str | None = None
     plant_id_api_key: str | None = None
+    # Circuit breaker de cada provedor de IA (Kindwise, PlantNet)
+    ai_breaker_failure_threshold: int = 5
+    ai_breaker_recovery_timeout_seconds: float = 30.0
 
     # Auth
     secret_key: str = "dev_secret_key_change_in_production"

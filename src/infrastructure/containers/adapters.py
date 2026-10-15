@@ -76,8 +76,18 @@ class AdaptersContainer(containers.DeclarativeContainer):
     )
 
     # Kindwise atende identificação e saúde: um único breaker por provedor
-    kindwise_breaker = providers.Singleton(CircuitBreaker, name="Kindwise")
-    plantnet_breaker = providers.Singleton(CircuitBreaker, name="PlantNet")
+    kindwise_breaker = providers.Singleton(
+        CircuitBreaker,
+        name="Kindwise",
+        failure_threshold=settings.provided.ai_breaker_failure_threshold,
+        recovery_timeout_seconds=settings.provided.ai_breaker_recovery_timeout_seconds,
+    )
+    plantnet_breaker = providers.Singleton(
+        CircuitBreaker,
+        name="PlantNet",
+        failure_threshold=settings.provided.ai_breaker_failure_threshold,
+        recovery_timeout_seconds=settings.provided.ai_breaker_recovery_timeout_seconds,
+    )
 
     kindwise_adapter = providers.Singleton(
         KindwiseAdapter,
