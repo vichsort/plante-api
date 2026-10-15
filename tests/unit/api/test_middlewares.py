@@ -1,14 +1,18 @@
 import uuid
+from functools import partial
 
+import jwt
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from src.api.deps import decode_access_token
 from src.api.middleware import (
     CorrelationIdMiddleware,
     RateLimitMiddleware,
     SecurityHeadersMiddleware,
 )
+from src.domain.exceptions import UnauthorizedError
 
 
 def test_correlation_id_middleware_generates_and_propagates():
@@ -238,3 +242,72 @@ def test_rate_limit_sensitive_match_is_exact():
 
     response = TestClient(app).post("/identify/confirm")
     assert response.headers["X-RateLimit-Limit"] == "10"
+
+
+def _fake_decoder(token: str) -> str:
+    if not token.startswith("valid-"):
+        raise UnauthorizedError("Invalid access token.")
+    return token.removeprefix("valid-")
+
+
+def _auth(user: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer valid-{user}"}
+
+
+def _per_user_app() -> TestClient:
+    app = _rate_limited_app(requests_per_minute=1, sensitive_requests_per_minute=1, token_decoder=_fake_decoder)
+
+    @app.post("/auth/login")
+    def login():
+        return {"ok": True}
+
+    return TestClient(app)
+
+
+def test_rate_limit_counts_authenticated_users_separately_on_same_ip():
+    client = _per_user_app()
+
+    assert client.get("/api/test", headers=_auth("alice")).status_code == 200
+    assert client.get("/api/test", headers=_auth("alice")).status_code == 429
+    # Mesmo IP (CGNAT / load balancer), outro usuário: contador próprio
+    assert client.get("/api/test", headers=_auth("bob")).status_code == 200
+    # Anônimo no mesmo IP também não é afetado pelos usuários
+    assert client.get("/api/test").status_code == 200
+
+
+def test_rate_limit_anonymous_routes_count_by_ip_even_with_token():
+    client = _per_user_app()
+
+    assert client.post("/auth/login", headers=_auth("alice")).status_code == 200
+    # Trocar de token não escapa do limite de login
+    assert client.post("/auth/login", headers=_auth("bob")).status_code == 429
+
+
+def test_rate_limit_invalid_token_counts_by_ip():
+    client = _per_user_app()
+
+    assert client.get("/api/test", headers={"Authorization": "Bearer forged"}).status_code == 200
+    assert client.get("/api/test").status_code == 429
+
+
+def test_rate_limit_redis_key_uses_user_identity():
+    fake = _FakeRedis()
+    app = _rate_limited_app(redis_provider=lambda: fake, token_decoder=_fake_decoder)
+
+    TestClient(app).get("/api/test", headers=_auth("alice"))
+    assert next(iter(fake.store)).startswith("plante:ratelimit:default:user:alice:")
+
+
+_TEST_SECRET = "test-secret-key-with-at-least-32-bytes"
+
+
+def test_rate_limit_with_real_token_decoder():
+    decoder = partial(decode_access_token, secret=_TEST_SECRET, algorithm="HS256")
+    fake = _FakeRedis()
+    client = TestClient(_rate_limited_app(redis_provider=lambda: fake, token_decoder=decoder))
+    access = jwt.encode({"sub": "user-1", "type": "access"}, _TEST_SECRET, algorithm="HS256")
+    refresh = jwt.encode({"sub": "user-1", "type": "refresh"}, _TEST_SECRET, algorithm="HS256")
+
+    client.get("/api/test", headers={"Authorization": f"Bearer {access}"})
+    client.get("/api/test", headers={"Authorization": f"Bearer {refresh}"})
+    assert {key.split(":")[3] for key in fake.store} == {"user", "ip"}

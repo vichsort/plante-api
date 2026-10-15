@@ -1,5 +1,6 @@
 import time
 from collections.abc import Callable
+from typing import Any
 
 import structlog
 from fastapi import Request
@@ -8,7 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
 
 from src.api.response import ApiResponse
-from src.domain.exceptions import RateLimitExceededError
+from src.domain.exceptions import RateLimitExceededError, UnauthorizedError
 
 log = structlog.get_logger()
 
@@ -26,6 +27,13 @@ _SENSITIVE_PATHS = frozenset({
     "/diagnose",
 })
 
+# Rotas anônimas contam sempre por IP, mesmo com token: senão um token válido escaparia do limite de login
+_ANONYMOUS_PATHS = frozenset({
+    "/auth/login",
+    "/auth/register",
+    "/auth/verify-email",
+})
+
 _EXEMPT_PATHS = ("/docs", "/openapi.json", "/redoc", "/health/liveness", "/health/readiness")
 
 _KEY_PREFIX = "plante:ratelimit"
@@ -33,7 +41,9 @@ _KEY_PREFIX = "plante:ratelimit"
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
-    Middleware de Rate Limiting com janela fixa por IP e escopo (geral / sensível).
+    Middleware de Rate Limiting com janela fixa por cliente e escopo (geral / sensível).
+    O cliente é o usuário do access token quando há um válido (o CGNAT das operadoras e o
+    load balancer colocam muitos usuários no mesmo IP); senão, o IP.
     Usa Redis como contador compartilhado entre workers e cai para um contador
     em memória (por processo) caso o Redis esteja indisponível.
     Evita abuso de cota em APIs de IA e endpoints sensíveis.
@@ -44,11 +54,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         requests_per_minute: int = _DEFAULT_RATE_LIMIT,
         sensitive_requests_per_minute: int = _SENSITIVE_RATE_LIMIT,
         redis_provider: Callable[[], Redis] | None = None,
+        token_decoder: Callable[[str], Any] | None = None,
     ) -> None:
         super().__init__(app)
         self._default_limit = requests_per_minute
         self._sensitive_limit = sensitive_requests_per_minute
         self._redis_provider = redis_provider
+        self._token_decoder = token_decoder
         self._memory_window = 0
         self._memory_counters: dict[str, int] = {}
 
@@ -59,6 +71,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         client_ip = request.client.host if request.client else "unknown"
+        client = self._client_identity(request, path, client_ip)
         now = time.time()
         window = int(now // _WINDOW_SECONDS)
         retry_after = max(_WINDOW_SECONDS - int(now % _WINDOW_SECONDS), 1)
@@ -67,12 +80,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         is_sensitive = path.rstrip("/") in _SENSITIVE_PATHS
         scope = "sensitive" if is_sensitive else "default"
         limit = self._sensitive_limit if is_sensitive else self._default_limit
-        key = f"{_KEY_PREFIX}:{scope}:{client_ip}:{window}"
+        key = f"{_KEY_PREFIX}:{scope}:{client}:{window}"
 
         count = await self._increment(key, window)
 
         if count > limit:
-            log.warning("rate_limit.exceeded", client_ip=client_ip, path=path, count=count, limit=limit)
+            log.warning("rate_limit.exceeded", client=client, client_ip=client_ip, path=path, count=count, limit=limit)
             exc = RateLimitExceededError(limit=limit, retry_after_seconds=retry_after)
             envelope = ApiResponse.fail(code=exc.code, message=exc.message, details=exc.details)
             return JSONResponse(
@@ -89,6 +102,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         response.headers["X-RateLimit-Limit"] = str(limit)
         response.headers["X-RateLimit-Remaining"] = str(limit - count)
         return response
+
+    def _client_identity(self, request: Request, path: str, client_ip: str) -> str:
+        if self._token_decoder is not None and path.rstrip("/") not in _ANONYMOUS_PATHS:
+            scheme, _, token = request.headers.get("authorization", "").partition(" ")
+            if scheme.lower() == "bearer" and token:
+                try:
+                    return f"user:{self._token_decoder(token)}"
+                except UnauthorizedError:
+                    pass  # token inválido ou expirado: a rota responde 401, aqui conta pelo IP
+        return f"ip:{client_ip}"
 
     async def _increment(self, key: str, window: int) -> int:
         if self._redis_provider is not None:

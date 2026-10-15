@@ -44,4 +44,5 @@ EXPOSE 8000
 # Comando padrão: API
 # Para workers, sobrescreva no docker-compose de produção:
 #   command: celery -A src.workers worker ...
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# --proxy-headers só confia nos IPs de $FORWARDED_ALLOW_IPS (padrão 127.0.0.1)
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]

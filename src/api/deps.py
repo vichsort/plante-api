@@ -10,7 +10,7 @@ from src.infrastructure.container import Container
 
 _bearer = HTTPBearer(auto_error=False)
 
-def _decode_access_token(token: str, secret: str, algorithm: str) -> Any:
+def decode_access_token(token: str, secret: str, algorithm: str) -> Any:
     try:
         payload = jwt.decode(token, secret, algorithms=[algorithm])
     except jwt.ExpiredSignatureError:
@@ -31,4 +31,4 @@ async def get_current_user_id(
 ) -> Any:
     if not credentials:
         raise UnauthorizedError("Authentication token is missing.")
-    return _decode_access_token(credentials.credentials, secret_key, algorithm)
+    return decode_access_token(credentials.credentials, secret_key, algorithm)

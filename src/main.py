@@ -1,10 +1,12 @@
 import inspect
 from contextlib import asynccontextmanager
+from functools import partial
 
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 
+from src.api.deps import decode_access_token
 from src.api.exception_handlers import register_exception_handlers
 from src.api.middleware import (
     AuditMiddleware,
@@ -74,7 +76,12 @@ def create_app() -> FastAPI:
     # Middlewares (registrados na ordem interna -> externa)
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(SecurityHeadersMiddleware)
-    app.add_middleware(RateLimitMiddleware, redis_provider=container.adapters.redis)
+    settings = container.settings()
+    app.add_middleware(
+        RateLimitMiddleware,
+        redis_provider=container.adapters.redis,
+        token_decoder=partial(decode_access_token, secret=settings.secret_key, algorithm=settings.jwt_algorithm),
+    )
     app.add_middleware(AuditMiddleware)
     app.add_middleware(CorrelationIdMiddleware)
 

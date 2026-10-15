@@ -8,7 +8,7 @@ Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; o
 
 **Crítico — fazer agora, nesta ordem:**
 1. ~~**Kindwise: confirmar contrato de erro e `is_plant`**~~ ✅ (Bloco 1) — bug visível ao usuário: foto que não é planta vira identificação.
-2. **Rate limit: chave por usuário em vez de IP + `--proxy-headers`** (Bloco 2) — atrás de load balancer o limite vira global e bloqueia todos.
+2. ~~**Rate limit: chave por usuário em vez de IP + `--proxy-headers`**~~ ✅ (Bloco 2) — atrás de load balancer o limite vira global e bloqueia todos.
 3. **Redis: timeouts curtos + backoff quando cai** (Bloco 2) — Redis lento hoje deixa todas as rotas lentas.
 
 **Importante — aguardando mais detalhes antes de começar:**
@@ -20,7 +20,7 @@ Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; o
 7. Propagar Correlation ID para Celery e chamadas HTTP aos provedores (Bloco 3).
 8. Itens de deploy em "Fora do código".
 
-Próximo passo: **Rate limit por usuário** (item 2).
+Próximo passo: **Redis: timeouts + backoff** (item 3).
 
 ---
 
@@ -82,11 +82,13 @@ Próximo passo: **Rate limit por usuário** (item 2).
 
 ## Bloco 2 — Endurecimento do Rate Limiter
 
-- [ ] **Chave por usuário em vez de IP**
+- [x] **Chave por usuário em vez de IP**
   - Rotas autenticadas contam por `user_id` (claim `sub` do JWT, validado com a mesma lógica de `src/api/deps.py`); IP só para rotas anônimas (`/auth/login`, `/auth/register`, `/auth/verify-email`).
   - Em produção, rodar uvicorn com `--proxy-headers --forwarded-allow-ips`.
   - Decisão: `FORWARDED_ALLOW_IPS` configurável por env (ainda sem deploy definido).
   - Motivo: CGNAT das operadoras móveis brasileiras coloca centenas de usuários no mesmo IP; atrás de load balancer todos aparecem com o IP dele.
+  - Feito: access token válido → `user:{sub}`; sem token ou inválido → `ip:{ip}`; as 3 rotas anônimas sempre por IP. `Dockerfile` com `--proxy-headers`; `FORWARDED_ALLOW_IPS` lido pelo próprio uvicorn do ambiente (documentado no `.env.example`).
+  - Atenção no deploy: uvicorn 0.30.6 aceita só IPs exatos ou `*` em `FORWARDED_ALLOW_IPS` (sem CIDR). Se o balanceador tiver IP dinâmico, avaliar atualizar o uvicorn ou usar `*` com a API inacessível por fora do balanceador.
 
 - [ ] **Backoff quando o Redis cai**
   - Após uma falha, usar só o contador em memória por ~30s antes de tentar o Redis de novo (reaproveitar `CircuitBreaker`).
