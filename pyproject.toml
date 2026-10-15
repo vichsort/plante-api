@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 
 dependencies = [
     # --- Web ---
-    "fastapi==0.115.0",
+    "fastapi==0.115.14",
     "uvicorn[standard]==0.54.0",
     "python-multipart==0.0.29",
     # --- Banco de dados ---
