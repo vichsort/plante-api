@@ -12,17 +12,47 @@ Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; o
 3. ~~**Redis: timeouts curtos + backoff quando cai**~~ ✅ (Bloco 2) — Redis lento hoje deixa todas as rotas lentas.
 3a. ~~**PlantNet: adapter nunca funcionou**~~ ✅ (achado nos testes reais) — mandava JSON e a API só aceita multipart (415); parser lia campos inexistentes.
 
-**Próximos — decididos em 2026-10-14, nesta ordem (proposta):**
-4. **Consenso: veto do `is_plant` + campos descartados** (ver Bloco 1). Decidido: `raw_response` guarda as duas respostas (`{"kindwise": ..., "plantnet": ...}`); imagens similares vêm do provedor vencedor, com `ImageSource` correto; `is_plant == false` do Kindwise veta o PlantNet. Documentar a regra no `ARCHITECTURE.md`, no `ConsensusIdentifier` e na issue #1.
-5. **CI (GitHub Actions)** + **testes de contrato** (`pytest -m contract`, fora do CI e do padrão: chamam Kindwise/PlantNet reais com as imagens de `tests/fixtures/providers/README.md`, baixadas na hora; ~2 créditos Kindwise por rodada). CI: `ruff`, `mypy`, `pytest` em push e PR de qualquer branch (hoje roda na `main`; com `develop` + PRs, só adicionar proteção de branch). Decidido: instalar stubs (`types-*`) e ligar `strict = true` — medido: 115 erros em 62 arquivos, 87 deles `type-arg` (mecânicos).
-6. **Código do checklist de deploy**: atualizar uvicorn (CIDR em `FORWARDED_ALLOW_IPS`); thresholds do circuit breaker em `Settings` (manter 5 falhas / 30s).
-7. **Postgres nos testes de integração** via `testcontainers` (decidido; mesmo mecanismo local e no CI). Ganhos: FKs com `ondelete` hoje não testadas (SQLite não aplica), `DateTime(timezone=True)` perde fuso no SQLite, migrations do Alembic nunca rodam (testes usam `create_all`).
+**Próximos — decididos em 2026-10-14 (4–7, 9, 10 feitos em 2026-10-15):**
+4. ~~**Consenso: veto do `is_plant` + campos descartados**~~ ✅ (ver Bloco 1). Veto via `NotAPlantError` (subclasse de `InvalidImageError`, mesmo `PLANTE_4013`); novo `ImageSource.PLANTNET_SIMILAR` (migration `6669c3cc2c4a`). Pendente: publicar o comentário na issue #1. Decidido: `raw_response` guarda as duas respostas (`{"kindwise": ..., "plantnet": ...}`); imagens similares vêm do provedor vencedor, com `ImageSource` correto; `is_plant == false` do Kindwise veta o PlantNet. Documentar a regra no `ARCHITECTURE.md`, no `ConsensusIdentifier` e na issue #1.
+5. ~~**CI (GitHub Actions)** + **testes de contrato**~~ ✅ (contrato ainda não rodado contra as APIs reais; CI roda no primeiro push) (`pytest -m contract`, fora do CI e do padrão: chamam Kindwise/PlantNet reais com as imagens de `tests/fixtures/providers/README.md`, baixadas na hora; ~2 créditos Kindwise por rodada). CI: `ruff`, `mypy`, `pytest` em push e PR de qualquer branch (hoje roda na `main`; com `develop` + PRs, só adicionar proteção de branch). Decidido: instalar stubs (`types-*`) e ligar `strict = true` — medido: 115 erros em 62 arquivos, 87 deles `type-arg` (mecânicos).
+6. ~~**Código do checklist de deploy**~~ ✅ (uvicorn 0.54.0; `AI_BREAKER_FAILURE_THRESHOLD` / `AI_BREAKER_RECOVERY_TIMEOUT_SECONDS`): atualizar uvicorn (CIDR em `FORWARDED_ALLOW_IPS`); thresholds do circuit breaker em `Settings` (manter 5 falhas / 30s).
+7. ~~**Postgres nos testes de integração** via `testcontainers`~~ ✅ (schema via Alembic; cada teste em transação desfeita no fim; sem Docker pula localmente e falha no CI). Ainda faltam testes que aproveitem os ganhos (FK `ondelete`, fuso) (decidido; mesmo mecanismo local e no CI). Ganhos: FKs com `ondelete` hoje não testadas (SQLite não aplica), `DateTime(timezone=True)` perde fuso no SQLite, migrations do Alembic nunca rodam (testes usam `create_all`).
 8. **Arquitetura**: `import-linter` no CI validando as regras atuais → módulo piloto (identificação) em monólito modular (subdomínio por módulo, hexagonal dentro, testes junto, shared kernel mínimo) → resto. Usuário vai detalhar.
-9. Use cases declaram seus erros (`raises`) + catálogo de erros do `ARCHITECTURE.md` (inclui a regra de marcador do `PLANTE_4013`).
-10. Propagar Correlation ID para Celery e chamadas HTTP aos provedores.
+9. ~~Use cases declaram seus erros~~ ✅ (`raises`) + catálogo de erros do `ARCHITECTURE.md` (inclui a regra de marcador do `PLANTE_4013`).
+10. ~~Propagar Correlation ID para Celery e chamadas HTTP aos provedores~~ ✅ Celery via sinais (cabeçalho `plante_correlation_id`: `correlation_id` já é do Celery). HTTP: decidido **não** mandar o cabeçalho aos provedores (não usam e repassaria a terceiros um ID que pode vir do cliente); os logs dessas chamadas já levam o ID.
 11. `ANTIGRAVITY.md`: desmembrar (trechos úteis → todo / `ARCHITECTURE.md` / `CLAUDE.md`) e excluir. **Não é versionado**: guardar cópia até confirmar.
 
-Próximo passo: item 4 (consenso).
+**Achado em 2026-10-15:** `/identify` nunca resolvia pelo container (`plant_reference_image_repository` não ligado desde o split do container em 2026-05-19; `Selector` do consenso comparava `"True"` com `"true"`). Corrigido e coberto em `tests/test_container_wiring.py`. Logo, o consenso nunca tinha rodado de ponta a ponta — a nota "consenso ativo em produção pela primeira vez" no Bloco 1 estava errada.
+
+**Crítico — achado em 2026-10-15 (decisão pendente, conversar junto com o item 8):**
+13. **Nenhuma escrita no banco é persistida.** Não existe `commit()` em `src`: cada repositório recebe uma sessão nova (`providers.Factory` em `InfraContainer.session`) e nenhuma é confirmada — o `flush` grava numa transação desfeita quando a sessão é descartada. Os repositórios de um mesmo use case nem compartilham transação. Afeta API e workers (a anonimização também nunca persistiu). Os testes de integração não pegam porque fazem `commit` à mão.
+    - Decidir: Unit of Work (port no domínio, sessão por requisição/task, commit no fim do use case ou num middleware). Cruza com o desenho de módulos do item 8.
+
+**Urgente — decidido em 2026-10-15:**
+12. ~~**Tipagem estrita: acabar com o `Any`.**~~ ✅ (2026-10-15) `Any` é erro; `object`, `cast` e `# type: ignore` não são usados para silenciar o checker. Regras no `ARCHITECTURE.md` (seção 6).
+    - **Regra do Pydantic:** dado que vem de fora do processo entra por Pydantic; dado criado dentro dele é dataclass, tipada sem `Any`.
+      - Pydantic (bordas): JSON dos provedores (Kindwise, PlantNet, Gemini, Open-Meteo, Nominatim), claims do JWT, valores do Redis, argumentos das tasks do Celery, schemas dos routers.
+      - Dataclass (domínio): entidades, value objects, DTOs dos ports (`IdentificationResult` etc.), eventos e saídas dos use cases. Ajuste em relação à proposta: os DTOs dos ports e os eventos ficaram dataclass — são criados dentro do processo (pelo adapter, depois de validar a resposta com Pydantic) e são tipos do domínio, que segue sem depender do Pydantic. A borda do Celery valida o payload da task no worker.
+      - Motivo: o ganho do Pydantic é validar em execução dados não confiáveis; dentro do domínio, com mypy estrito, revalidar é custo e o modo lax converte valores em silêncio.
+    - Feito: IDs `NewType` sobre `UUID`, gerados pelo domínio (sem `id=None`); `JsonValue`/`JsonObject` para JSON opaco; `Literal` nas origens e `StrEnum` nos enums de texto; saídas dos use cases tipadas e routers com `from_domain` (sem `Schema(**dict)`); porta `ITokenService` + `JwtTokenService` (domínio não importa mais `jwt`); `RedisClient` tipado; stubs do `firebase_admin` em `typings/`; `ANN401` no ruff.
+    - Rigor do mypy: `disallow_any_explicit`, `disallow_any_decorated` e `disallow_any_expr` globais. **Descoberta:** o `disallow_any_expr` literal é inviável — o typeshed tipa toda corrotina como `Coroutine[Any, Any, T]` e SQLAlchemy ORM, decorators do FastAPI/dependency_injector/Celery, redis-py, google-genai e PyJWT tipam a própria API com `Any`. Solução: lista fechada de módulos de cola no `pyproject.toml`, com o motivo de cada um; neles só expressões/decorators são liberados (`Any` escrito continua proibido). Única exceção a `disallow_any_explicit`: `settings.py` (o `BaseSettings` sintetiza `**values: Any`). Revisitar a lista quando as bibliotecas melhorarem os tipos.
+    - Bugs encontrados pela tipagem (todos corrigidos e cobertos por teste):
+      - `save` de todo repositório fazia INSERT mesmo para entidade existente (PK duplicada): verificar e-mail, trocar senha, regar, consumir token… quebravam. Agora `merge`.
+      - `health_records.user_id` existia no modelo mas não no banco: todo `/diagnose` falhava ao gravar. Migration `d44a59cc8835`. `HealthIdentificationSampleModel` não estava registrado no metadata (o autogenerate geraria `DROP TABLE`).
+      - `PlantSpeciesMapper` passava `provider_entity_id` (coluna inexistente; é `kindwise_entity_id`): gravar espécie nova quebrava todo `/identify` de espécie inédita.
+      - Respostas montadas com `Schema(**dict)` não batiam com o que os use cases devolviam (UUID em campo `str`, campos ausentes): `/auth/register`, `/identify`, `/garden/{id}/water`, `/profile/subscription/upgrade` e `/profile/achievements` quebravam na resposta. Os testes de rota usavam mocks no formato do schema, não do use case.
+      - Gemini sem saída estruturada: o prompt não definia as chaves, o parser caía nos padrões e o diagnóstico complementar dizia vitalidade 1.0 (saudável) para planta doente. Agora `response_schema` com o modelo Pydantic.
+      - `/identify` gravava `CONSENSUS` quando só o PlantNet respondeu.
+      - `/diagnose/confirm` aceitava diagnóstico de outro usuário (o erro `PLANTE_4017` promete "não pertence ao usuário").
+      - `FirebaseAdapter` não implementava a porta (`send`/`send_batch` ausentes); geocodificação usava uma cópia local de `GeocodingError` em vez da do domínio (`PLANTE_5002`).
+    - Mudanças visíveis na API: IDs em rota/corpo validados como UUID (inválido → 422, antes 500 no banco); datas serializadas pelo Pydantic (`...Z` em vez de `+00:00`); respostas antes genéricas (`/plants/{id}`, `/garden` POST/DELETE, probes) ganharam schema; `details` do 422 traz só `loc`/`msg`/`type` (sem o valor enviado); `POST /auth/register` devolve `status` (`pending_verification`).
+    - Avaliações de saúde pendentes no Redis gravadas antes do deploy (formato antigo) contam como expiradas (410, refazer o diagnóstico).
+
+**Achados para decidir depois (2026-10-15):**
+- `EnrichPlantSpeciesUseCase` chama o Gemini e descarta o resultado (salva a espécie sem alterar). Sem rota hoje.
+- `FirebaseAdapter` agora implementa a porta, mas nada envia notificação ainda.
+
+Próximo passo: item 13 (persistência/Unit of Work) junto com o item 8 (arquitetura) — discutir com cautela antes.
 
 ---
 
@@ -34,7 +64,7 @@ Próximo passo: item 4 (consenso).
   - Motivo: hoje qualquer valor de qualquer tamanho vai para todos os logs; um ID fixo enviado pelo cliente mistura traces.
   - Se o risco aumentar (API aberta a terceiros): sempre gerar o ID e logar o do cliente em `client_request_id`.
 
-- [ ] **Use cases declaram seus erros (`raises`)**
+- [x] **Use cases declaram seus erros (`raises`)**
   - Cada use case ganha `raises = (PlantNotFoundError, ...)`; routers usam `error_responses(*UseCase.raises)`.
   - Teste que lê o código de cada use case e falha se algum `raise X` não estiver em `raises`.
   - Erros vindos de policies/entidades (`SubscriptionPolicy`, `UserPlant.water()`) continuam sendo listados à mão.
@@ -77,20 +107,20 @@ Próximo passo: item 4 (consenso).
 - [ ] **Docs e limpeza**
   - [x] Corrigir docstring do `CorrelationIdMiddleware` (não é "tracing distribuído" ainda).
   - [x] Remover `src/domain/exceptions.py` (código morto, sombreado pelo pacote `src/domain/exceptions/`).
-  - [ ] Atualizar catálogo de erros do `ARCHITECTURE.md`: nomes divergentes do código (4003, 4004, 4007), faltam 4008–4019 e 5002, e o 5001 não cita Gemini nem `retryable`.
+  - [x] Atualizar catálogo de erros do `ARCHITECTURE.md`: nomes divergentes do código (4003, 4004, 4007), faltam 4008–4019 e 5002, e o 5001 não cita Gemini nem `retryable`.
   - [ ] `ANTIGRAVITY.md`: existe localmente, mas está no `.gitignore` (linha 56) — decidir se continua só local (descartar o item) ou passa a ser versionado.
 
 - [x] **PlantNet: corrigir formato da requisição e parser** (achado em 2026-10-14)
   - Requisição ia como JSON com base64; a API só aceita `multipart/form-data` → toda chamada voltava 415 (não retryable, só `consensus.failed` em warning). Na prática o `/identify` sempre rodou só com Kindwise e a `ConsensusPolicy` nunca rodou com dados reais.
   - Parser lia `species.taxonomy` (não existe): família/gênero vêm em `species.family/genus.scientificNameWithoutAuthor`, GBIF em `results[0].gbif.id`, `images[].url` é `{o, m, s}`.
   - Verificado contra a API real: Monstera → 200 (85,8%, Araceae); gato → 404 `Species not found`; bytes que não são imagem → 400 `Unsupported file type`; `organs` inválido/desbalanceado → 400 (erro nosso). Regra aplicada igual ao Kindwise: só `Unsupported file type`/`Species not found` viram `InvalidImageError`.
-  - Efeito: consenso ativo em produção pela primeira vez; cada `/identify` consome também a cota do PlantNet (500/dia no plano atual).
+  - Efeito: ~~consenso ativo em produção pela primeira vez~~ (errado: `/identify` não resolvia pelo container até 2026-10-15); cada `/identify` consome também a cota do PlantNet (500/dia no plano atual).
 
-- [ ] **Consenso: veto do `is_plant` do Kindwise**
+- [x] **Consenso: veto do `is_plant` do Kindwise**
   - Hoje, se o Kindwise rejeita (`is_plant == false`) e o PlantNet devolve uma espécie, vale o PlantNet. No teste real o gato foi rejeitado pelos dois, então é caso de borda (ex.: planta ao fundo da foto).
   - Proposta: `InvalidImageError` do Kindwise por `is_plant` vetar o resultado do PlantNet. Decisão pendente.
 
-- [ ] **Consenso descarta `similar_images` e `raw_response`**
+- [x] **Consenso descarta `similar_images` e `raw_response`**
   - `ConsensusIdentifier` monta o `IdentificationResult` final sem esses campos. Com `consensus_enabled=True` (padrão), o `IdentifyPlantUseCase` nunca rehospeda imagens de referência (`for similar in result.similar_images` fica vazio) e salva `raw_response={}` em toda amostra.
   - Bug anterior às correções de 2026-10-14 (existe desde que o consenso entrou); a correção do PlantNet não o causou.
   - Ao corrigir: o use case grava `ImageSource.KINDWISE_SIMILAR` fixo — imagens do PlantNet ficariam com origem errada. Decidir de qual provedor vêm as imagens/`raw_response` quando o consenso combina os dois.
@@ -118,19 +148,20 @@ Próximo passo: item 4 (consenso).
 
 ## Bloco 3 — CI e testes contra infraestrutura real
 
-- [ ] **Pipeline básico (GitHub Actions)**: `ruff`, `mypy`, `pytest`.
+- [x] **Pipeline básico (GitHub Actions)**: `ruff`, `mypy`, `pytest`.
   - Antes: zerar os 6 erros de `mypy` por falta de stubs (celery, boto3, aioboto3, firebase_admin) — pacotes `types-*` ou `ignore_missing_imports` por módulo.
 
 - [ ] **Redis e Postgres como services do job**
+  - Postgres resolvido de outro jeito: `testcontainers` (local e CI). Falta o Redis — usar `testcontainers` também, pelo mesmo motivo.
   - Testes dependentes marcados (`@pytest.mark.redis`, `@pytest.mark.postgres`), pulados localmente quando a infra não estiver de pé, obrigatórios no CI.
   - Substituir o `_FakeRedis` de `tests/unit/api/test_middlewares.py` por teste de integração contra Redis real (pipeline `INCR` + `EXPIRE`).
   - Decisão: sem `fakeredis` — com Redis real no CI ele não se paga.
 
-- [ ] **Trocar SQLite por Postgres nos testes de integração**
+- [x] **Trocar SQLite por Postgres nos testes de integração**
   - Hoje rodam em SQLite em memória, que diverge do Postgres em UUID, JSONB, timezone e constraints.
   - Investigar antes de estimar: quanto os testes dependem de comportamento do SQLite.
 
-- [ ] **Propagar Correlation ID** para tasks Celery e chamadas HTTP aos provedores.
+- [x] **Propagar Correlation ID** para tasks Celery e chamadas HTTP aos provedores.
 
 ---
 

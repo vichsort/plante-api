@@ -214,16 +214,34 @@ Para evitar vazamento de conexões de banco de dados e loops de eventos concorre
 
 ---
 
-## 6. Qualidade de Código & Checklist de Contribuição (CI/CD)
+## 6. Tipagem Estrita
 
-Antes de abrir um Pull Request no repositório, o contribuidor deve garantir:
+`Any` é proibido: nem escrito (`disallow_any_explicit` + ruff `ANN401`), nem vindo de expressões ou decorators (`disallow_any_expr`, `disallow_any_decorated`). `cast` e `# type: ignore` não são usados para silenciar o checker.
+
+* **Pydantic nas bordas, dataclasses no domínio.** Dado que vem de fora do processo entra por um modelo Pydantic: respostas de Kindwise/PlantNet/Gemini/Open-Meteo/Nominatim (`src/adapters/**`), claims do JWT, valores lidos do Redis, argumentos de tasks do Celery e corpo das requisições (`src/api/schemas/`). Dado criado dentro do processo é dataclass tipada: entidades, value objects, DTOs dos ports e saídas dos use cases. O domínio não depende do Pydantic.
+* **IDs**: `NewType` sobre `UUID` por entidade (`UserId`, `UserPlantId`… em `src/domain/value_objects/ids.py`), gerados pelo domínio na criação (nunca pelo banco). O mypy impede passar o ID de uma entidade no lugar do de outra.
+* **JSON opaco** (`raw_response`, `details` de erro): `JsonValue` / `JsonObject` (`src/domain/value_objects/json_value.py`), alias recursivo exato de JSON. Quem precisa ler um campo usa um modelo próprio na borda, não navega no JSON.
+* **Origens**: `Literal` (`IdentificationOrigin`, `HealthSource`…), enums de texto são `StrEnum`.
+* **Resposta fora do contrato** de um provedor é falha do provedor: `ExternalServiceError` não retryable + log `provider.unexpected_response`. O Gemini usa saída estruturada (`response_schema` = o modelo Pydantic), então é obrigado a responder no formato validado.
+* **Cola de biblioteca**: alguns módulos falam com bibliotecas que tipam a própria API com `Any` (SQLAlchemy ORM, decorators do FastAPI/dependency_injector/Celery, redis-py, google-genai, PyJWT; o typeshed tipa até toda corrotina como `Coroutine[Any, Any, T]`). Esses módulos estão listados no `pyproject.toml`, com o motivo de cada um; neles só a checagem de expressões/decorators é desligada (`Any` escrito continua proibido) e o dado que sai para o domínio já sai tipado. Cada biblioteca fica isolada no menor módulo possível (ex.: `RedisClient`, `GeminiClient`, `JwtTokenService`). Bibliotecas sem tipos ganham stubs mínimos em `typings/` (ex.: `firebase_admin`).
+
+---
+
+## 7. Qualidade de Código & Checklist de Contribuição (CI/CD)
+
+Antes de abrir um Pull Request no repositório, o contribuidor deve garantir (o CI roda os três em todo push e PR):
 
 ```bash
-# 1. Executar a suíte completa de testes automatizados
+# 1. Executar a suíte completa de testes automatizados (persistência em Postgres via testcontainers: requer Docker)
 uv run pytest
 
 # 2. Verificar linting e formatação de código
-uv run ruff check .
+uv run ruff check src tests migrations
+
+# 3. Verificar tipagem estrita
+uv run mypy
 ```
+
+Testes de contrato contra as APIs reais dos provedores ficam fora do padrão e do CI (gastam créditos): `uv run pytest -m contract`.
 
 ---
