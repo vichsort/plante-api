@@ -9,7 +9,7 @@ Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; o
 **Crítico — fazer agora, nesta ordem:**
 1. ~~**Kindwise: confirmar contrato de erro e `is_plant`**~~ ✅ (Bloco 1) — bug visível ao usuário: foto que não é planta vira identificação.
 2. ~~**Rate limit: chave por usuário em vez de IP + `--proxy-headers`**~~ ✅ (Bloco 2) — atrás de load balancer o limite vira global e bloqueia todos.
-3. **Redis: timeouts curtos + backoff quando cai** (Bloco 2) — Redis lento hoje deixa todas as rotas lentas.
+3. ~~**Redis: timeouts curtos + backoff quando cai**~~ ✅ (Bloco 2) — Redis lento hoje deixa todas as rotas lentas.
 
 **Importante — aguardando mais detalhes antes de começar:**
 4. Pipeline básico de CI (`ruff`, `mypy`, `pytest`) (Bloco 3).
@@ -20,7 +20,7 @@ Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; o
 7. Propagar Correlation ID para Celery e chamadas HTTP aos provedores (Bloco 3).
 8. Itens de deploy em "Fora do código".
 
-Próximo passo: **Redis: timeouts + backoff** (item 3).
+Próximo passo: itens críticos concluídos; itens 4–8 aguardam mais detalhes.
 
 ---
 
@@ -90,10 +90,12 @@ Próximo passo: **Redis: timeouts + backoff** (item 3).
   - Feito: access token válido → `user:{sub}`; sem token ou inválido → `ip:{ip}`; as 3 rotas anônimas sempre por IP. `Dockerfile` com `--proxy-headers`; `FORWARDED_ALLOW_IPS` lido pelo próprio uvicorn do ambiente (documentado no `.env.example`).
   - Atenção no deploy: uvicorn 0.30.6 aceita só IPs exatos ou `*` em `FORWARDED_ALLOW_IPS` (sem CIDR). Se o balanceador tiver IP dinâmico, avaliar atualizar o uvicorn ou usar `*` com a API inacessível por fora do balanceador.
 
-- [ ] **Backoff quando o Redis cai**
+- [x] **Backoff quando o Redis cai**
   - Após uma falha, usar só o contador em memória por ~30s antes de tentar o Redis de novo (reaproveitar `CircuitBreaker`).
   - Decisão: adicionar `socket_timeout`/`socket_connect_timeout` curtos (~0,5s) ao cliente Redis — o backoff só cobre falha, não lentidão.
   - Motivo: hoje cada requisição tenta conectar, falha e loga; Redis lento adiciona latência a toda rota e Redis oscilando divide a contagem (limite efetivo dobra).
+  - Feito: `CircuitBreaker("Redis", failure_threshold=1, 30s)` no rate limit; erros `RedisError`/`OSError` viram `ExternalServiceError(retryable=True)`; erro inesperado ainda cai para a memória. Timeouts em `Settings` (`REDIS_SOCKET_TIMEOUT_SECONDS`/`REDIS_CONNECT_TIMEOUT_SECONDS`, padrão 0,5s).
+  - Atenção: os timeouts valem para o cliente Redis **compartilhado** (tokens, OTP, raw_response do diagnóstico, readiness). Se o Redis de produção for remoto, medir a latência e ajustar por env.
 
 ---
 

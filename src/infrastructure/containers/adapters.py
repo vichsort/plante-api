@@ -36,6 +36,8 @@ class AdaptersContainer(containers.DeclarativeContainer):
         Redis.from_url,
         url=settings.provided.redis_url,
         decode_responses=False,
+        socket_timeout=settings.provided.redis_socket_timeout_seconds,
+        socket_connect_timeout=settings.provided.redis_connect_timeout_seconds,
     )
 
     token_repository = providers.Singleton(

@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     redis_password: str = ""
     redis_endpoint: str = "localhost"
     redis_port: int = 6379
+    # Curtos: Redis lento não pode segurar toda requisição (rate limit roda em todas as rotas)
+    redis_socket_timeout_seconds: float = 0.5
+    redis_connect_timeout_seconds: float = 0.5
 
     @property
     def redis_url(self) -> str:

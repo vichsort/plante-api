@@ -1,10 +1,14 @@
+import asyncio
+import time
 import uuid
 from functools import partial
 
+import httpx
 import jwt
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from redis.asyncio import Redis
 
 from src.api.deps import decode_access_token
 from src.api.middleware import (
@@ -13,6 +17,7 @@ from src.api.middleware import (
     SecurityHeadersMiddleware,
 )
 from src.domain.exceptions import UnauthorizedError
+from src.infrastructure.container import Container
 
 
 def test_correlation_id_middleware_generates_and_propagates():
@@ -311,3 +316,82 @@ def test_rate_limit_with_real_token_decoder():
     client.get("/api/test", headers={"Authorization": f"Bearer {access}"})
     client.get("/api/test", headers={"Authorization": f"Bearer {refresh}"})
     assert {key.split(":")[3] for key in fake.store} == {"user", "ip"}
+
+
+class _Clock:
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
+def test_rate_limit_backs_off_redis_after_failure():
+    calls = []
+    clock = _Clock()
+    fake = _FakeRedis()
+
+    def flaky_redis():
+        calls.append(clock.now)
+        if len(calls) == 1:
+            raise ConnectionError("redis down")
+        return fake
+
+    client = TestClient(_rate_limited_app(
+        requests_per_minute=100, redis_provider=flaky_redis, redis_backoff_seconds=30, clock=clock,
+    ))
+
+    for _ in range(3):
+        assert client.get("/api/test").status_code == 200
+    # Só a primeira requisição tentou o Redis; as demais usaram a memória durante o backoff
+    assert len(calls) == 1
+
+    clock.now = 30
+    assert client.get("/api/test").status_code == 200
+    assert len(calls) == 2
+    assert len(fake.store) == 1
+
+
+def test_rate_limit_falls_back_on_unexpected_redis_error():
+    def buggy_redis():
+        raise RuntimeError("unexpected")
+
+    client = TestClient(_rate_limited_app(requests_per_minute=1, redis_provider=buggy_redis))
+
+    assert client.get("/api/test").status_code == 200
+    assert client.get("/api/test").status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_does_not_hang_on_unresponsive_redis():
+    # Servidor que aceita a conexão e nunca responde: simula Redis travado
+    async def never_reply(reader, writer):
+        while await reader.read(1024):
+            pass
+        writer.close()
+
+    server = await asyncio.start_server(never_reply, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    redis = Redis.from_url(f"redis://127.0.0.1:{port}", socket_timeout=0.2, socket_connect_timeout=0.2)
+    app = _rate_limited_app(redis_provider=lambda: redis)
+
+    try:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+            started = time.monotonic()
+            assert (await client.get("/api/test")).status_code == 200
+            assert time.monotonic() - started < 1.0
+            # Backoff: a segunda requisição nem tenta o Redis
+            started = time.monotonic()
+            assert (await client.get("/api/test")).status_code == 200
+            assert time.monotonic() - started < 0.1
+    finally:
+        await redis.aclose()
+        server.close()
+        await server.wait_closed()
+
+
+def test_container_redis_client_has_short_timeouts():
+    redis = Container().adapters.redis()
+    kwargs = redis.connection_pool.connection_kwargs
+    assert kwargs["socket_timeout"] == 0.5
+    assert kwargs["socket_connect_timeout"] == 0.5

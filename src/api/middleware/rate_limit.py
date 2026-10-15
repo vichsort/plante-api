@@ -5,11 +5,17 @@ from typing import Any
 import structlog
 from fastapi import Request
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
 
+from src.adapters.resilience.circuit_breaker import CircuitBreaker
 from src.api.response import ApiResponse
-from src.domain.exceptions import RateLimitExceededError, UnauthorizedError
+from src.domain.exceptions import (
+    ExternalServiceError,
+    RateLimitExceededError,
+    UnauthorizedError,
+)
 
 log = structlog.get_logger()
 
@@ -38,6 +44,9 @@ _EXEMPT_PATHS = ("/docs", "/openapi.json", "/redoc", "/health/liveness", "/healt
 
 _KEY_PREFIX = "plante:ratelimit"
 
+# Após uma falha do Redis, usa só o contador em memória por esse tempo antes de tentar de novo
+_REDIS_BACKOFF_SECONDS = 30.0
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
@@ -45,7 +54,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     O cliente é o usuário do access token quando há um válido (o CGNAT das operadoras e o
     load balancer colocam muitos usuários no mesmo IP); senão, o IP.
     Usa Redis como contador compartilhado entre workers e cai para um contador
-    em memória (por processo) caso o Redis esteja indisponível.
+    em memória (por processo) caso o Redis esteja indisponível; após uma falha, fica no
+    contador em memória por _REDIS_BACKOFF_SECONDS em vez de tentar o Redis a cada requisição.
     Evita abuso de cota em APIs de IA e endpoints sensíveis.
     """
     def __init__(
@@ -55,12 +65,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         sensitive_requests_per_minute: int = _SENSITIVE_RATE_LIMIT,
         redis_provider: Callable[[], Redis] | None = None,
         token_decoder: Callable[[str], Any] | None = None,
+        redis_backoff_seconds: float = _REDIS_BACKOFF_SECONDS,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         super().__init__(app)
         self._default_limit = requests_per_minute
         self._sensitive_limit = sensitive_requests_per_minute
         self._redis_provider = redis_provider
         self._token_decoder = token_decoder
+        self._redis_breaker = CircuitBreaker(
+            "Redis", failure_threshold=1, recovery_timeout_seconds=redis_backoff_seconds, clock=clock
+        )
         self._memory_window = 0
         self._memory_counters: dict[str, int] = {}
 
@@ -114,15 +129,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return f"ip:{client_ip}"
 
     async def _increment(self, key: str, window: int) -> int:
-        if self._redis_provider is not None:
+        provider = self._redis_provider
+        if provider is not None:
             try:
-                redis = self._redis_provider()
-                async with redis.pipeline(transaction=True) as pipe:
-                    pipe.incr(key)
-                    pipe.expire(key, _WINDOW_SECONDS * 2)
-                    count, _ = await pipe.execute()
-                return int(count)
+                return await self._redis_breaker.call(lambda: _increment_in_redis(provider, key))
+            except ExternalServiceError:
+                pass  # falha ou backoff ativo; o breaker loga a abertura e o fechamento
             except Exception as exc:
+                # Rate limit nunca derruba a requisição
                 log.warning("rate_limit.redis_unavailable", error=str(exc))
 
         return self._increment_in_memory(key, window)
@@ -135,3 +149,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         self._memory_counters[key] = self._memory_counters.get(key, 0) + 1
         return self._memory_counters[key]
+
+
+async def _increment_in_redis(provider: Callable[[], Redis], key: str) -> int:
+    try:
+        redis = provider()
+        async with redis.pipeline(transaction=True) as pipe:
+            pipe.incr(key)
+            pipe.expire(key, _WINDOW_SECONDS * 2)
+            count, _ = await pipe.execute()
+        return int(count)
+    except (RedisError, OSError) as exc:
+        raise ExternalServiceError(message=f"{type(exc).__name__}: {exc}", service="Redis", retryable=True) from exc
