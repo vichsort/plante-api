@@ -27,7 +27,8 @@ class HealthIdentificationSampleRepository(IHealthIdentificationSampleRepository
         sample: HealthIdentificationSample,
     ) -> HealthIdentificationSample:
         model = HealthIdentificationSampleMapper.to_model(sample)
-        self._session.add(model)
+        # merge: INSERT para entidade nova, UPDATE para existente (add sempre tentaria INSERT)
+        model = await self._session.merge(model)
         await self._session.flush()
         return HealthIdentificationSampleMapper.to_domain(model)
 

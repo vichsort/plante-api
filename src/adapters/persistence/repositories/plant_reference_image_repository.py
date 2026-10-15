@@ -19,7 +19,8 @@ class PlantReferenceImageRepository(IPlantReferenceImageRepository):
 
     async def save(self, image: PlantReferenceImage) -> PlantReferenceImage:
         model = PlantReferenceImageMapper.to_model(image)
-        self._session.add(model)
+        # merge: INSERT para entidade nova, UPDATE para existente (add sempre tentaria INSERT)
+        model = await self._session.merge(model)
         await self._session.flush()
         return PlantReferenceImageMapper.to_domain(model)
 

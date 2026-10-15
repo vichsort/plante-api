@@ -17,7 +17,8 @@ class UserRepository(IUserRepository):
 
     async def save(self, user: User) -> User:
         model = UserMapper.to_model(user)
-        self._session.add(model)
+        # merge: INSERT para entidade nova, UPDATE para existente (add sempre tentaria INSERT)
+        model = await self._session.merge(model)
         await self._session.flush()
         return UserMapper.to_domain(model)
 

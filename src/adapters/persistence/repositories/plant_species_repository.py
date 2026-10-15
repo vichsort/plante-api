@@ -16,7 +16,8 @@ class PlantSpeciesRepository(IPlantSpeciesRepository):
 
     async def save(self, species: PlantSpecies) -> PlantSpecies:
         model = PlantSpeciesMapper.to_model(species)
-        self._session.add(model)
+        # merge: INSERT para entidade nova, UPDATE para existente (add sempre tentaria INSERT)
+        model = await self._session.merge(model)
         await self._session.flush()
         return PlantSpeciesMapper.to_domain(model)
 

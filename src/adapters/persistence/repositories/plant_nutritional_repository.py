@@ -16,7 +16,8 @@ class PlantNutritionalRepository(IPlantNutritionalRepository):
 
     async def save(self, nutritional: PlantNutritional) -> PlantNutritional:
         model = PlantNutritionalMapper.to_model(nutritional)
-        self._session.add(model)
+        # merge: INSERT para entidade nova, UPDATE para existente (add sempre tentaria INSERT)
+        model = await self._session.merge(model)
         await self._session.flush()
         return PlantNutritionalMapper.to_domain(model)
 

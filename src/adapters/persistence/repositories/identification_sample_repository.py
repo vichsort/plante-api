@@ -24,7 +24,8 @@ class IdentificationSampleRepository(IIdentificationSampleRepository):
 
     async def save(self, sample: PlantIdentificationSample) -> PlantIdentificationSample:
         model = IdentificationSampleMapper.to_model(sample)
-        self._session.add(model)
+        # merge: INSERT para entidade nova, UPDATE para existente (add sempre tentaria INSERT)
+        model = await self._session.merge(model)
         await self._session.flush()
         return IdentificationSampleMapper.to_domain(model)
 

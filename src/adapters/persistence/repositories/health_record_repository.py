@@ -13,7 +13,8 @@ class HealthRecordRepository(IHealthRecordRepository):
 
     async def save(self, record: HealthRecord) -> HealthRecord:
         model = HealthRecordMapper.to_model(record)
-        self._session.add(model)
+        # merge: INSERT para entidade nova, UPDATE para existente (add sempre tentaria INSERT)
+        model = await self._session.merge(model)
         await self._session.flush()
         return HealthRecordMapper.to_domain(model)
 
