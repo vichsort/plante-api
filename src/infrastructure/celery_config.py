@@ -1,7 +1,11 @@
 import os
+import uuid
+from typing import Any
 
-from celery import Celery
+import structlog
+from celery import Celery, Task
 from celery.schedules import crontab
+from celery.signals import before_task_publish, task_postrun, task_prerun
 
 broker_url = os.getenv("REDIS_ENDPOINT", "redis://localhost:6379/0")
 if not broker_url.startswith("redis://"):
@@ -23,3 +27,27 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(hour=3, minute=0),
     },
 }
+
+# Correlation ID: a task herda o ID da requisição que a publicou. O nome evita `correlation_id`,
+# que o Celery já usa como ID da própria task.
+_CORRELATION_HEADER = "plante_correlation_id"
+
+
+@before_task_publish.connect
+def _attach_correlation_id(headers: dict[str, Any] | None = None, **_: Any) -> None:
+    correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
+    if headers is not None and correlation_id:
+        headers[_CORRELATION_HEADER] = correlation_id
+
+
+@task_prerun.connect
+def _bind_correlation_id(task: "Task[Any, Any] | None" = None, **_: Any) -> None:
+    # Tasks do beat (sem requisição de origem) ganham um ID próprio por execução
+    correlation_id = getattr(task.request, _CORRELATION_HEADER, None) if task else None
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(correlation_id=correlation_id or str(uuid.uuid4()))
+
+
+@task_postrun.connect
+def _clear_correlation_id(**_: Any) -> None:
+    structlog.contextvars.clear_contextvars()
