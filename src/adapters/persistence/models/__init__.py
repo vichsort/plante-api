@@ -1,5 +1,6 @@
 from .achievement_model import AchievementModel
 from .base import Base
+from .health_identification_sample_model import HealthIdentificationSampleModel
 from .health_record_model import HealthRecordModel
 from .plant_identification_sample_model import PlantIdentificationSampleModel
 from .plant_nutritional_model import PlantNutritionalModel
@@ -22,5 +23,6 @@ __all__ = [
     "UserPlantModel",
     "PlantIdentificationSampleModel",
     'HealthRecordModel',
+    'HealthIdentificationSampleModel',
     'AchievementModel'
 ]
