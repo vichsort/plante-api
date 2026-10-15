@@ -3,6 +3,7 @@ from typing import Any
 import httpx
 
 from src.adapters.ai.provider_errors import translate_provider_errors
+from src.domain.entities.plant_reference_image import ImageSource
 from src.domain.exceptions import InvalidImageError
 from src.domain.ports.plant_identifier import (
     IdentificationResult,
@@ -71,6 +72,7 @@ class PlantNetAdapter(IPlantIdentifier):
             SimilarImage(
                 url=urls["m"],
                 similarity=0.0,
+                source=ImageSource.PLANTNET_SIMILAR,
                 url_small=urls.get("s"),
                 license_name=img.get("license"),
             )

@@ -5,6 +5,7 @@ import pytest
 
 from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
+from src.domain.entities.plant_reference_image import ImageSource
 from src.domain.exceptions import NotAPlantError
 
 _FIXTURES = Path(__file__).parents[2] / "fixtures" / "providers"
@@ -36,3 +37,4 @@ def test_plantnet_parses_real_identification():
     assert result.genus == "Monstera"
     assert result.gbif_id
     assert result.similar_images
+    assert {img.source for img in result.similar_images} == {ImageSource.PLANTNET_SIMILAR}

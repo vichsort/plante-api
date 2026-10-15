@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
+from src.domain.entities.plant_reference_image import ImageSource
 from src.domain.value_objects.confidence_score import ConfidenceScore
 
 
@@ -8,6 +9,7 @@ from src.domain.value_objects.confidence_score import ConfidenceScore
 class SimilarImage:
     url: str
     similarity: float
+    source: ImageSource
     url_small: str | None = None
     license_name: str | None = None
 

@@ -4,12 +4,13 @@ import pytest
 
 from src.adapters.ai.consensus import consensus_adapter
 from src.adapters.ai.consensus.consensus_adapter import ConsensusIdentifier
+from src.domain.entities.plant_reference_image import ImageSource
 from src.domain.exceptions import (
     ExternalServiceError,
     InvalidImageError,
     NotAPlantError,
 )
-from src.domain.ports.plant_identifier import IdentificationResult
+from src.domain.ports.plant_identifier import IdentificationResult, SimilarImage
 from src.domain.value_objects.confidence_score import ConfidenceScore
 
 
@@ -23,11 +24,16 @@ class _Identifier:
         return self._outcome
 
 
-def _result(source: str) -> IdentificationResult:
+_IMAGE_SOURCES = {"kindwise": ImageSource.KINDWISE_SIMILAR, "plantnet": ImageSource.PLANTNET_SIMILAR}
+
+
+def _result(source: str, scientific_name: str = "Monstera deliciosa", confidence: float = 0.9) -> IdentificationResult:
     return IdentificationResult(
-        scientific_name="Monstera deliciosa",
-        confidence=ConfidenceScore(0.9),
+        scientific_name=scientific_name,
+        confidence=ConfidenceScore(confidence),
         source=source,
+        similar_images=(SimilarImage(url=f"https://{source}/1.jpg", similarity=0.5, source=_IMAGE_SOURCES[source]),),
+        raw_response={"from": source},
     )
 
 
@@ -84,3 +90,31 @@ async def test_timeouts_become_external_service_error(monkeypatch):
 async def test_unknown_errors_keep_policy_behavior():
     with pytest.raises(ValueError):
         await _consensus(ValueError("no suggestions"), ValueError("no results")).identify(b"img")
+
+
+@pytest.mark.asyncio
+async def test_keeps_both_raw_responses():
+    result = await _consensus(_result("kindwise"), _result("plantnet")).identify(b"img")
+    assert result.raw_response == {"kindwise": {"from": "kindwise"}, "plantnet": {"from": "plantnet"}}
+
+
+@pytest.mark.asyncio
+async def test_raw_response_is_none_for_failed_provider():
+    unavailable = ExternalServiceError(service="Kindwise", retryable=True)
+    result = await _consensus(unavailable, _result("plantnet")).identify(b"img")
+    assert result.raw_response == {"kindwise": None, "plantnet": {"from": "plantnet"}}
+
+
+@pytest.mark.asyncio
+async def test_similar_images_come_from_kindwise_on_exact_match():
+    result = await _consensus(_result("kindwise"), _result("plantnet")).identify(b"img")
+    assert [img.source for img in result.similar_images] == [ImageSource.KINDWISE_SIMILAR]
+
+
+@pytest.mark.asyncio
+async def test_similar_images_come_from_winning_provider():
+    kindwise = _result("kindwise", "Ficus lyrata", confidence=0.3)
+    plantnet = _result("plantnet", "Monstera deliciosa", confidence=0.9)
+    result = await _consensus(kindwise, plantnet).identify(b"img")
+    assert result.scientific_name == "Monstera deliciosa"
+    assert [img.source for img in result.similar_images] == [ImageSource.PLANTNET_SIMILAR]

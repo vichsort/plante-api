@@ -6,6 +6,7 @@ from typing import Any
 
 class ImageSource(Enum):
     KINDWISE_SIMILAR = "kindwise_similar"
+    PLANTNET_SIMILAR = "plantnet_similar"
     USER_CONFIRMED = "user_confirmed"
 
 @dataclass(frozen=True)

@@ -3,6 +3,7 @@ import base64
 import httpx
 
 from src.adapters.ai.provider_errors import translate_provider_errors
+from src.domain.entities.plant_reference_image import ImageSource
 from src.domain.exceptions import InvalidImageError, NotAPlantError
 from src.domain.ports.health_analyzer import (
     DiseaseHint,
@@ -76,6 +77,7 @@ class KindwiseAdapter(IHealthAnalyzer, IPlantIdentifier):
             SimilarImage(
                 url=img.get("url", ""),
                 similarity=img.get("similarity", 0.0),
+                source=ImageSource.KINDWISE_SIMILAR,
                 url_small=img.get("url_small"),
                 license_name=img.get("license_name"),
             )

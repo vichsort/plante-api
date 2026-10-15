@@ -18,6 +18,16 @@ log = structlog.get_logger()
 _TIMEOUT_SECONDS = 10.0
 
 class ConsensusIdentifier(IPlantIdentifier):
+    """
+    Consulta Kindwise e PlantNet em paralelo e resolve a espécie pela `ConsensusPolicy`.
+
+    - `NotAPlantError` do Kindwise veta o PlantNet; outras falhas de um provedor deixam o outro decidir.
+    - `similar_images` vêm do provedor cujos dados venceram (`ConsensusResult.provider`;
+      Kindwise no acordo exato), cada uma com o próprio `ImageSource`.
+    - `raw_response` guarda as duas respostas: `{"kindwise": ..., "plantnet": ...}`
+      (`None` para o provedor que falhou).
+    """
+
     def __init__(
         self,
         kindwise: IPlantIdentifier,
@@ -59,7 +69,11 @@ class ConsensusIdentifier(IPlantIdentifier):
             source=consensus.source,
             confidence=consensus.confidence.value,
             low_confidence=consensus.low_confidence,
+            provider=consensus.provider,
         )
+
+        winner = kindwise_result if consensus.provider == "kindwise" else plantnet_result
+        assert winner is not None
 
         return IdentificationResult(
             scientific_name=consensus.scientific_name,
@@ -70,7 +84,12 @@ class ConsensusIdentifier(IPlantIdentifier):
             family=consensus.family,
             genus=consensus.genus,
             common_names=consensus.common_names,
+            similar_images=winner.similar_images,
             low_confidence=consensus.low_confidence,
+            raw_response={
+                "kindwise": kindwise_result.raw_response if kindwise_result else None,
+                "plantnet": plantnet_result.raw_response if plantnet_result else None,
+            },
         )
 
     async def _call_with_timeout(

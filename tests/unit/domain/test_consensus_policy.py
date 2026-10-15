@@ -84,3 +84,15 @@ def test_consensus_single_source_fallback():
 def test_consensus_both_none_raises():
     with pytest.raises(ValueError, match="Both identifiers failed"):
         ConsensusPolicy.resolve(None, None)
+
+
+@pytest.mark.parametrize("kindwise, plantnet, provider", [
+    (make_result("Monstera deliciosa", 0.60), make_result("Monstera deliciosa", 0.95), "kindwise"),
+    (make_result("Monstera deliciosa", 0.70, genus="Monstera"),
+     make_result("Monstera adansonii", 0.80, genus="Monstera"), "plantnet"),
+    (make_result("Ficus lyrata", 0.30), make_result("Monstera deliciosa", 0.90), "plantnet"),
+    (make_result("Ficus lyrata", 0.80), make_result("Monstera deliciosa", 0.85), "kindwise"),
+    (None, make_result("Monstera deliciosa", 0.90), "plantnet"),
+])
+def test_consensus_reports_provider_whose_data_was_used(kindwise, plantnet, provider):
+    assert ConsensusPolicy.resolve(kindwise, plantnet).provider == provider

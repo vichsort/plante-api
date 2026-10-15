@@ -4,7 +4,7 @@ from typing import Any
 
 from src.domain.entities.care_schedule import CareSchedule, CareType
 from src.domain.entities.plant_identification_sample import PlantIdentificationSample
-from src.domain.entities.plant_reference_image import ImageSource, PlantReferenceImage
+from src.domain.entities.plant_reference_image import PlantReferenceImage
 from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.user_plant import (
     IdentificationSource,
@@ -92,7 +92,7 @@ class IdentifyPlantUseCase:
                 id=None,
                 scientific_name=result.scientific_name,
                 storage_key=key,
-                source=ImageSource.KINDWISE_SIMILAR,
+                source=similar.source,
                 user_id=None,
                 created_at=now,
             ))

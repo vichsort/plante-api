@@ -18,6 +18,7 @@ class ConsensusResult:
     reason: ConsensusReason
     low_confidence: bool
     source: str                           # "consensus" | "consensus_partial" | "kindwise" | "plantnet"
+    provider: str                         # provedor cujos dados foram usados: "kindwise" | "plantnet"
     family: str | None = None
     genus: str | None = None
     common_names: tuple[str, ...] = ()

@@ -37,6 +37,7 @@ class ConsensusPolicy:
                 reason=ConsensusReason.EXACT_MATCH,
                 low_confidence=confidence.requires_human_review(),
                 source="consensus",
+                provider="kindwise",
                 family=kindwise.family,
                 genus=kindwise.genus,
                 common_names=kindwise.common_names,
@@ -45,9 +46,9 @@ class ConsensusPolicy:
             )
 
         if kindwise.genus and plantnet.genus and kindwise.genus == plantnet.genus:
-            winner = (
-                kindwise if kindwise.confidence.value >= plantnet.confidence.value
-                else plantnet
+            winner, provider = (
+                (kindwise, "kindwise") if kindwise.confidence.value >= plantnet.confidence.value
+                else (plantnet, "plantnet")
             )
             return ConsensusResult(
                 scientific_name=winner.scientific_name,
@@ -55,6 +56,7 @@ class ConsensusPolicy:
                 reason=ConsensusReason.GENUS_MATCH,
                 low_confidence=True,
                 source="consensus_partial",
+                provider=provider,
                 family=winner.family,
                 genus=winner.genus,
                 common_names=winner.common_names,
@@ -80,6 +82,7 @@ class ConsensusPolicy:
             reason=reason,
             low_confidence=True,
             source=source,
+            provider=source,
             family=winner.family,
             genus=winner.genus,
             common_names=winner.common_names,
@@ -99,6 +102,7 @@ class ConsensusPolicy:
             reason=reason,
             low_confidence=result.confidence.requires_human_review(),
             source=source,
+            provider=source,
             family=result.family,
             genus=result.genus,
             common_names=result.common_names,
