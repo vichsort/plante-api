@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import uuid4
 
+from src.domain.value_objects.email import normalize_email
 from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
@@ -34,6 +35,7 @@ class User:
     profile_picture_url: str | None = None
 
     def __post_init__(self) -> None:
+        self.email = normalize_email(self.email)
         self._assert_valid_email(self.email)
 
         if self.tokens_used_today < 0:
@@ -89,6 +91,7 @@ class User:
         self.location = new_location
 
     def change_email(self, new_email: str) -> None:
+        new_email = normalize_email(new_email)
         self._assert_valid_email(new_email)
         self.email = new_email
         self.is_verified = False

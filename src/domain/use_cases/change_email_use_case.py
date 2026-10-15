@@ -9,6 +9,7 @@ from src.domain.ports.email_sender import IEmailSender
 from src.domain.ports.otp_repository import IOtpRepository
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.email import normalize_email
 from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.verification_code import VerificationCode
 
@@ -42,14 +43,15 @@ class ChangeEmailUseCase:
         if not self.hasher.verify(dto.current_password, user.hashed_password):
             raise InvalidCredentialsError()
 
-        existing = await self.user_repo.get_by_email(dto.new_email)
+        new_email = normalize_email(dto.new_email)
+        existing = await self.user_repo.get_by_email(new_email)
         if existing is not None:
             raise EmailAlreadyInUseError()
 
         raw_code = VerificationCode.generate().raw_code
 
-        user.change_email(new_email=dto.new_email)
+        user.change_email(new_email=new_email)
         await self.user_repo.save(user)
 
         await self.otp_repo.save_code(user_id=user.id, code=raw_code)
-        await self.email_sender.send_verification_code(to_email=dto.new_email, code=raw_code)
+        await self.email_sender.send_verification_code(to_email=new_email, code=raw_code)

@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,6 +17,8 @@ def _plan_names(_: type[Enum]) -> list[str]:
 
 class UserModel(Base, AuditMixin):
     __tablename__ = "users"
+    # O domínio normaliza (`normalize_email`); o banco garante que nada grave fora da forma canônica
+    __table_args__ = (CheckConstraint("email = lower(btrim(email))", name="ck_users_email_normalized"),)
 
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)

@@ -54,6 +54,7 @@ Embora o código viva em uma estrutura Hexagonal unificada, o domínio do **Plan
 * **Saídas/Saúde**: Geração de tokens de acesso JWT, envio de e-mails OTP via `IEmailSender`, persistência de dados de auditoria em `UserRepository`.
 * **Regras de Negócio**:
   - Todo usuário nasce com status `pending_verification` e plano `FREE`.
+  - E-mail é guardado e buscado na forma canônica (`normalize_email`: sem espaços nas pontas, em minúsculas) — cadastro, login e troca de e-mail não diferenciam maiúsculas. O banco garante com o CHECK `ck_users_email_normalized`.
   - Códigos OTP expiram em 15 minutos e são gerenciados no cache Redis (`RedisOtpRepository`).
 
 ---

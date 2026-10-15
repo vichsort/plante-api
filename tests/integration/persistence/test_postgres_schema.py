@@ -148,14 +148,24 @@ async def test_duplicate_email_violates_unique_constraint(db_session: AsyncSessi
             await repo.save(make_user(email="dup@plante.org"))
 
 
-async def test_email_uniqueness_is_case_sensitive(db_session: AsyncSession) -> None:
-    """Documenta o comportamento atual (ver todo): só a caixa diferencia duas contas."""
+async def test_email_is_stored_normalized_and_unique_regardless_of_case(db_session: AsyncSession) -> None:
     repo = UserRepository(db_session)
-    await repo.save(make_user(email="case@plante.org"))
-    await repo.save(make_user(email="Case@Plante.org"))
-    await db_session.commit()
+    await repo.save(make_user(email=" Case@Plante.org "))
 
-    assert await repo.get_by_email("CASE@plante.org") is None
+    assert await repo.get_by_email("case@plante.org") is not None
+    with pytest.raises(IntegrityError):
+        async with db_session.begin_nested():
+            await repo.save(make_user(email="CASE@plante.org"))
+
+
+async def test_check_constraint_rejects_non_normalized_email(db_session: AsyncSession) -> None:
+    user = await UserRepository(db_session).save(make_user(email="check@plante.org"))
+
+    with pytest.raises(IntegrityError, match="ck_users_email_normalized"):
+        async with db_session.begin_nested():
+            await db_session.execute(
+                text("UPDATE users SET email = 'Check@Plante.org' WHERE id = :id"), {"id": user.id}
+            )
 
 
 async def test_duplicate_species_scientific_name_violates_unique_constraint(db_session: AsyncSession) -> None:

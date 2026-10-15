@@ -137,3 +137,33 @@ async def test_login_invalid_password_raises():
 
     with pytest.raises(UnauthorizedError, match="Invalid email or password"):
         await use_case.execute(email="user@plante.org", password="wrongpassword")
+
+
+async def test_register_normalizes_email_before_lookup_and_save():
+    user_repo = AsyncMock()
+    user_repo.get_by_email.return_value = None
+    user_repo.save.side_effect = lambda user: user
+    hasher = MagicMock()
+    hasher.hash.return_value = "hashed_secret"
+
+    use_case = RegisterUserUseCase(user_repo=user_repo, hasher=hasher, publisher=AsyncMock())
+    result = await use_case.execute(RegisterUserInputDTO(
+        email="  New.User@Plante.ORG ",
+        password="secretpassword",
+        country="BR",
+        state="SP",
+    ))
+
+    user_repo.get_by_email.assert_called_once_with("new.user@plante.org")
+    assert result.email == "new.user@plante.org"
+
+
+async def test_login_looks_up_normalized_email():
+    user_repo = AsyncMock()
+    user_repo.get_by_email.return_value = None
+    use_case = LoginUseCase(user_repo=user_repo, hasher=MagicMock(), token_repo=AsyncMock(), token_service=MagicMock())
+
+    with pytest.raises(UnauthorizedError):
+        await use_case.execute(email="Dev@Plante.org", password="x")
+
+    user_repo.get_by_email.assert_called_once_with("dev@plante.org")

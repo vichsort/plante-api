@@ -7,6 +7,7 @@ from src.domain.exceptions import EmailAlreadyInUseError
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.email import normalize_email
 from src.domain.value_objects.user_location import UserLocation
 
 
@@ -31,14 +32,15 @@ class RegisterUserUseCase:
         self.publisher = publisher
 
     async def execute(self, dto: RegisterUserInputDTO) -> User:
-        if await self.user_repo.get_by_email(dto.email):
+        email = normalize_email(dto.email)
+        if await self.user_repo.get_by_email(email):
             raise EmailAlreadyInUseError()
 
         hashed_pw = self.hasher.hash(dto.password)
 
         now = datetime.now(UTC)
         user = User.create_new(
-            email=dto.email,
+            email=email,
             hashed_password=hashed_pw,
             location=UserLocation(country=dto.country, state=dto.state),
             current_time=now,

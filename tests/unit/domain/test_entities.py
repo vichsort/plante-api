@@ -93,3 +93,16 @@ def test_user_plant_water_too_early_raises():
 
     with pytest.raises(PlantNotReadyForWateringError):
         plant.water(now)
+
+
+def test_user_email_is_normalized_on_creation_and_change():
+    user = User.create_new(
+        email=" Dev@Plante.ORG ",
+        hashed_password="hash",
+        location=UserLocation(country="BR", state="SP"),
+        current_time=datetime.now(UTC),
+    )
+    assert user.email == "dev@plante.org"
+
+    user.change_email("  Novo@Plante.org")
+    assert user.email == "novo@plante.org"
