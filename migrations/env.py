@@ -60,6 +60,9 @@ async def run_migrations_online() -> None:
 
 if context.is_offline_mode():
     run_migrations_offline()
+elif (connection := config.attributes.get("connection")) is not None:
+    # Conexão injetada por quem chama (ex.: testes de integração com Postgres em contêiner)
+    do_run_migrations(connection)
 else:
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

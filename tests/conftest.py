@@ -1,14 +1,19 @@
 import os
 import uuid
+from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import jwt
 import pytest
 import pytest_asyncio
+from alembic import command as alembic_command
+from alembic.config import Config as AlembicConfig
+from docker.errors import DockerException
 from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
-from src.adapters.persistence.models.base import Base
+from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from testcontainers.community.postgres import PostgresContainer
 
 # Define variáveis de ambiente dummy ANTES de importar src.main
 os.environ["DB_HOST"] = "localhost"
@@ -27,6 +32,8 @@ os.environ["SES_SENDER_EMAIL"] = "noreply@test.org"
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "test_credentials.json"
 
 from src.main import app
+
+_ROOT = Path(__file__).parents[1]
 
 
 @pytest.fixture
@@ -52,15 +59,47 @@ def auth_headers(test_user_id: str) -> dict[str, str]:
     )
     return {"Authorization": f"Bearer {token}"}
 
+@pytest.fixture(scope="session")
+def postgres_url() -> Iterator[str]:
+    """Postgres real em contêiner, com o schema criado pelas migrations do Alembic."""
+    try:
+        container = PostgresContainer("postgres:16-alpine", driver="psycopg").start()
+    except DockerException as exc:
+        if os.environ.get("CI"):
+            raise
+        pytest.skip(f"Docker indisponível para os testes de banco: {exc}")
+
+    try:
+        url = container.get_connection_url()
+        engine = create_engine(url)
+        with engine.begin() as connection:
+            config = AlembicConfig(str(_ROOT / "alembic.ini"))
+            config.set_main_option("script_location", str(_ROOT / "migrations"))
+            config.attributes["connection"] = connection
+            alembic_command.upgrade(config, "head")
+        engine.dispose()
+        yield url
+    finally:
+        container.stop()
+
+
 @pytest_asyncio.fixture
-async def db_session():
-    """Fixture de banco de dados assíncrono em memória (SQLite + aiosqlite)."""
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    session_factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
-    async with session_factory() as session:
-        yield session
-
+async def db_session(postgres_url: str) -> AsyncIterator[AsyncSession]:
+    """
+    Sessão no Postgres de teste. Tudo roda numa transação desfeita ao final; `commit()` nos
+    testes só fecha um savepoint, então os testes não enxergam dados uns dos outros.
+    """
+    engine = create_async_engine(postgres_url)
+    async with engine.connect() as connection:
+        transaction = await connection.begin()
+        session = AsyncSession(
+            bind=connection,
+            expire_on_commit=False,
+            join_transaction_mode="create_savepoint",
+        )
+        try:
+            yield session
+        finally:
+            await session.close()
+            await transaction.rollback()
     await engine.dispose()

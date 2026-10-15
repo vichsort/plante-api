@@ -98,10 +98,10 @@ known-first-party = ["src"]
 
 [dependency-groups]
 dev = [
-    "aiosqlite>=0.22.1",
     "boto3-stubs[ses]>=1.43.114",
     "celery-types>=0.26.0",
     "mypy>=2.3.0",
     "ruff>=0.6.0",
+    "testcontainers[postgres]>=4.15.0",
     "types-aioboto3[s3]>=15.5.0",
 ]
