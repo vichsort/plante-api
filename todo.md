@@ -12,18 +12,17 @@ Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; o
 3. ~~**Redis: timeouts curtos + backoff quando cai**~~ ✅ (Bloco 2) — Redis lento hoje deixa todas as rotas lentas.
 3a. ~~**PlantNet: adapter nunca funcionou**~~ ✅ (achado nos testes reais) — mandava JSON e a API só aceita multipart (415); parser lia campos inexistentes.
 
-**Importante — aguardando mais detalhes antes de começar:**
-4. Pipeline básico de CI (`ruff`, `mypy`, `pytest`) (Bloco 3).
-5. Postgres em vez de SQLite nos testes de integração, com Redis/Postgres como services do job (Bloco 3).
+**Próximos — decididos em 2026-10-14, nesta ordem (proposta):**
+4. **Consenso: veto do `is_plant` + campos descartados** (ver Bloco 1). Decidido: `raw_response` guarda as duas respostas (`{"kindwise": ..., "plantnet": ...}`); imagens similares vêm do provedor vencedor, com `ImageSource` correto; `is_plant == false` do Kindwise veta o PlantNet. Documentar a regra no `ARCHITECTURE.md`, no `ConsensusIdentifier` e na issue #1.
+5. **CI (GitHub Actions)**: `ruff`, `mypy`, `pytest` em push e PR de qualquer branch (hoje roda na `main`; com `develop` + PRs, só adicionar proteção de branch). Decidido: instalar stubs (`types-*`) e ligar `strict = true` — medido: 115 erros em 62 arquivos, 87 deles `type-arg` (mecânicos).
+6. **Código do checklist de deploy**: atualizar uvicorn (CIDR em `FORWARDED_ALLOW_IPS`); thresholds do circuit breaker em `Settings` (manter 5 falhas / 30s).
+7. **Postgres nos testes de integração** via `testcontainers` (decidido; mesmo mecanismo local e no CI). Ganhos: FKs com `ondelete` hoje não testadas (SQLite não aplica), `DateTime(timezone=True)` perde fuso no SQLite, migrations do Alembic nunca rodam (testes usam `create_all`).
+8. **Arquitetura**: `import-linter` no CI validando as regras atuais → módulo piloto (identificação) em monólito modular (subdomínio por módulo, hexagonal dentro, testes junto, shared kernel mínimo) → resto. Usuário vai detalhar.
+9. Use cases declaram seus erros (`raises`) + catálogo de erros do `ARCHITECTURE.md` (inclui a regra de marcador do `PLANTE_4013`).
+10. Propagar Correlation ID para Celery e chamadas HTTP aos provedores.
+11. `ANTIGRAVITY.md`: desmembrar (trechos úteis → todo / `ARCHITECTURE.md` / `CLAUDE.md`) e excluir. **Não é versionado**: guardar cópia até confirmar.
 
-**Qualidade — aguardando mais detalhes antes de começar:**
-6. Use cases declaram seus erros (`raises`) + catálogo de erros do `ARCHITECTURE.md` (feitos juntos).
-7. Propagar Correlation ID para Celery e chamadas HTTP aos provedores (Bloco 3).
-8. Itens de deploy em "Fora do código".
-9. Consenso: `is_plant == false` do Kindwise vetar o resultado do PlantNet (casos de borda; ver Bloco 1).
-10. Consenso descarta `similar_images` e `raw_response` (ver Bloco 1).
-
-Próximo passo: itens críticos concluídos; itens 4–8 aguardam mais detalhes.
+Próximo passo: item 4 (consenso).
 
 ---
 
@@ -63,7 +62,7 @@ Próximo passo: itens críticos concluídos; itens 4–8 aguardam mais detalhes.
     - `identification` e `health_assessment` devolvem `result.is_plant = {probability, threshold, binary}`. Gato: 201, `binary: false`, sugestão "Magnolia kobus" 6% / doença "Lepidoptera".
     - 400 é ambíguo: `Invalid image data` (bytes que não são imagem) **e** `Images have to be list of base64 strings` (payload nosso sem `images`). `images` com tipo errado → 500 HTML.
   - Regra aplicada: `is_plant.binary == false` explícito → `InvalidImageError` nos dois endpoints (campo ausente segue normal). 400 só vira `InvalidImageError` se o corpo contiver `Invalid image`; outro 400 → `ExternalServiceError(retryable=False)` + log `provider.request_rejected` (error).
-  - Pendente: documentar essa regra no `PLANTE_4013` quando o catálogo do `ARCHITECTURE.md` for atualizado (item 6).
+  - Pendente: documentar essa regra no `PLANTE_4013` quando o catálogo do `ARCHITECTURE.md` for atualizado (item 9).
 
 - [x] **Security headers** (`src/api/middleware/security.py`)
   - Remover `X-XSS-Protection` (obsoleto; já causou vulnerabilidades em navegadores antigos).
@@ -137,9 +136,14 @@ Próximo passo: itens críticos concluídos; itens 4–8 aguardam mais detalhes.
 
 ## Fora do código
 
-- [ ] `FORWARDED_ALLOW_IPS`: uvicorn 0.30.6 aceita só IPs exatos ou `*` (sem CIDR). Se o balanceador tiver IP dinâmico, atualizar o uvicorn ou usar `*` com a API inacessível por fora dele.
-- [ ] Timeouts de 0,5s valem para o cliente Redis compartilhado (tokens, OTP, raw_response, readiness). Se o Redis de produção for remoto, medir a latência e ajustar `REDIS_SOCKET_TIMEOUT_SECONDS`/`REDIS_CONNECT_TIMEOUT_SECONDS`.
-- [ ] Cota do PlantNet (500/dia no plano atual) agora é consumida por todo `/identify`; avaliar o plano antes do lançamento.
+Contexto do deploy (2026-10-14): primeiro num servidor caseiro (PC antigo), API usada pelo site pessoal com captcha, pouquíssimas requisições por mês; AWS no futuro; possível projeto de pesquisa para a Latinoware.
 
-- [ ] Restringir `/health/readiness` à rede interna no deploy (ingress/compose). O código já faz cache de 5s com single-flight.
-- [ ] (Opcional) Levar thresholds do circuit breaker (5 falhas / 30s) para `Settings`.
+**Antes de publicar:**
+- [ ] **Créditos do Kindwise**: restam 3,5 e a chave tem limite de 10 identificações/mês — o site para após ~3 usos. Comprar créditos (menor pacote ~€50 / 1000) e ajustar o limite no painel. Cada `/identify` e `/diagnose` gasta 1 crédito.
+- [ ] **Captcha validado na API** (ao menos em `/auth/register`): captcha só no site não protege a API se o navegador a chama direto. Decidir depois.
+- [ ] Restringir `/health/*` no proxy reverso (Caddy/nginx). O código já faz cache de 5s com single-flight.
+- [ ] `FORWARDED_ALLOW_IPS` = IP/faixa do proxy reverso (rede Docker) ou do `cloudflared`, se usar Cloudflare Tunnel (recomendado: não abre portas nem expõe o IP de casa).
+
+**Resolvido pelo contexto:**
+- [x] Latência do Redis: no mesmo host, timeouts de 0,5s são folgados.
+- [x] Cota do PlantNet: 500/dia sobra para o volume esperado.
