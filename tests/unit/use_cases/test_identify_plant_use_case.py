@@ -11,7 +11,7 @@ from src.domain.use_cases.identify_plant_use_case import (
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.sources import IdentificationOrigin
 from tests.factories import make_species, make_user
-from tests.fakes import FakeUnitOfWork
+from tests.fakes import FakeUnitOfWork, MarkingSanitizer
 
 
 @pytest.mark.asyncio
@@ -43,6 +43,7 @@ async def test_identification_source_follows_origin(origin: IdentificationOrigin
     uow = FakeUnitOfWork(users=user_repo, species=species_repo, user_plants=user_plant_repo, reference_images=AsyncMock(), identification_samples=sample_repo)
     use_case = IdentifyPlantUseCase(
         uow=uow,
+        sanitizer=MarkingSanitizer(),
         plant_identifier=identifier,
         storage=storage,
         publisher=AsyncMock(),
@@ -56,3 +57,6 @@ async def test_identification_source_follows_origin(origin: IdentificationOrigin
     # Leitura e escrita em transações separadas (a IA roda entre elas); só a escrita confirma
     assert uow.opened == 2
     assert uow.commits == 1
+    # Provedores e S3 só recebem a foto sem metadados
+    assert identifier.identify.call_args.kwargs["image_bytes"] == b"clean:img"
+    assert storage.upload_identification_image.call_args.kwargs["image_bytes"] == b"clean:img"

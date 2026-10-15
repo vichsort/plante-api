@@ -13,7 +13,7 @@ from src.domain.use_cases.diagnose_health_use_case import (
 )
 from src.domain.value_objects.ids import UserId, UserPlantId
 from tests.factories import make_user, make_user_plant
-from tests.fakes import FakeUnitOfWork
+from tests.fakes import FakeUnitOfWork, MarkingSanitizer
 
 
 def _use_case(enricher: AsyncMock) -> tuple[DiagnoseHealthUseCase, User]:
@@ -36,6 +36,7 @@ def _use_case(enricher: AsyncMock) -> tuple[DiagnoseHealthUseCase, User]:
     storage.upload_identification_image.return_value = "health/key.jpg"
 
     use_case = DiagnoseHealthUseCase(
+        sanitizer=MarkingSanitizer(),
         uow=FakeUnitOfWork(users=user_repo, user_plants=user_plant_repo, health_records=health_repo),
         health_analyzer=analyzer,
         plant_enricher=enricher,

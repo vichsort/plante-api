@@ -17,6 +17,7 @@ from src.domain.ports.health_raw_response_repository import (
     IHealthRawResponseRepository,
     PendingHealthAssessment,
 )
+from src.domain.ports.image_sanitizer import IImageSanitizer
 from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.plant_enricher import HealthDiagnosisEnrichment, IPlantEnricher
 from src.domain.ports.unit_of_work import IUnitOfWork
@@ -54,12 +55,14 @@ class DiagnoseHealthUseCase:
     def __init__(
         self,
         uow: IUnitOfWork,
+        sanitizer: IImageSanitizer,
         health_analyzer: IHealthAnalyzer,
         plant_enricher: IPlantEnricher,
         storage: IImageStorage,
         health_raw_repo: IHealthRawResponseRepository,
     ) -> None:
         self._uow = uow
+        self._sanitizer = sanitizer
         self._health_analyzer = health_analyzer
         self._plant_enricher = plant_enricher
         self._storage = storage
@@ -78,8 +81,9 @@ class DiagnoseHealthUseCase:
             if not user_plant:
                 raise PlantNotFoundError(dto.user_plant_id)
 
-        # 2. Serviços externos
-        assessment = await self._health_analyzer.assess_health(dto.image_bytes)
+        # 2. Serviços externos, só com a foto já sem metadados (GPS, aparelho, data)
+        image_bytes = self._sanitizer.sanitize(dto.image_bytes)
+        assessment = await self._health_analyzer.assess_health(image_bytes)
 
         issues = [d.name for d in assessment.diseases]
         enrichment: HealthDiagnosisEnrichment | None = None
@@ -97,7 +101,7 @@ class DiagnoseHealthUseCase:
         severity = _map_severity(vitality)
 
         image_key = await self._storage.upload_identification_image(
-            image_bytes=dto.image_bytes,
+            image_bytes=image_bytes,
             scientific_name=user_plant.scientific_name,
             confidence_value=vitality,
             user_id=dto.user_id,

@@ -4,6 +4,7 @@ from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.email_sender import IEmailSender
 from src.domain.ports.health_analyzer import IHealthAnalyzer
 from src.domain.ports.health_raw_response_repository import IHealthRawResponseRepository
+from src.domain.ports.image_sanitizer import IImageSanitizer
 from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.otp_repository import IOtpRepository
 from src.domain.ports.password_hasher import IPasswordHasher
@@ -63,6 +64,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
     plant_enricher: providers.Dependency[IPlantEnricher] = providers.Dependency()
 
     image_storage: providers.Dependency[IImageStorage] = providers.Dependency()
+    image_sanitizer: providers.Dependency[IImageSanitizer] = providers.Dependency()
     token_service: providers.Dependency[ITokenService] = providers.Dependency()
 
     login_use_case = providers.Factory(
@@ -161,6 +163,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
     identify_plant_use_case = providers.Factory(
         IdentifyPlantUseCase,
         uow=unit_of_work,
+        sanitizer=image_sanitizer,
         plant_identifier=plant_identifier,
         storage=image_storage,
         publisher=domain_publisher,
@@ -192,6 +195,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
     diagnose_health_use_case = providers.Factory(
         DiagnoseHealthUseCase,
         uow=unit_of_work,
+        sanitizer=image_sanitizer,
         health_analyzer=health_analyzer,
         plant_enricher=plant_enricher,
         storage=image_storage,

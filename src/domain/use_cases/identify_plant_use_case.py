@@ -22,6 +22,7 @@ from src.domain.exceptions import (
 )
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.domain_publisher import IDomainPublisher
+from src.domain.ports.image_sanitizer import IImageSanitizer
 from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.plant_identifier import IPlantIdentifier
 from src.domain.ports.unit_of_work import IUnitOfWork
@@ -76,11 +77,13 @@ class IdentifyPlantUseCase:
     def __init__(
         self,
         uow: IUnitOfWork,
+        sanitizer: IImageSanitizer,
         plant_identifier: IPlantIdentifier,
         storage: IImageStorage,
         publisher: IDomainPublisher,
     ) -> None:
         self.uow = uow
+        self.sanitizer = sanitizer
         self.plant_identifier = plant_identifier
         self.storage = storage
         self.publisher = publisher
@@ -95,9 +98,10 @@ class IdentifyPlantUseCase:
                 raise UserNotFoundError(user_id=dto.user_id)
             SubscriptionPolicy.enforce_can_identify_plant(user)
 
-        # 2. Serviços externos
+        # 2. Serviços externos, só com a foto já sem metadados (GPS, aparelho, data)
+        image_bytes = self.sanitizer.sanitize(dto.image_bytes)
         result = await self.plant_identifier.identify(
-            image_bytes=dto.image_bytes,
+            image_bytes=image_bytes,
             latitude=dto.latitude,
             longitude=dto.longitude,
         )
@@ -106,7 +110,7 @@ class IdentifyPlantUseCase:
             raise LowConfidenceError(confidence=result.confidence.value)
 
         user_image_key = await self.storage.upload_identification_image(
-            image_bytes=dto.image_bytes,
+            image_bytes=image_bytes,
             scientific_name=result.scientific_name,
             confidence_value=result.confidence.value,
             user_id=dto.user_id,

@@ -13,6 +13,7 @@ from src.adapters.cache.redis_otp_repository import RedisOtpRepository
 from src.adapters.cache.redis_token_repository import RedisTokenRepository
 from src.adapters.email.ses_email_sender import SesEmailSender
 from src.adapters.events.celery_publisher import CeleryPublisher
+from src.adapters.images.pillow_image_sanitizer import PillowImageSanitizer
 from src.adapters.notifications.firebase_adapter import FirebaseAdapter
 from src.adapters.resilience import (
     CircuitBreaker,
@@ -33,6 +34,7 @@ class AdaptersContainer(containers.DeclarativeContainer):
 
     weather_http = providers.Singleton(httpx.AsyncClient)
     password_hasher = providers.Singleton(BcryptHasher)
+    image_sanitizer = providers.Singleton(PillowImageSanitizer)
     domain_publisher = providers.Singleton(CeleryPublisher, celery_app=celery_app)
 
     token_service = providers.Singleton(

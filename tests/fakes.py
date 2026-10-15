@@ -3,6 +3,7 @@ from types import TracebackType
 from typing import Self
 from unittest.mock import AsyncMock
 
+from src.domain.ports.image_sanitizer import IImageSanitizer
 from src.domain.ports.unit_of_work import IUnitOfWork
 
 
@@ -37,3 +38,10 @@ class FakeUnitOfWork(IUnitOfWork):
     async def commit(self) -> None:
         self.commits += 1
         self.committed = True
+
+
+class MarkingSanitizer(IImageSanitizer):
+    """Prefixa os bytes: o teste confere que provedores e armazenamento só recebem a imagem limpa."""
+
+    def sanitize(self, image_bytes: bytes) -> bytes:
+        return b"clean:" + image_bytes

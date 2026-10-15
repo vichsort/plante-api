@@ -41,6 +41,8 @@ dependencies = [
     "firebase-admin==6.5.0",
     # --- Storage async ---
     "aiofiles==25.1.0",
+    # --- Imagens (remoção de EXIF antes de qualquer uso) ---
+    "pillow==12.3.0",
     # --- Logs ---
     "structlog==24.4.0",
     # --- Resiliência ---
