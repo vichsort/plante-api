@@ -1,8 +1,26 @@
 # TODO — PlantE API
 
 Pendências levantadas na revisão da Fase 6 (middlewares, probes, circuit breaker, OpenAPI).
-Ordem decidida: Bloco 1 → Bloco 2 → Bloco 3 (CI e Postgres nos testes por último).
-Próximo passo: **Use cases declaram seus erros (`raises`)** — último item de código do Bloco 1.
+
+## Ordem de execução (revisada em 2026-10-14)
+
+Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; os blocos abaixo continuam como detalhamento dos itens.
+
+**Crítico — fazer agora, nesta ordem:**
+1. **Kindwise: confirmar contrato de erro e `is_plant`** (Bloco 1) — bug visível ao usuário: foto que não é planta vira identificação.
+2. **Rate limit: chave por usuário em vez de IP + `--proxy-headers`** (Bloco 2) — atrás de load balancer o limite vira global e bloqueia todos.
+3. **Redis: timeouts curtos + backoff quando cai** (Bloco 2) — Redis lento hoje deixa todas as rotas lentas.
+
+**Importante — aguardando mais detalhes antes de começar:**
+4. Pipeline básico de CI (`ruff`, `mypy`, `pytest`) (Bloco 3).
+5. Postgres em vez de SQLite nos testes de integração, com Redis/Postgres como services do job (Bloco 3).
+
+**Qualidade — aguardando mais detalhes antes de começar:**
+6. Use cases declaram seus erros (`raises`) + catálogo de erros do `ARCHITECTURE.md` (feitos juntos).
+7. Propagar Correlation ID para Celery e chamadas HTTP aos provedores (Bloco 3).
+8. Itens de deploy em "Fora do código".
+
+Próximo passo: **Kindwise `is_plant`** (item 1).
 
 ---
 
@@ -53,7 +71,7 @@ Próximo passo: **Use cases declaram seus erros (`raises`)** — último item de
   - [x] Corrigir docstring do `CorrelationIdMiddleware` (não é "tracing distribuído" ainda).
   - [x] Remover `src/domain/exceptions.py` (código morto, sombreado pelo pacote `src/domain/exceptions/`).
   - [ ] Atualizar catálogo de erros do `ARCHITECTURE.md`: nomes divergentes do código (4003, 4004, 4007), faltam 4008–4019 e 5002, e o 5001 não cita Gemini nem `retryable`.
-  - [ ] `ANTIGRAVITY.md`: não existe no repositório — localizar ou descartar o item.
+  - [ ] `ANTIGRAVITY.md`: existe localmente, mas está no `.gitignore` (linha 56) — decidir se continua só local (descartar o item) ou passa a ser versionado.
 
 ---
 
