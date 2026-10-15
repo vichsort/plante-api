@@ -142,8 +142,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 if self._redis_breaker is None:
                     return await _increment_in_redis(provider, key)
                 return await self._redis_breaker.call(lambda: _increment_in_redis(provider, key))
-            except ExternalServiceError:
-                pass  # falha ou backoff ativo; o breaker loga a abertura e o fechamento
+            except ExternalServiceError as exc:
+                # Falha ou backoff ativo: o breaker loga a abertura e o fechamento. Comando
+                # recusado não abre o breaker, então é logado aqui
+                if not exc.retryable:
+                    log.error("rate_limit.redis_rejected", error=str(exc))
             except Exception as exc:
                 # Rate limit nunca derruba a requisição
                 log.warning("rate_limit.redis_unavailable", error=str(exc))

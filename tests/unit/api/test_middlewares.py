@@ -7,6 +7,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from structlog.testing import capture_logs
 
 from src.adapters.cache.redis_client import RedisClient
 from src.adapters.resilience.circuit_breaker import CircuitBreaker
@@ -394,3 +395,17 @@ def test_container_redis_client_has_short_timeouts():
     kwargs = redis._redis.connection_pool.connection_kwargs
     assert kwargs["socket_timeout"] == 0.5
     assert kwargs["socket_connect_timeout"] == 0.5
+
+
+class _RejectingRedis(WindowCounter):
+    async def increment_with_expiry(self, key: str, ttl_seconds: int) -> int:
+        raise ExternalServiceError(message="WRONGTYPE", service="Redis", retryable=False)
+
+
+def test_rate_limit_falls_back_to_memory_when_redis_rejects_command():
+    client = TestClient(_rate_limited_app(requests_per_minute=1, redis_provider=_RejectingRedis))
+
+    with capture_logs() as logs:
+        assert client.get("/api/test").status_code == 200
+    assert client.get("/api/test").status_code == 429
+    assert any(entry["event"] == "rate_limit.redis_rejected" for entry in logs)

@@ -51,12 +51,13 @@ async def test_increment_with_expiry_restarts_after_key_expires(redis_client: Re
     assert await redis_client.increment_with_expiry("counter", ttl_seconds=60) == 1
 
 
-async def test_wrong_type_reply_is_translated(redis_client: RedisClient, raw_redis: Redis) -> None:
+async def test_rejected_command_is_not_retryable(redis_client: RedisClient, raw_redis: Redis) -> None:
     await raw_redis.rpush("list", "a")
 
-    # WRONGTYPE vem do servidor como erro do redis-py, traduzido como os demais
-    with pytest.raises(ExternalServiceError):
+    # WRONGTYPE: o servidor recusou o comando, tentar de novo não resolve
+    with pytest.raises(ExternalServiceError) as exc_info:
         await redis_client.get("list")
+    assert exc_info.value.retryable is False
 
 
 async def test_ping(redis_client: RedisClient) -> None:

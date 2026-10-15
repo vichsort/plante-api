@@ -4,13 +4,14 @@ Fachada tipada sobre o cliente assíncrono do redis-py.
 O redis-py tipa o retorno de todo comando como `Any`; aqui ficam só os comandos que o projeto
 usa, com o tipo de retorno conferido em execução. É o único ponto do código que toca o
 redis-py: o resto (repositórios de cache, rate limit, readiness) depende desta classe.
-Falhas de conexão viram `ExternalServiceError(retryable=True)`.
+Falhas de conexão viram `ExternalServiceError(retryable=True)`; comando recusado pelo servidor
+(`ResponseError`), `retryable=False`.
 """
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from redis.asyncio import Redis
-from redis.exceptions import RedisError
+from redis.exceptions import RedisError, ResponseError
 
 from src.domain.exceptions import ExternalServiceError
 
@@ -21,6 +22,11 @@ _SERVICE = "Redis"
 async def _translated_errors() -> AsyncIterator[None]:
     try:
         yield
+    except ResponseError as exc:
+        # O servidor recusou o comando (ex.: WRONGTYPE): repetir não resolve e não abre o breaker
+        raise ExternalServiceError(
+            message=f"{type(exc).__name__}: {exc}", service=_SERVICE, retryable=False
+        ) from exc
     except (RedisError, OSError) as exc:
         raise ExternalServiceError(
             message=f"{type(exc).__name__}: {exc}", service=_SERVICE, retryable=True

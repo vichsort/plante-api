@@ -171,7 +171,7 @@ Cada exceção carrega um **Código Único Máquina-Readable** e um **Status HTT
 
 **`PLANTE_5001` — `retryable`:**
 * `retryable=True`: falha transitória (rede, timeout, 5xx, 429). Só essas contam para abrir o circuit breaker do provedor.
-* `retryable=False`: requisição rejeitada pelo provedor (payload nosso inválido, 401/403 de chave mal configurada — logado como `provider.misconfigured`). Não abre o circuito.
+* `retryable=False`: requisição rejeitada pelo provedor (payload nosso inválido, 401/403 de chave mal configurada — logado como `provider.misconfigured`; no Redis, comando recusado pelo servidor como `WRONGTYPE`). Não abre o circuito.
 * Circuito aberto também responde `PLANTE_5001`. No `/diagnose`, falha do Gemini não derruba a resposta: o diagnóstico volta só com o Kindwise.
 
 **Erros declarados por use case:** cada use case lista em `raises` os erros de domínio que pode lançar — os `raise` do próprio módulo (conferidos por `tests/unit/use_cases/test_declared_errors.py`) e os vindos de policies, entidades e ports (listados à mão). As rotas documentam o OpenAPI com `error_responses(*UseCase.raises)`.
