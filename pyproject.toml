@@ -66,6 +66,9 @@ packages = ["src"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# Contrato chama as APIs reais (gasta créditos): só com `pytest -m contract`
+addopts = "-m 'not contract'"
+markers = ["contract: chama as APIs reais dos provedores de IA"]
 
 # ---------------------------------------------------------------------------
 # Mypy
