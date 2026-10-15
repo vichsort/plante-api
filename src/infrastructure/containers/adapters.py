@@ -24,6 +24,7 @@ from src.adapters.security.jwt_token_service import JwtTokenService
 from src.adapters.storage.s3_image_storage import S3ImageStorage
 from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
 from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
+from src.infrastructure.celery_config import celery_app
 from src.infrastructure.settings import Settings
 
 
@@ -32,7 +33,7 @@ class AdaptersContainer(containers.DeclarativeContainer):
 
     weather_http = providers.Singleton(httpx.AsyncClient)
     password_hasher = providers.Singleton(BcryptHasher)
-    domain_publisher = providers.Singleton(CeleryPublisher)
+    domain_publisher = providers.Singleton(CeleryPublisher, celery_app=celery_app)
 
     token_service = providers.Singleton(
         JwtTokenService,

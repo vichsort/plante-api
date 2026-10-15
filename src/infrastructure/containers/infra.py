@@ -14,7 +14,8 @@ class InfraContainer(containers.DeclarativeContainer):
 
     engine = providers.Singleton(
         build_engine,
-        settings=settings,
+        database_url=settings.provided.database_url,
+        echo=settings.provided.debug,
     )
 
     session_factory = providers.Singleton(

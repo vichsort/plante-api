@@ -7,15 +7,13 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from src.infrastructure.settings import Settings
 
-
-def build_engine(settings: Settings) -> AsyncEngine:
+def build_engine(database_url: str, echo: bool) -> AsyncEngine:
     return create_async_engine(
-        settings.database_url,
+        database_url,
         pool_size=10,
         max_overflow=20,
-        echo=settings.debug,
+        echo=echo,
     )
 
 def build_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
