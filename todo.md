@@ -21,6 +21,7 @@ Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; o
 7. Propagar Correlation ID para Celery e chamadas HTTP aos provedores (Bloco 3).
 8. Itens de deploy em "Fora do código".
 9. Consenso: `is_plant == false` do Kindwise vetar o resultado do PlantNet (casos de borda; ver Bloco 1).
+10. Consenso descarta `similar_images` e `raw_response` (ver Bloco 1).
 
 Próximo passo: itens críticos concluídos; itens 4–8 aguardam mais detalhes.
 
@@ -90,6 +91,11 @@ Próximo passo: itens críticos concluídos; itens 4–8 aguardam mais detalhes.
   - Hoje, se o Kindwise rejeita (`is_plant == false`) e o PlantNet devolve uma espécie, vale o PlantNet. No teste real o gato foi rejeitado pelos dois, então é caso de borda (ex.: planta ao fundo da foto).
   - Proposta: `InvalidImageError` do Kindwise por `is_plant` vetar o resultado do PlantNet. Decisão pendente.
 
+- [ ] **Consenso descarta `similar_images` e `raw_response`**
+  - `ConsensusIdentifier` monta o `IdentificationResult` final sem esses campos. Com `consensus_enabled=True` (padrão), o `IdentifyPlantUseCase` nunca rehospeda imagens de referência (`for similar in result.similar_images` fica vazio) e salva `raw_response={}` em toda amostra.
+  - Bug anterior às correções de 2026-10-14 (existe desde que o consenso entrou); a correção do PlantNet não o causou.
+  - Ao corrigir: o use case grava `ImageSource.KINDWISE_SIMILAR` fixo — imagens do PlantNet ficariam com origem errada. Decidir de qual provedor vêm as imagens/`raw_response` quando o consenso combina os dois.
+
 ---
 
 ## Bloco 2 — Endurecimento do Rate Limiter
@@ -130,6 +136,10 @@ Próximo passo: itens críticos concluídos; itens 4–8 aguardam mais detalhes.
 ---
 
 ## Fora do código
+
+- [ ] `FORWARDED_ALLOW_IPS`: uvicorn 0.30.6 aceita só IPs exatos ou `*` (sem CIDR). Se o balanceador tiver IP dinâmico, atualizar o uvicorn ou usar `*` com a API inacessível por fora dele.
+- [ ] Timeouts de 0,5s valem para o cliente Redis compartilhado (tokens, OTP, raw_response, readiness). Se o Redis de produção for remoto, medir a latência e ajustar `REDIS_SOCKET_TIMEOUT_SECONDS`/`REDIS_CONNECT_TIMEOUT_SECONDS`.
+- [ ] Cota do PlantNet (500/dia no plano atual) agora é consumida por todo `/identify`; avaliar o plano antes do lançamento.
 
 - [ ] Restringir `/health/readiness` à rede interna no deploy (ingress/compose). O código já faz cache de 5s com single-flight.
 - [ ] (Opcional) Levar thresholds do circuit breaker (5 falhas / 30s) para `Settings`.
