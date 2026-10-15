@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from uuid import uuid4
 
 import structlog
 
@@ -13,14 +13,18 @@ from src.domain.exceptions import (
 )
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.health_analyzer import IHealthAnalyzer
-from src.domain.ports.health_raw_response_repository import IHealthRawResponseRepository
+from src.domain.ports.health_raw_response_repository import (
+    IHealthRawResponseRepository,
+    PendingHealthAssessment,
+)
 from src.domain.ports.health_record_repository import IHealthRecordRepository
 from src.domain.ports.image_storage import IImageStorage
-from src.domain.ports.plant_enricher import IPlantEnricher
+from src.domain.ports.plant_enricher import HealthDiagnosisEnrichment, IPlantEnricher
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.ids import HealthRecordId, UserId, UserPlantId
 
-log = structlog.get_logger()
+log = structlog.stdlib.get_logger()
 
 
 def _map_severity(vitality: float) -> HealthSeverity:
@@ -36,9 +40,15 @@ def _map_severity(vitality: float) -> HealthSeverity:
 
 @dataclass(frozen=True)
 class DiagnoseHealthInputDTO:
-    user_id: Any
-    user_plant_id: Any
+    user_id: UserId
+    user_plant_id: UserPlantId
     image_bytes: bytes
+
+@dataclass(frozen=True)
+class DiagnoseHealthOutput:
+    record: HealthRecord
+    similar_images_urls: tuple[str, ...]
+
 
 class DiagnoseHealthUseCase:
     raises = (ExternalServiceError, InvalidImageError, PlantNotFoundError, UserNotFoundError)
@@ -61,7 +71,7 @@ class DiagnoseHealthUseCase:
         self._storage = storage
         self._health_raw_repo = health_raw_repo
 
-    async def execute(self, dto: DiagnoseHealthInputDTO) -> dict[str, Any]:
+    async def execute(self, dto: DiagnoseHealthInputDTO) -> DiagnoseHealthOutput:
         now = datetime.now(UTC)
 
         user = await self._user_repo.get_by_id(dto.user_id)
@@ -77,12 +87,11 @@ class DiagnoseHealthUseCase:
         assessment = await self._health_analyzer.assess_health(dto.image_bytes)
 
         issues = [d.name for d in assessment.diseases]
-        gemini_data: dict[str, Any] = {}
-
+        enrichment: HealthDiagnosisEnrichment | None = None
         if assessment.health_probability < SubscriptionPolicy.health_unhealthy_threshold():
             # Gemini é complementar: se falhar, o diagnóstico segue só com o Kindwise
             try:
-                gemini_data = await self._plant_enricher.diagnose_health(
+                enrichment = await self._plant_enricher.diagnose_health(
                     scientific_name=user_plant.scientific_name,
                     issues=issues,
                 )
@@ -92,7 +101,7 @@ class DiagnoseHealthUseCase:
                 # Token extra só é cobrado quando a análise complementar foi entregue
                 user.consume_identify_token()
 
-        vitality = gemini_data.get("vitality_score", assessment.health_probability)
+        vitality = enrichment.vitality_score if enrichment else assessment.health_probability
         severity = _map_severity(vitality)
 
         image_key = await self._storage.upload_identification_image(
@@ -103,33 +112,28 @@ class DiagnoseHealthUseCase:
         )
 
         record = await self._health_repo.save(HealthRecord(
-            id=None,
+            id=HealthRecordId(uuid4()),
             user_plant_id=dto.user_plant_id,
             user_id=dto.user_id,
             scientific_name=user_plant.scientific_name,
             diagnosed_at=now,
             vitality_score=vitality,
             severity=severity,
-            source="kindwise" if not gemini_data else "kindwise+gemini",
+            source="kindwise+gemini" if enrichment else "kindwise",
             image_key=image_key,
             issues_detected=tuple(issues),
-            treatment_plan=tuple(gemini_data.get("treatment_plan", [])),
-            recovery_estimate_days=gemini_data.get("recovery_estimate_days"),
-            notes=gemini_data.get("notes"),
+            treatment_plan=enrichment.treatment_plan if enrichment else (),
+            recovery_estimate_days=enrichment.recovery_estimate_days if enrichment else None,
+            notes=enrichment.notes if enrichment else None,
         ))
 
         await self._user_repo.save(user)
+        await self._health_raw_repo.save(record.id, PendingHealthAssessment(
+            raw_response=assessment.raw_response,
+            similar_images_urls=assessment.all_similar_images_urls,
+        ))
 
-        await self._health_raw_repo.save(record.id, assessment.raw_response)
-
-        return {
-            "health_record_id": record.id,
-            "severity": record.severity.value,
-            "vitality_score": record.vitality_score,
-            "is_healthy": record.is_healthy,
-            "issues_detected": list(record.issues_detected),
-            "treatment_plan": list(record.treatment_plan),
-            "recovery_estimate_days": record.recovery_estimate_days,
-            "image_key": record.image_key,
-            "similar_images_urls": list(assessment.all_similar_images_urls),
-        }
+        return DiagnoseHealthOutput(
+            record=record,
+            similar_images_urls=assessment.all_similar_images_urls,
+        )

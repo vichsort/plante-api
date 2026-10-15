@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any
 
 from src.domain.entities.plant_reference_image import ImageSource
 from src.domain.value_objects.confidence_score import ConfidenceScore
+from src.domain.value_objects.json_value import JsonObject
+from src.domain.value_objects.sources import IdentificationOrigin
 
 
 @dataclass(frozen=True)
@@ -18,7 +19,7 @@ class SimilarImage:
 class IdentificationResult:
     scientific_name: str
     confidence: ConfidenceScore
-    source: str
+    source: IdentificationOrigin
     provider_entity_id: str | None = None
     gbif_id: str | None = None
     family: str | None = None
@@ -26,7 +27,7 @@ class IdentificationResult:
     common_names: tuple[str, ...] = ()
     similar_images: tuple[SimilarImage, ...] = ()
     low_confidence: bool = False
-    raw_response: dict[str, Any] = field(default_factory=dict)
+    raw_response: JsonObject = field(default_factory=dict)
 
 class IPlantIdentifier(ABC):
     @abstractmethod

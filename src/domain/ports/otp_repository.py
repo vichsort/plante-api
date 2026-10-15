@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any
+
+from src.domain.value_objects.ids import UserId
 
 
 class IOtpRepository(ABC):
@@ -9,12 +10,12 @@ class IOtpRepository(ABC):
     """
 
     @abstractmethod
-    async def save_code(self, user_id: Any, code: str, expires_in_minutes: int = 15) -> None:
+    async def save_code(self, user_id: UserId, code: str, expires_in_minutes: int = 15) -> None:
         """Salva um novo código de verificação para o usuário com um tempo de expiração."""
         ...
 
     @abstractmethod
-    async def get_active_code_for_user(self, user_id: Any) -> str | None:
+    async def get_active_code_for_user(self, user_id: UserId) -> str | None:
         """
         Busca o código ativo do usuário. 
         Retorna None se o código não existir ou já tiver expirado.
@@ -22,7 +23,7 @@ class IOtpRepository(ABC):
         ...
 
     @abstractmethod
-    async def consume_code(self, user_id: Any) -> None:
+    async def consume_code(self, user_id: UserId) -> None:
         """
         Deleta/Invalida o código após o uso bem-sucedido, 
         garantindo que ele não possa ser usado duas vezes.

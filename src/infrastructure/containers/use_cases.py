@@ -23,6 +23,7 @@ from src.domain.ports.plant_reference_image_repository import (
 )
 from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
 from src.domain.ports.token_repository import ITokenRepository
+from src.domain.ports.token_service import ITokenService
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
 from src.domain.use_cases.add_plant_to_garden_use_case import AddPlantToGardenUseCase
@@ -84,21 +85,20 @@ class UseCasesContainer(containers.DeclarativeContainer):
     plant_enricher: providers.Dependency[IPlantEnricher] = providers.Dependency()
 
     image_storage: providers.Dependency[IImageStorage] = providers.Dependency()
+    token_service: providers.Dependency[ITokenService] = providers.Dependency()
 
     login_use_case = providers.Factory(
         LoginUseCase,
         user_repo=user_repository,
         hasher=password_hasher,
         token_repo=token_repository,
-        secret_key=settings.provided.secret_key,
-        algorithm=settings.provided.jwt_algorithm,
+        token_service=token_service,
     )
 
     refresh_token_use_case = providers.Factory(
         RefreshTokenUseCase,
         token_repo=token_repository,
-        secret_key=settings.provided.secret_key,
-        algorithm=settings.provided.jwt_algorithm,
+        token_service=token_service,
     )
 
     logout_use_case = providers.Factory(

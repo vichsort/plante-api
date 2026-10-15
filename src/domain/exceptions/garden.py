@@ -1,4 +1,4 @@
-from typing import Any
+from uuid import UUID
 
 from src.domain.exceptions.base import PlantEError
 
@@ -8,7 +8,7 @@ class PlantNotFoundError(PlantEError):
     code = "PLANTE_4001_PLANT_NOT_FOUND"
     status_code = 404
 
-    def __init__(self, plant_id: Any):
+    def __init__(self, plant_id: UUID):
         super().__init__(
             message=f"Plant {plant_id} not found.",
         )

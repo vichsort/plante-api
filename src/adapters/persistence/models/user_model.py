@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 
 from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy import Enum as SAEnum
@@ -7,6 +8,11 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 
 from .base import AuditMixin, Base
+
+
+def _plan_names(_: type[Enum]) -> list[str]:
+    """`values_callable` do SAEnum: o banco guarda o nome do plano ("FREE", "PRO")."""
+    return [tier.plan_name for tier in SubscriptionTier]
 
 
 class UserModel(Base, AuditMixin):
@@ -20,10 +26,10 @@ class UserModel(Base, AuditMixin):
     location_state: Mapped[str] = mapped_column(String(100), nullable=False)
 
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    subscription: Mapped[str] = mapped_column(
-        SAEnum(SubscriptionTier, values_callable=lambda e: [x.plan_name for x in e], name="subscriptionTier"),
+    subscription: Mapped[SubscriptionTier] = mapped_column(
+        SAEnum(SubscriptionTier, values_callable=_plan_names, name="subscriptionTier"),
         nullable=False,
-        default=SubscriptionTier.FREE.plan_name,
+        default=SubscriptionTier.FREE,
     )
     tokens_used_today: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     garden_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

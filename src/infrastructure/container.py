@@ -48,4 +48,5 @@ class Container(containers.DeclarativeContainer):
         health_analyzer=adapters.health_analyzer,
         plant_enricher=adapters.plant_enricher,
         image_storage=adapters.image_storage,
+        token_service=adapters.token_service,
     )

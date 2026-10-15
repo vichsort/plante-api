@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+
+from src.domain.entities.plant_species import LightRequirement, SoilType
 
 
 @dataclass(frozen=True)
@@ -9,8 +10,8 @@ class EnrichmentResult:
     source: str
     is_edible: bool | None = None
     water_frequency_per_week: int | None = None
-    light_requirement: str | None = None
-    soil_type: str | None = None
+    light_requirement: LightRequirement | None = None
+    soil_type: SoilType | None = None
     best_planting_season: str | None = None
     origin_country: str | None = None
     habitat: str | None = None
@@ -37,6 +38,15 @@ class DiseaseAnalysisResult:
     treatment_steps: tuple[str, ...] = ()
     recovery_estimate_days: int | None = None
 
+@dataclass(frozen=True)
+class HealthDiagnosisEnrichment:
+    """Análise complementar do Gemini para uma planta com problemas de saúde."""
+    vitality_score: float
+    treatment_plan: tuple[str, ...] = ()
+    recovery_estimate_days: int | None = None
+    notes: str | None = None
+
+
 class IPlantEnricher(ABC):
     @abstractmethod
     async def enrich_species(self, scientific_name: str) -> EnrichmentResult:
@@ -58,6 +68,6 @@ class IPlantEnricher(ABC):
     @abstractmethod
     async def diagnose_health(
         self, scientific_name: str, issues: list[str]
-    ) -> dict[str, Any]:
+    ) -> HealthDiagnosisEnrichment:
         """Enriquece o diagnóstico de saúde de uma planta."""
         ...

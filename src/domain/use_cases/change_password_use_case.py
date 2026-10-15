@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Any
 
 from src.domain.exceptions import (
     InvalidCredentialsError,
@@ -9,12 +8,13 @@ from src.domain.exceptions import (
 from src.domain.ports.email_sender import IEmailSender
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.ids import UserId
 
 _MIN_PASSWORD_LENGTH = 8
 
 @dataclass(frozen=True)
 class ChangePasswordInputDTO:
-    user_id: Any
+    user_id: UserId
     current_password: str
     new_password: str
 

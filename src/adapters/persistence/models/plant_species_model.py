@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any
 
 from sqlalchemy import JSON, Boolean, DateTime, Integer, String
 from sqlalchemy import Enum as SAEnum
@@ -12,17 +11,17 @@ from src.domain.entities.plant_species import (
     SoilType,
 )
 
-from .base import AuditMixin, Base
+from .base import AuditMixin, Base, enum_values
 
 
 class PlantSpeciesModel(Base, AuditMixin):
     __tablename__ = "plant_species"
 
     scientific_name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    enrichment_status: Mapped[str] = mapped_column(
-        SAEnum(EnrichmentStatus, values_callable=lambda e: [x.value for x in e], name="enrichmentStatus"),
+    enrichment_status: Mapped[EnrichmentStatus] = mapped_column(
+        SAEnum(EnrichmentStatus, values_callable=enum_values, name="enrichmentStatus"),
         nullable=False,
-        default=EnrichmentStatus.PENDING.value,
+        default=EnrichmentStatus.PENDING,
         index=True,
     )
 
@@ -30,19 +29,19 @@ class PlantSpeciesModel(Base, AuditMixin):
     genus: Mapped[str | None] = mapped_column(String(100), nullable=True)
     order: Mapped[str | None] = mapped_column(String(100), nullable=True)
     plant_class: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    common_names: Mapped[list[Any] | None] = mapped_column(JSON, nullable=True)
+    common_names: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
 
     kindwise_entity_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     gbif_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     is_edible: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     water_frequency_per_week: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    light_requirement: Mapped[str | None] = mapped_column(
-        SAEnum(LightRequirement, values_callable=lambda e: [x.value for x in e], name="lightRequirement"),
+    light_requirement: Mapped[LightRequirement | None] = mapped_column(
+        SAEnum(LightRequirement, values_callable=enum_values, name="lightRequirement"),
         nullable=True,
     )
-    soil_type: Mapped[str | None] = mapped_column(
-        SAEnum(SoilType, values_callable=lambda e: [x.value for x in e], name="soilType"),
+    soil_type: Mapped[SoilType | None] = mapped_column(
+        SAEnum(SoilType, values_callable=enum_values, name="soilType"),
         nullable=True,
     )
     best_planting_season: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -50,7 +49,7 @@ class PlantSpeciesModel(Base, AuditMixin):
     habitat: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     enriched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    enrichment_source: Mapped[str | None] = mapped_column(
-        SAEnum(EnrichmentSource, values_callable=lambda e: [x.value for x in e], name="enrichmentSource"),
+    enrichment_source: Mapped[EnrichmentSource | None] = mapped_column(
+        SAEnum(EnrichmentSource, values_callable=enum_values, name="enrichmentSource"),
         nullable=True,
     )

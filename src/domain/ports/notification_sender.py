@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any
+from enum import StrEnum
+
+from src.domain.value_objects.ids import UserId
 
 
-class NotificationType(Enum):
+class NotificationType(StrEnum):
     CARE_REMINDER = "care_reminder"         # lembrete de rega/poda
     WEATHER_ALERT = "weather_alert"         # evento climático crítico
     HEALTH_ALERT = "health_alert"           # planta precisa de atenção
@@ -13,12 +14,12 @@ class NotificationType(Enum):
 
 @dataclass(frozen=True)
 class Notification:
-    user_id: int
+    user_id: UserId
     fcm_token: str
     notification_type: NotificationType
     title: str
     body: str
-    data: dict[str, Any]
+    data: dict[str, str]  # o FCM só aceita valores string no payload
 
 class INotificationSender(ABC):
     @abstractmethod
@@ -27,7 +28,7 @@ class INotificationSender(ABC):
         ...
 
     @abstractmethod
-    async def send_batch(self, notifications: list[Notification]) -> dict[int, bool]:
+    async def send_batch(self, notifications: list[Notification]) -> dict[UserId, bool]:
         """
         Envia múltiplas notificações.
         Retorna dict {user_id: sucesso} pra rastrear falhas individuais.

@@ -3,15 +3,16 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
+from src.domain.use_cases.login_use_case import LoginResult
+from src.domain.use_cases.refresh_token_use_case import RefreshResult
+from tests.factories import make_user
+
 
 def test_register_route_success(client: TestClient):
     mock_use_case = AsyncMock()
-    user_id = str(uuid.uuid4())
-    mock_use_case.execute.return_value = {
-        "user_id": user_id,
-        "email": "integration@plante.org",
-        "status": "pending_verification",
-    }
+    user = make_user(email="integration@plante.org", is_verified=False)
+    user_id = str(user.id)
+    mock_use_case.execute.return_value = user
 
     with client.app.state.container.use_cases.register_user_use_case.override(mock_use_case):
         response = client.post("/auth/register", json={
@@ -26,6 +27,7 @@ def test_register_route_success(client: TestClient):
     assert payload["ok"] is True
     assert payload["data"]["user_id"] == user_id
     assert payload["data"]["email"] == "integration@plante.org"
+    assert payload["data"]["status"] == "pending_verification"
     assert "x-response-time-ms" in response.headers
 
 def test_verify_email_route_success(client: TestClient):
@@ -45,11 +47,10 @@ def test_verify_email_route_success(client: TestClient):
 
 def test_login_route_success(client: TestClient):
     mock_use_case = AsyncMock()
-    mock_use_case.execute.return_value = {
-        "access_token": "mocked_access_token",
-        "refresh_token": "mocked_refresh_token",
-        "token_type": "bearer",
-    }
+    mock_use_case.execute.return_value = LoginResult(
+        access_token="mocked_access_token",
+        refresh_token="mocked_refresh_token",
+    )
 
     with client.app.state.container.use_cases.login_use_case.override(mock_use_case):
         response = client.post("/auth/login", json={
@@ -66,11 +67,10 @@ def test_login_route_success(client: TestClient):
 
 def test_refresh_token_route_success(client: TestClient):
     mock_use_case = AsyncMock()
-    mock_use_case.execute.return_value = {
-        "access_token": "new_access_token",
-        "refresh_token": "new_refresh_token",
-        "token_type": "bearer",
-    }
+    mock_use_case.execute.return_value = RefreshResult(
+        access_token="new_access_token",
+        refresh_token="new_refresh_token",
+    )
 
     with client.app.state.container.use_cases.refresh_token_use_case.override(mock_use_case):
         response = client.post("/auth/refresh", json={

@@ -1,5 +1,4 @@
 from collections.abc import Iterator
-from typing import Any
 
 import pytest
 import structlog
@@ -13,8 +12,9 @@ app.conf.broker_transport_options = {"polling_interval": 0.01}
 
 
 @app.task(name="test.capture_correlation_id")
-def capture_correlation_id() -> Any:
-    return structlog.contextvars.get_contextvars().get("correlation_id")
+def capture_correlation_id() -> str | None:
+    value = structlog.contextvars.get_contextvars().get("correlation_id")
+    return value if isinstance(value, str) else None
 
 
 @pytest.fixture(scope="module")

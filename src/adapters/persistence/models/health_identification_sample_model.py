@@ -1,14 +1,14 @@
 import uuid
 from datetime import datetime
-from typing import Any
 
 from sqlalchemy import JSON, UUID, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.domain.entities.health_identification_sample import HealthSampleStatus
+from src.domain.value_objects.json_value import JsonObject
 
-from .base import AuditMixin, Base
+from .base import AuditMixin, Base, enum_values
 
 
 class HealthIdentificationSampleModel(Base, AuditMixin):
@@ -23,14 +23,14 @@ class HealthIdentificationSampleModel(Base, AuditMixin):
     )
     scientific_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     user_image_key: Mapped[str] = mapped_column(String(500), nullable=False)
-    reference_image_keys: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
+    reference_image_keys: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     vitality_score: Mapped[float] = mapped_column(Float, nullable=False)
-    issues_detected: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
-    treatment_plan: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
+    issues_detected: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    treatment_plan: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     identification_source: Mapped[str] = mapped_column(String(50), nullable=False)
-    raw_response: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    status: Mapped[str] = mapped_column(
-        SAEnum(HealthSampleStatus, values_callable=lambda e: [x.value for x in e], name="healthSampleStatus"),
+    raw_response: Mapped[JsonObject] = mapped_column(JSON, nullable=False)
+    status: Mapped[HealthSampleStatus] = mapped_column(
+        SAEnum(HealthSampleStatus, values_callable=enum_values, name="healthSampleStatus"),
         nullable=False,
         index=True,
     )

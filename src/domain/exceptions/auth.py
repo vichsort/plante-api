@@ -1,4 +1,4 @@
-from typing import Any
+from uuid import UUID
 
 from src.domain.exceptions.base import PlantEError
 
@@ -62,7 +62,7 @@ class UserNotFoundError(PlantEError):
     code = "PLANTE_4002_USER_NOT_FOUND"
     status_code = 404
 
-    def __init__(self, message: str = "User not found.", user_id: Any | None = None):
+    def __init__(self, message: str = "User not found.", user_id: UUID | None = None):
         if user_id:
             message = f"User {user_id} not found."
         super().__init__(message=message)

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,7 @@ from src.domain.entities.user_plant import (
     UserPlant,
 )
 from src.domain.value_objects.care_interval import CareInterval
+from src.domain.value_objects.ids import UserPlantId
 from src.domain.value_objects.user_location import UserLocation
 
 
@@ -36,8 +38,6 @@ async def test_user_plant_repository_crud_and_soft_delete(db_session: AsyncSessi
 
     # 2. Criar e salvar planta do usuário
     care = CareSchedule(
-        id=1,
-        user_plant_id=None,
         care_type=CareType.WATER,
         interval=CareInterval(days=2),
         is_active=True,
@@ -46,7 +46,7 @@ async def test_user_plant_repository_crud_and_soft_delete(db_session: AsyncSessi
     )
 
     plant = UserPlant(
-        id=None,
+        id=UserPlantId(uuid4()),
         user_id=saved_user.id,
         scientific_name="Monstera deliciosa",
         identification_confidence=0.95,
@@ -77,10 +77,18 @@ async def test_user_plant_repository_crud_and_soft_delete(db_session: AsyncSessi
     count = await plant_repo.count_by_user(saved_user.id)
     assert count == 1
 
-    # 4. Visão resumida do jardim
-    view = await plant_repo.get_garden_view_for_user(saved_user.id)
-    assert len(view) == 1
-    assert view[0]["nickname"] == "Clotilde"
+    # 4. Detalhes com a espécie (ainda não cadastrada) e regravação após regar
+    details = await plant_repo.get_details(saved_plant.id, saved_user.id)
+    assert details is not None
+    assert details.plant.nickname == "Clotilde"
+    assert details.species is None
+
+    saved_plant.water(now + timedelta(days=3))
+    await plant_repo.save(saved_plant)
+    await db_session.commit()
+    watered = await plant_repo.get_by_id(saved_plant.id, saved_user.id)
+    assert watered is not None
+    assert watered.watering_streak.current_count == 1
 
     # 5. Executar Soft Delete
     deleted_ok = await plant_repo.delete(saved_plant.id, saved_user.id)

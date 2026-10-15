@@ -3,7 +3,7 @@ import structlog
 from src.domain.events.domain_events import DomainEvent, UserRegisteredEvent
 from src.domain.ports.domain_publisher import IDomainPublisher
 
-log = structlog.get_logger()
+log = structlog.stdlib.get_logger()
 
 
 class CeleryPublisher(IDomainPublisher):
@@ -13,6 +13,6 @@ class CeleryPublisher(IDomainPublisher):
         if isinstance(event, UserRegisteredEvent):
             from src.workers.notification_tasks import send_verification_email_task
             send_verification_email_task.delay(
-                user_id=event.user_id,
+                user_id=str(event.user_id),
                 email=event.email,
             )

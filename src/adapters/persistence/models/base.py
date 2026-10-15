@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime
+from enum import Enum, StrEnum
 
 from sqlalchemy import UUID, DateTime
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -7,6 +8,11 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 def utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+def enum_values(enum_cls: type[Enum]) -> list[str]:
+    """`values_callable` do SAEnum: o banco guarda o valor de cada membro (não o nome)."""
+    return [str(member) for member in enum_cls if isinstance(member, StrEnum)]
 
 class Base(DeclarativeBase):
     pass

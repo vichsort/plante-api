@@ -1,10 +1,13 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
-from enum import Enum
-from typing import Any
+from enum import StrEnum
+
+from src.domain.value_objects.ids import HealthRecordId, HealthSampleId, UserId
+from src.domain.value_objects.json_value import JsonObject
+from src.domain.value_objects.sources import HealthSource
 
 
-class HealthSampleStatus(Enum):
+class HealthSampleStatus(StrEnum):
     PENDING = "pending"
     CONFIRMED = "confirmed"
     REJECTED = "rejected"
@@ -16,20 +19,20 @@ class HealthIdentificationSample:
     Destinado ao dataset de treino da IA — não contém dados pessoais após anonimização.
     """
 
-    id: Any
-    health_record_id: Any
+    id: HealthSampleId
+    health_record_id: HealthRecordId
     scientific_name: str
     user_image_key: str
     vitality_score: float
     issues_detected: tuple[str, ...]
     treatment_plan: tuple[str, ...]
-    identification_source: str
-    raw_response: dict[str, Any]
+    identification_source: HealthSource
+    raw_response: JsonObject
     status: HealthSampleStatus
     created_at: datetime
 
     reference_image_keys: tuple[str, ...] = ()
-    user_id: Any = None
+    user_id: UserId | None = None
     confirmed_at: datetime | None = None
     rejected_at: datetime | None = None
     recovery_estimate_days: int | None = None
@@ -52,15 +55,12 @@ class HealthIdentificationSample:
     def confirm(self, confirmed_at: datetime) -> "HealthIdentificationSample":
         if self.status != HealthSampleStatus.PENDING:
             raise ValueError("Only pending samples can be confirmed.")
-        import dataclasses
-        return dataclasses.replace(self, status=HealthSampleStatus.CONFIRMED, confirmed_at=confirmed_at)
+        return replace(self, status=HealthSampleStatus.CONFIRMED, confirmed_at=confirmed_at)
 
     def reject(self, rejected_at: datetime) -> "HealthIdentificationSample":
         if self.status != HealthSampleStatus.PENDING:
             raise ValueError("Only pending samples can be rejected.")
-        import dataclasses
-        return dataclasses.replace(self, status=HealthSampleStatus.REJECTED, rejected_at=rejected_at)
+        return replace(self, status=HealthSampleStatus.REJECTED, rejected_at=rejected_at)
 
     def anonymize(self) -> "HealthIdentificationSample":
-        import dataclasses
-        return dataclasses.replace(self, user_id=None)
+        return replace(self, user_id=None)

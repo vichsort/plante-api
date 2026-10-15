@@ -1,14 +1,12 @@
 import inspect
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
-from functools import partial
 
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 
 from src.adapters.resilience.circuit_breaker import CircuitBreaker
-from src.api.deps import decode_access_token
 from src.api.exception_handlers import register_exception_handlers
 from src.api.middleware import (
     AuditMiddleware,
@@ -17,9 +15,11 @@ from src.api.middleware import (
     SecurityHeadersMiddleware,
 )
 from src.api.openapi import COMMON_ERROR_RESPONSES
+from src.domain.ports.token_service import TokenKind
+from src.domain.value_objects.ids import UserId
 from src.infrastructure.container import Container
 
-log = structlog.get_logger()
+log = structlog.stdlib.get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -43,7 +43,7 @@ async def _close_connections(container: Container) -> None:
     """Fecha pools e clientes de rede; uma falha não impede o fechamento dos demais."""
     closers = {
         "database": container.infra.engine().dispose,
-        "redis": container.adapters.redis().aclose,
+        "redis": container.adapters.redis().close,
         "weather_http": container.adapters.weather_http().aclose,
     }
     for name, close in closers.items():
@@ -51,6 +51,12 @@ async def _close_connections(container: Container) -> None:
             await close()
         except Exception as exc:
             log.warning("plante.shutdown_failed", resource=name, error=str(exc))
+
+
+def _access_token_owner(container: Container) -> Callable[[str], UserId]:
+    """Identifica o usuário pelo access token, para o rate limit contar por usuário."""
+    token_service = container.adapters.token_service()
+    return lambda token: token_service.verify(token, TokenKind.ACCESS)
 
 
 def create_app() -> FastAPI:
@@ -78,11 +84,10 @@ def create_app() -> FastAPI:
     # Middlewares (registrados na ordem interna -> externa)
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(SecurityHeadersMiddleware)
-    settings = container.settings()
     app.add_middleware(
         RateLimitMiddleware,
         redis_provider=container.adapters.redis,
-        token_decoder=partial(decode_access_token, secret=settings.secret_key, algorithm=settings.jwt_algorithm),
+        token_decoder=_access_token_owner(container),
         # Após uma falha do Redis, só o contador em memória por 30s antes de tentar de novo
         redis_breaker=CircuitBreaker("Redis", failure_threshold=1, recovery_timeout_seconds=30.0),
     )

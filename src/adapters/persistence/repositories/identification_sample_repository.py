@@ -16,6 +16,7 @@ from src.domain.entities.plant_identification_sample import (
 from src.domain.ports.identification_sample_repository import (
     IIdentificationSampleRepository,
 )
+from src.domain.value_objects.ids import IdentificationSampleId, UserId
 
 
 class IdentificationSampleRepository(IIdentificationSampleRepository):
@@ -29,11 +30,11 @@ class IdentificationSampleRepository(IIdentificationSampleRepository):
         await self._session.flush()
         return IdentificationSampleMapper.to_domain(model)
 
-    async def get_by_id(self, sample_id: int) -> PlantIdentificationSample | None:
+    async def get_by_id(self, sample_id: IdentificationSampleId) -> PlantIdentificationSample | None:
         result = await self._session.get(PlantIdentificationSampleModel, sample_id)
         return IdentificationSampleMapper.to_domain(result) if result else None
 
-    async def get_pending_by_user(self, user_id: int) -> list[PlantIdentificationSample]:
+    async def get_pending_by_user(self, user_id: UserId) -> list[PlantIdentificationSample]:
         stmt = (
             select(PlantIdentificationSampleModel)
             .where(PlantIdentificationSampleModel.user_id == user_id)

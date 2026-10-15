@@ -1,9 +1,9 @@
-from typing import Any
+from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 
-from src.api.deps import get_current_user_id
+from src.api.deps import CurrentUserId
 from src.api.openapi import error_responses
 from src.api.response import ApiResponse
 from src.api.schemas.auth import MessageResponse
@@ -15,9 +15,7 @@ from src.api.schemas.profile import (
     UpgradeSubscriptionRequest,
     UpgradeSubscriptionResponse,
 )
-from src.domain.exceptions import (
-    UnauthorizedError,
-)
+from src.domain.exceptions import UnauthorizedError
 from src.domain.use_cases.change_email_use_case import (
     ChangeEmailInputDTO,
     ChangeEmailUseCase,
@@ -42,6 +40,7 @@ from src.infrastructure.container import Container
 
 router = APIRouter(prefix="/profile", tags=["profile"], responses=error_responses(UnauthorizedError))
 
+
 @router.patch(
     "/email",
     status_code=200,
@@ -51,8 +50,8 @@ router = APIRouter(prefix="/profile", tags=["profile"], responses=error_response
 @inject
 async def change_email(
     body: ChangeEmailRequest,
-    use_case: ChangeEmailUseCase = Depends(Provide[Container.use_cases.change_email_use_case]),
-    user_id: Any = Depends(get_current_user_id),
+    use_case: Annotated[ChangeEmailUseCase, Depends(Provide[Container.use_cases.change_email_use_case])],
+    user_id: CurrentUserId,
 ) -> ApiResponse[MessageResponse]:
     await use_case.execute(ChangeEmailInputDTO(
         user_id=user_id,
@@ -60,6 +59,7 @@ async def change_email(
         new_email=body.new_email,
     ))
     return ApiResponse.success(MessageResponse(message="Verification code sent to new email."))
+
 
 @router.patch(
     "/password",
@@ -70,8 +70,8 @@ async def change_email(
 @inject
 async def change_password(
     body: ChangePasswordRequest,
-    use_case: ChangePasswordUseCase = Depends(Provide[Container.use_cases.change_password_use_case]),
-    user_id: Any = Depends(get_current_user_id),
+    use_case: Annotated[ChangePasswordUseCase, Depends(Provide[Container.use_cases.change_password_use_case])],
+    user_id: CurrentUserId,
 ) -> ApiResponse[MessageResponse]:
     await use_case.execute(ChangePasswordInputDTO(
         user_id=user_id,
@@ -79,6 +79,7 @@ async def change_password(
         new_password=body.new_password,
     ))
     return ApiResponse.success(MessageResponse(message="Password updated successfully."))
+
 
 @router.patch(
     "/location",
@@ -89,8 +90,11 @@ async def change_password(
 @inject
 async def update_location(
     body: UpdateLocationRequest,
-    use_case: UpdateLocationFallbackUseCase = Depends(Provide[Container.use_cases.update_location_fallback_use_case]),
-    user_id: Any = Depends(get_current_user_id),
+    use_case: Annotated[
+        UpdateLocationFallbackUseCase,
+        Depends(Provide[Container.use_cases.update_location_fallback_use_case]),
+    ],
+    user_id: CurrentUserId,
 ) -> ApiResponse[MessageResponse]:
     await use_case.execute(UpdateLocationFallbackInputDTO(
         user_id=user_id,
@@ -98,6 +102,7 @@ async def update_location(
         state=body.state,
     ))
     return ApiResponse.success(MessageResponse(message="Location updated successfully."))
+
 
 @router.post(
     "/subscription/upgrade",
@@ -108,20 +113,24 @@ async def update_location(
 @inject
 async def upgrade_subscription(
     body: UpgradeSubscriptionRequest,
-    use_case: UpgradeSubscriptionUseCase = Depends(Provide[Container.use_cases.upgrade_subscription_use_case]),
-    user_id: Any = Depends(get_current_user_id),
+    use_case: Annotated[UpgradeSubscriptionUseCase, Depends(Provide[Container.use_cases.upgrade_subscription_use_case])],
+    user_id: CurrentUserId,
 ) -> ApiResponse[UpgradeSubscriptionResponse]:
-    result = await use_case.execute(UpgradeSubscriptionInputDTO(
+    user = await use_case.execute(UpgradeSubscriptionInputDTO(
         user_id=user_id,
         plan_duration_days=body.plan_duration_days,
     ))
-    return ApiResponse.success(UpgradeSubscriptionResponse(**result))
+    return ApiResponse.success(UpgradeSubscriptionResponse.from_domain(user))
+
 
 @router.get("/achievements", status_code=200, response_model=ApiResponse[list[AchievementItemResponse]])
 @inject
 async def list_achievements(
-    use_case: ListUserAchievementsUseCase = Depends(Provide[Container.use_cases.list_user_achievements_use_case]),
-    user_id: Any = Depends(get_current_user_id),
+    use_case: Annotated[
+        ListUserAchievementsUseCase,
+        Depends(Provide[Container.use_cases.list_user_achievements_use_case]),
+    ],
+    user_id: CurrentUserId,
 ) -> ApiResponse[list[AchievementItemResponse]]:
     achievements = await use_case.execute(ListUserAchievementsInputDTO(user_id=user_id))
-    return ApiResponse.success([AchievementItemResponse(**a) for a in achievements])
+    return ApiResponse.success([AchievementItemResponse.from_domain(a) for a in achievements])

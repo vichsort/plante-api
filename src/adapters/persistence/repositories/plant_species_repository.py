@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from typing import Any
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +7,7 @@ from src.adapters.persistence.mappers.plant_species_mapper import PlantSpeciesMa
 from src.adapters.persistence.models.plant_species_model import PlantSpeciesModel
 from src.domain.entities.plant_species import EnrichmentStatus, PlantSpecies
 from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
+from src.domain.value_objects.ids import PlantSpeciesId
 
 
 class PlantSpeciesRepository(IPlantSpeciesRepository):
@@ -21,7 +21,7 @@ class PlantSpeciesRepository(IPlantSpeciesRepository):
         await self._session.flush()
         return PlantSpeciesMapper.to_domain(model)
 
-    async def get_by_id(self, species_id: Any) -> PlantSpecies | None:
+    async def get_by_id(self, species_id: PlantSpeciesId) -> PlantSpecies | None:
         stmt = select(PlantSpeciesModel).where(PlantSpeciesModel.id == species_id)
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
@@ -40,14 +40,13 @@ class PlantSpeciesRepository(IPlantSpeciesRepository):
         scientific_name: str,
         status: EnrichmentStatus,
     ) -> None:
-        values: dict[str, Any] = {"enrichment_status": status.value}
-        if status == EnrichmentStatus.ENRICHED:
-            values["enriched_at"] = datetime.now(UTC)
         stmt = (
             update(PlantSpeciesModel)
             .where(PlantSpeciesModel.scientific_name == scientific_name)
-            .values(**values)
+            .values(enrichment_status=status)
         )
+        if status == EnrichmentStatus.ENRICHED:
+            stmt = stmt.values(enriched_at=datetime.now(UTC))
         await self._session.execute(stmt)
 
     async def list_pending_enrichment(self, limit: int = 50) -> list[PlantSpecies]:

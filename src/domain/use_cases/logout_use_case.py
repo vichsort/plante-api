@@ -1,8 +1,9 @@
 import structlog
 
 from src.domain.ports.token_repository import ITokenRepository
+from src.domain.value_objects.ids import UserId
 
-log = structlog.get_logger()
+log = structlog.stdlib.get_logger()
 
 class LogoutUseCase:
     raises = ()
@@ -10,6 +11,6 @@ class LogoutUseCase:
     def __init__(self, token_repo: ITokenRepository) -> None:
         self._token_repo = token_repo
 
-    async def execute(self, user_id: int) -> None:
+    async def execute(self, user_id: UserId) -> None:
         await self._token_repo.delete_refresh_token(user_id)
-        log.info("user.logout", user_id=user_id)
+        log.info("user.logout", user_id=str(user_id))

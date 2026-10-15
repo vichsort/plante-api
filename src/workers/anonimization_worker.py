@@ -1,13 +1,12 @@
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
+import structlog
 from celery import shared_task
-from structlog import get_logger
 
 from src.infrastructure.container import Container
 from src.workers.async_runner import run_async
 
-logger = get_logger()
+logger = structlog.stdlib.get_logger()
 RETENTION_DAYS = 30
 
 @shared_task(
@@ -18,7 +17,7 @@ RETENTION_DAYS = 30
     acks_late=True,
 )
 @run_async
-async def anonymize_confirmed_samples(container: Container | None = None) -> dict[str, Any]:
+async def anonymize_confirmed_samples(container: Container | None = None) -> dict[str, int]:
     """
     Anonimiza samples confirmadas há mais de RETENTION_DAYS dias.
     Idempotente: rodar duas vezes não causa efeito colateral.

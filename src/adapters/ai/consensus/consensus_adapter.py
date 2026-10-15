@@ -13,7 +13,7 @@ from src.domain.ports.plant_identifier import (
     IPlantIdentifier,
 )
 
-log = structlog.get_logger()
+log = structlog.stdlib.get_logger()
 
 _TIMEOUT_SECONDS = 10.0
 

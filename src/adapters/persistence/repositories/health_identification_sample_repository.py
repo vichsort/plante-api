@@ -16,6 +16,7 @@ from src.domain.entities.health_identification_sample import (
 from src.domain.ports.health_identification_sample_repository import (
     IHealthIdentificationSampleRepository,
 )
+from src.domain.value_objects.ids import HealthRecordId
 
 
 class HealthIdentificationSampleRepository(IHealthIdentificationSampleRepository):
@@ -34,7 +35,7 @@ class HealthIdentificationSampleRepository(IHealthIdentificationSampleRepository
 
     async def get_by_health_record_id(
         self,
-        health_record_id: int,
+        health_record_id: HealthRecordId,
     ) -> HealthIdentificationSample | None:
         stmt = select(HealthIdentificationSampleModel).where(
             HealthIdentificationSampleModel.health_record_id == health_record_id

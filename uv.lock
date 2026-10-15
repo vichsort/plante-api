@@ -1832,6 +1832,7 @@ dependencies = [
     { name = "sqlalchemy" },
     { name = "structlog" },
     { name = "tenacity" },
+    { name = "typing-extensions" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -1883,6 +1884,7 @@ requires-dist = [
     { name = "sqlalchemy", specifier = "==2.0.35" },
     { name = "structlog", specifier = "==24.4.0" },
     { name = "tenacity", specifier = "==9.1.4" },
+    { name = "typing-extensions", specifier = "==4.15.0" },
     { name = "uvicorn", extras = ["standard"], specifier = "==0.54.0" },
 ]
 provides-extras = ["dev"]

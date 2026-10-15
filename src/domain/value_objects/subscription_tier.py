@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 
-class FeatureCost(int, Enum):
+class FeatureCost(IntEnum):
     """Mapeia o custo em tokens de cada ação de IA."""
     IDENTIFY = 1
     REIDENTIFY = 1

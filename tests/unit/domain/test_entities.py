@@ -42,8 +42,6 @@ def test_user_plant_watering_streak():
     # Rega com vencimento no passado (pronta para regar)
     past_due = now - timedelta(days=1)
     care = CareSchedule(
-        id=1,
-        user_plant_id=1,
         care_type=CareType.WATER,
         interval=CareInterval(days=2),
         is_active=True,
@@ -75,8 +73,6 @@ def test_user_plant_water_too_early_raises():
     # Rega com vencimento no futuro (ainda não precisa regar)
     future_due = now + timedelta(days=2)
     care = CareSchedule(
-        id=1,
-        user_plant_id=1,
         care_type=CareType.WATER,
         interval=CareInterval(days=3),
         is_active=True,

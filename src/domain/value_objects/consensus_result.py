@@ -1,10 +1,14 @@
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 from src.domain.value_objects.confidence_score import ConfidenceScore
+from src.domain.value_objects.sources import (
+    IdentificationOrigin,
+    IdentificationProvider,
+)
 
 
-class ConsensusReason(Enum):
+class ConsensusReason(StrEnum):
     EXACT_MATCH = "exact_match"           # scientific_name igual nas duas APIs
     GENUS_MATCH = "genus_match"           # genus igual, espécie diferente
     SINGLE_SOURCE = "single_source"       # uma API falhou, fallback para a outra
@@ -17,8 +21,8 @@ class ConsensusResult:
     confidence: ConfidenceScore
     reason: ConsensusReason
     low_confidence: bool
-    source: str                           # "consensus" | "consensus_partial" | "kindwise" | "plantnet"
-    provider: str                         # provedor cujos dados foram usados: "kindwise" | "plantnet"
+    source: IdentificationOrigin
+    provider: IdentificationProvider      # provedor cujos dados foram usados
     family: str | None = None
     genus: str | None = None
     common_names: tuple[str, ...] = ()

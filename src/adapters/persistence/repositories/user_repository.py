@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from typing import Any
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +7,7 @@ from src.adapters.persistence.mappers.user_mapper import UserMapper
 from src.adapters.persistence.models.user_model import UserModel
 from src.domain.entities.user import User
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 
 
@@ -22,7 +22,7 @@ class UserRepository(IUserRepository):
         await self._session.flush()
         return UserMapper.to_domain(model)
 
-    async def get_by_id(self, user_id: Any) -> User | None:
+    async def get_by_id(self, user_id: UserId) -> User | None:
         stmt = select(UserModel).where(UserModel.id == user_id).where(UserModel.deleted_at.is_(None))
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
@@ -34,7 +34,7 @@ class UserRepository(IUserRepository):
         model = result.scalar_one_or_none()
         return UserMapper.to_domain(model) if model else None
 
-    async def update_fcm_token(self, user_id: Any, fcm_token: str) -> None:
+    async def update_fcm_token(self, user_id: UserId, fcm_token: str) -> None:
         stmt = (
             update(UserModel)
             .where(UserModel.id == user_id)
@@ -45,7 +45,7 @@ class UserRepository(IUserRepository):
 
     async def update_subscription(
         self,
-        user_id: Any,
+        user_id: UserId,
         tier: SubscriptionTier,
         expires_at: datetime,
     ) -> None:
@@ -53,6 +53,6 @@ class UserRepository(IUserRepository):
             update(UserModel)
             .where(UserModel.id == user_id)
             .where(UserModel.deleted_at.is_(None))
-            .values(subscription=tier.value, subscription_expires_at=expires_at)
+            .values(subscription=tier, subscription_expires_at=expires_at)
         )
         await self._session.execute(stmt)

@@ -1,16 +1,17 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
+from src.domain.entities.user import User
 from src.domain.events.domain_events import SubscriptionUpgradedEvent
 from src.domain.exceptions import UserNotFoundError
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.ids import UserId
 
 
 @dataclass(frozen=True)
 class UpgradeSubscriptionInputDTO:
-    user_id: Any
+    user_id: UserId
     plan_duration_days: int
 
 class UpgradeSubscriptionUseCase:
@@ -24,7 +25,7 @@ class UpgradeSubscriptionUseCase:
         self.user_repo = user_repo
         self.publisher = publisher
 
-    async def execute(self, dto: UpgradeSubscriptionInputDTO) -> dict[str, Any]:
+    async def execute(self, dto: UpgradeSubscriptionInputDTO) -> User:
         user = await self.user_repo.get_by_id(dto.user_id)
         if not user:
             raise UserNotFoundError(user_id=dto.user_id)
@@ -42,9 +43,4 @@ class UpgradeSubscriptionUseCase:
         )
         await self.publisher.publish(event)
 
-        return {
-            "user_id": user.id,
-            "new_tier": "PRO",
-            "expires_at": expires_at.isoformat(),
-            "message": "Parabéns! Você agora é um membro Premium do PlantE.",
-        }
+        return user

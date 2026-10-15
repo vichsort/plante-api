@@ -1,29 +1,28 @@
+from src.adapters.persistence.mappers.sources import to_health_source
 from src.adapters.persistence.models.health_identification_sample_model import (
     HealthIdentificationSampleModel,
 )
-from src.domain.entities.health_identification_sample import (
-    HealthIdentificationSample,
-    HealthSampleStatus,
-)
+from src.domain.entities.health_identification_sample import HealthIdentificationSample
+from src.domain.value_objects.ids import HealthRecordId, HealthSampleId, UserId
 
 
 class HealthIdentificationSampleMapper:
     @staticmethod
     def to_domain(model: HealthIdentificationSampleModel) -> HealthIdentificationSample:
         return HealthIdentificationSample(
-            id=model.id,
-            health_record_id=model.health_record_id,
+            id=HealthSampleId(model.id),
+            health_record_id=HealthRecordId(model.health_record_id),
             scientific_name=model.scientific_name,
             user_image_key=model.user_image_key,
-            reference_image_keys=tuple(model.reference_image_keys or []),
+            reference_image_keys=tuple(model.reference_image_keys),
             vitality_score=model.vitality_score,
-            issues_detected=tuple(model.issues_detected or []),
-            treatment_plan=tuple(model.treatment_plan or []),
-            identification_source=model.identification_source,
+            issues_detected=tuple(model.issues_detected),
+            treatment_plan=tuple(model.treatment_plan),
+            identification_source=to_health_source(model.identification_source),
             raw_response=model.raw_response,
-            status=HealthSampleStatus(model.status) if isinstance(model.status, str) else model.status,
+            status=model.status,
             created_at=model.created_at,
-            user_id=model.user_id,
+            user_id=UserId(model.user_id) if model.user_id else None,
             confirmed_at=model.confirmed_at,
             rejected_at=model.rejected_at,
             recovery_estimate_days=model.recovery_estimate_days,
@@ -43,7 +42,7 @@ class HealthIdentificationSampleMapper:
             treatment_plan=list(entity.treatment_plan),
             identification_source=entity.identification_source,
             raw_response=entity.raw_response,
-            status=entity.status.value if hasattr(entity.status, "value") else str(entity.status),
+            status=entity.status,
             created_at=entity.created_at,
             user_id=entity.user_id,
             confirmed_at=entity.confirmed_at,

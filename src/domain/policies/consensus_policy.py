@@ -1,6 +1,7 @@
 from src.domain.ports.plant_identifier import IdentificationResult
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.consensus_result import ConsensusReason, ConsensusResult
+from src.domain.value_objects.sources import IdentificationProvider
 
 _KINDWISE_WEIGHT = 0.60
 _PLANTNET_WEIGHT = 0.40
@@ -46,10 +47,10 @@ class ConsensusPolicy:
             )
 
         if kindwise.genus and plantnet.genus and kindwise.genus == plantnet.genus:
-            winner, provider = (
-                (kindwise, "kindwise") if kindwise.confidence.value >= plantnet.confidence.value
-                else (plantnet, "plantnet")
+            provider: IdentificationProvider = (
+                "kindwise" if kindwise.confidence.value >= plantnet.confidence.value else "plantnet"
             )
+            winner = kindwise if provider == "kindwise" else plantnet
             return ConsensusResult(
                 scientific_name=winner.scientific_name,
                 confidence=winner.confidence,
@@ -67,22 +68,19 @@ class ConsensusPolicy:
         plantnet_dominates = (
             plantnet.confidence.value - kindwise.confidence.value >= _PLANTNET_OVERRIDE_THRESHOLD
         )
-        if plantnet_dominates:
-            winner = plantnet
-            reason = ConsensusReason.PLANTNET_OVERRIDE
-            source = "plantnet"
-        else:
-            winner = kindwise
-            reason = ConsensusReason.KINDWISE_OVERRIDE
-            source = "kindwise"
+        overrider: IdentificationProvider = "plantnet" if plantnet_dominates else "kindwise"
+        winner = plantnet if plantnet_dominates else kindwise
+        reason = (
+            ConsensusReason.PLANTNET_OVERRIDE if plantnet_dominates else ConsensusReason.KINDWISE_OVERRIDE
+        )
 
         return ConsensusResult(
             scientific_name=winner.scientific_name,
             confidence=winner.confidence,
             reason=reason,
             low_confidence=True,
-            source=source,
-            provider=source,
+            source=overrider,
+            provider=overrider,
             family=winner.family,
             genus=winner.genus,
             common_names=winner.common_names,
@@ -93,7 +91,7 @@ class ConsensusPolicy:
     @staticmethod
     def _from_single(
         result: IdentificationResult,
-        source: str,
+        source: IdentificationProvider,
         reason: ConsensusReason,
     ) -> ConsensusResult:
         return ConsensusResult(

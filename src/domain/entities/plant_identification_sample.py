@@ -1,10 +1,14 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
-from enum import Enum
-from typing import Any
+from enum import StrEnum
+from uuid import uuid4
+
+from src.domain.value_objects.ids import IdentificationSampleId, PlantSpeciesId, UserId
+from src.domain.value_objects.json_value import JsonObject
+from src.domain.value_objects.sources import IdentificationOrigin
 
 
-class SampleStatus(Enum):
+class SampleStatus(StrEnum):
     PENDING     = "pending"
     CONFIRMED   = "confirmed"
     REJECTED    = "rejected"
@@ -15,17 +19,17 @@ class PlantIdentificationSample:
     Registro imutável de uma identificação para uso futuro em treino de IA.
     Não contém dados pessoais — user_id é anonimizado após confirmação.
     """
-    id: Any
+    id: IdentificationSampleId
     scientific_name: str
-    species_id: Any
+    species_id: PlantSpeciesId
     user_image_key: str
     identification_confidence: float
-    identification_source: str
-    raw_response: dict[str, Any]
+    identification_source: IdentificationOrigin
+    raw_response: JsonObject
     status: SampleStatus
     created_at: datetime
 
-    user_id: Any = None
+    user_id: UserId | None = None
     confirmed_at: datetime | None = None
     rejected_at: datetime | None = None
 
@@ -50,16 +54,16 @@ class PlantIdentificationSample:
     def create(
         cls,
         scientific_name: str,
-        species_id: Any,
+        species_id: PlantSpeciesId,
         user_image_key: str,
         identification_confidence: float,
-        identification_source: str,
-        raw_response: dict[str, Any],
-        user_id: Any,
+        identification_source: IdentificationOrigin,
+        raw_response: JsonObject,
+        user_id: UserId,
         created_at: datetime,
     ) -> "PlantIdentificationSample":
         return cls(
-            id=None,
+            id=IdentificationSampleId(uuid4()),
             scientific_name=scientific_name,
             species_id=species_id,
             user_image_key=user_image_key,
@@ -74,7 +78,8 @@ class PlantIdentificationSample:
     def confirm(self, confirmed_at: datetime) -> "PlantIdentificationSample":
         if confirmed_at.tzinfo is None:
             raise ValueError("confirmed_at must be timezone-aware.")
-        return self._replace(
+        return replace(
+            self,
             status=SampleStatus.CONFIRMED,
             confirmed_at=confirmed_at,
         )
@@ -82,19 +87,20 @@ class PlantIdentificationSample:
     def reject(self, rejected_at: datetime) -> "PlantIdentificationSample":
         if rejected_at.tzinfo is None:
             raise ValueError("rejected_at must be timezone-aware.")
-        return self._replace(
+        return replace(
+            self,
             status=SampleStatus.REJECTED,
             rejected_at=rejected_at,
         )
 
     def mark_deep_analysis_done(self) -> "PlantIdentificationSample":
-        return self._replace(has_deep_analysis=True)
+        return replace(self, has_deep_analysis=True)
 
     def mark_nutritional_analysis_done(self) -> "PlantIdentificationSample":
-        return self._replace(has_nutritional_analysis=True)
+        return replace(self, has_nutritional_analysis=True)
 
     def anonymize(self) -> "PlantIdentificationSample":
-        return self._replace(user_id=None)
+        return replace(self, user_id=None)
 
     @property
     def is_complete_for_training(self) -> bool:
@@ -103,7 +109,3 @@ class PlantIdentificationSample:
             and self.has_deep_analysis
             and self.has_nutritional_analysis
         )
-
-    def _replace(self, **changes: Any) -> "PlantIdentificationSample":
-        from dataclasses import replace
-        return replace(self, **changes)

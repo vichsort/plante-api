@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import Any
+
+from src.domain.value_objects.ids import UserId
 
 
 class ITokenRepository(ABC):
     @abstractmethod
     async def save_refresh_token(
         self,
-        user_id: Any,
+        user_id: UserId,
         token: str,
         ttl_seconds: int,
     ) -> None:
@@ -14,11 +15,11 @@ class ITokenRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_refresh_token(self, user_id: Any) -> str | None:
+    async def get_refresh_token(self, user_id: UserId) -> str | None:
         """Retorna o refresh token ativo do usuário, ou None se inexistente/expirado."""
         ...
 
     @abstractmethod
-    async def delete_refresh_token(self, user_id: Any) -> None:
+    async def delete_refresh_token(self, user_id: UserId) -> None:
         """Remove o refresh token — usado no logout."""
         ...

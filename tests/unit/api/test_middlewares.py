@@ -1,23 +1,24 @@
 import asyncio
 import time
 import uuid
-from functools import partial
+from datetime import timedelta
 
 import httpx
-import jwt
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from redis.asyncio import Redis
 
+from src.adapters.cache.redis_client import RedisClient
 from src.adapters.resilience.circuit_breaker import CircuitBreaker
-from src.api.deps import decode_access_token
+from src.adapters.security.jwt_token_service import JwtTokenService
 from src.api.middleware import (
     CorrelationIdMiddleware,
     RateLimitMiddleware,
     SecurityHeadersMiddleware,
 )
-from src.domain.exceptions import UnauthorizedError
+from src.domain.exceptions import ExternalServiceError, UnauthorizedError
+from src.domain.ports.token_service import TokenKind
+from src.domain.value_objects.ids import UserId
 from src.infrastructure.container import Container
 
 
@@ -187,34 +188,13 @@ def test_rate_limit_skips_exempt_paths():
         assert "X-RateLimit-Limit" not in response.headers
 
 
-class _FakePipeline:
-    def __init__(self, store: dict[str, int]) -> None:
-        self._store = store
-        self._key = ""
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *exc):
-        return False
-
-    def incr(self, key: str) -> None:
-        self._key = key
-
-    def expire(self, key: str, seconds: int) -> None:
-        pass
-
-    async def execute(self) -> list:
-        self._store[self._key] = self._store.get(self._key, 0) + 1
-        return [self._store[self._key], True]
-
-
 class _FakeRedis:
     def __init__(self) -> None:
         self.store: dict[str, int] = {}
 
-    def pipeline(self, transaction: bool = True) -> _FakePipeline:
-        return _FakePipeline(self.store)
+    async def increment_with_expiry(self, key: str, ttl_seconds: int) -> int:
+        self.store[key] = self.store.get(key, 0) + 1
+        return self.store[key]
 
 
 def test_rate_limit_uses_redis_counter_when_available():
@@ -308,11 +288,15 @@ _TEST_SECRET = "test-secret-key-with-at-least-32-bytes"
 
 
 def test_rate_limit_with_real_token_decoder():
-    decoder = partial(decode_access_token, secret=_TEST_SECRET, algorithm="HS256")
+    tokens = JwtTokenService(secret_key=_TEST_SECRET, algorithm="HS256")
     fake = _FakeRedis()
-    client = TestClient(_rate_limited_app(redis_provider=lambda: fake, token_decoder=decoder))
-    access = jwt.encode({"sub": "user-1", "type": "access"}, _TEST_SECRET, algorithm="HS256")
-    refresh = jwt.encode({"sub": "user-1", "type": "refresh"}, _TEST_SECRET, algorithm="HS256")
+    client = TestClient(_rate_limited_app(
+        redis_provider=lambda: fake,
+        token_decoder=lambda token: tokens.verify(token, TokenKind.ACCESS),
+    ))
+    user_id = UserId(uuid.uuid4())
+    access = tokens.issue(user_id, TokenKind.ACCESS, timedelta(minutes=5))
+    refresh = tokens.issue(user_id, TokenKind.REFRESH, timedelta(minutes=5))
 
     client.get("/api/test", headers={"Authorization": f"Bearer {access}"})
     client.get("/api/test", headers={"Authorization": f"Bearer {refresh}"})
@@ -332,11 +316,18 @@ def test_rate_limit_backs_off_redis_after_failure():
     clock = _Clock()
     fake = _FakeRedis()
 
+    class _FlakyRedis:
+        async def increment_with_expiry(self, key: str, ttl_seconds: int) -> int:
+            calls.append(clock.now)
+            if len(calls) == 1:
+                # Contrato do RedisClient: falha de conexão vira ExternalServiceError retryable
+                raise ExternalServiceError(message="ConnectionError", service="Redis", retryable=True)
+            return await fake.increment_with_expiry(key, ttl_seconds)
+
+    flaky = _FlakyRedis()
+
     def flaky_redis():
-        calls.append(clock.now)
-        if len(calls) == 1:
-            raise ConnectionError("redis down")
-        return fake
+        return flaky
 
     client = TestClient(_rate_limited_app(
         requests_per_minute=100,
@@ -375,7 +366,7 @@ async def test_rate_limit_does_not_hang_on_unresponsive_redis():
 
     server = await asyncio.start_server(never_reply, "127.0.0.1", 0)
     port = server.sockets[0].getsockname()[1]
-    redis = Redis.from_url(f"redis://127.0.0.1:{port}", socket_timeout=0.2, socket_connect_timeout=0.2)
+    redis = RedisClient.from_url(f"redis://127.0.0.1:{port}", socket_timeout=0.2, socket_connect_timeout=0.2)
     app = _rate_limited_app(redis_provider=lambda: redis, redis_breaker=CircuitBreaker("Redis", failure_threshold=1))
 
     try:
@@ -388,13 +379,13 @@ async def test_rate_limit_does_not_hang_on_unresponsive_redis():
             assert (await client.get("/api/test")).status_code == 200
             assert time.monotonic() - started < 0.1
     finally:
-        await redis.aclose()
+        await redis.close()
         server.close()
         await server.wait_closed()
 
 
 def test_container_redis_client_has_short_timeouts():
     redis = Container().adapters.redis()
-    kwargs = redis.connection_pool.connection_kwargs
+    kwargs = redis._redis.connection_pool.connection_kwargs
     assert kwargs["socket_timeout"] == 0.5
     assert kwargs["socket_connect_timeout"] == 0.5

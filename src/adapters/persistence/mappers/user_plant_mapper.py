@@ -1,11 +1,10 @@
 from src.adapters.persistence.models.user_plant_model import UserPlantModel
 from src.domain.entities.care_schedule import CareSchedule, CareType
 from src.domain.entities.user_plant import (
-    IdentificationSource,
-    IdentificationStatus,
     UserPlant,
 )
 from src.domain.value_objects.care_interval import CareInterval
+from src.domain.value_objects.ids import UserId, UserPlantId
 from src.domain.value_objects.streak import Streak
 
 
@@ -13,8 +12,6 @@ class UserPlantMapper:
     @staticmethod
     def to_domain(model: UserPlantModel) -> UserPlant:
         care_schedule = CareSchedule(
-            id=model.id,  # CareSchedule não tem id próprio — usa o do UserPlant
-            user_plant_id=model.id,
             care_type=CareType(model.care_type),
             interval=CareInterval(days=model.care_interval_days),
             is_active=model.care_is_active,
@@ -24,12 +21,12 @@ class UserPlantMapper:
             climate_adjusted=model.care_climate_adjusted,
         )
         return UserPlant(
-            id=model.id,
-            user_id=model.user_id,
+            id=UserPlantId(model.id),
+            user_id=UserId(model.user_id),
             scientific_name=model.scientific_name,
             identification_confidence=model.identification_confidence,
-            identification_source=IdentificationSource(model.identification_source),
-            status=IdentificationStatus(model.status),
+            identification_source=model.identification_source,
+            status=model.status,
             added_at=model.added_at,
             care_schedule=care_schedule,
             nickname=model.nickname,
@@ -49,8 +46,8 @@ class UserPlantMapper:
             user_id=entity.user_id,
             scientific_name=entity.scientific_name,
             identification_confidence=entity.identification_confidence,
-            identification_source=entity.identification_source.value,
-            status=entity.status.value,
+            identification_source=entity.identification_source,
+            status=entity.status,
             added_at=entity.added_at,
             nickname=entity.nickname,
             primary_image_url=entity.primary_image_url,

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 from src.domain.entities.plant_identification_sample import PlantIdentificationSample
+from src.domain.value_objects.ids import IdentificationSampleId, UserId
 
 
 class IIdentificationSampleRepository(ABC):
@@ -11,11 +12,11 @@ class IIdentificationSampleRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_by_id(self, sample_id: int) -> PlantIdentificationSample | None:
+    async def get_by_id(self, sample_id: IdentificationSampleId) -> PlantIdentificationSample | None:
         ...
 
     @abstractmethod
-    async def get_pending_by_user(self, user_id: int) -> list[PlantIdentificationSample]:
+    async def get_pending_by_user(self, user_id: UserId) -> list[PlantIdentificationSample]:
         """Busca identificações aguardando confirmação do usuário."""
         ...
 

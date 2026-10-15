@@ -4,13 +4,16 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from src.adapters.security.jwt_token_service import JwtTokenService
 from src.domain.entities.user import User
 from src.domain.exceptions import EmailAlreadyInUseError, UnauthorizedError
+from src.domain.ports.token_service import TokenKind
 from src.domain.use_cases.login_use_case import LoginUseCase
 from src.domain.use_cases.register_user_use_case import (
     RegisterUserInputDTO,
     RegisterUserUseCase,
 )
+from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
 
@@ -20,7 +23,7 @@ async def test_register_user_success():
     user_repo = AsyncMock()
     user_repo.get_by_email.return_value = None
 
-    user_id = str(uuid.uuid4())
+    user_id = UserId(uuid.uuid4())
     fake_user = User(
         id=user_id,
         email="new@plante.org",
@@ -46,7 +49,7 @@ async def test_register_user_success():
         state="SP",
     ))
 
-    assert result["user_id"] == user_id
+    assert result.id == user_id
     user_repo.get_by_email.assert_called_once_with("new@plante.org")
     hasher.hash.assert_called_once_with("secretpassword")
     user_repo.save.assert_called_once()
@@ -72,9 +75,8 @@ async def test_register_user_email_already_in_use():
 
 @pytest.mark.asyncio
 async def test_login_user_success():
-    user_id = str(uuid.uuid4())
     fake_user = User(
-        id=user_id,
+        id=UserId(uuid.uuid4()),
         email="user@plante.org",
         hashed_password="hashed_secret",
         location=UserLocation(country="BR", state="SP"),
@@ -95,20 +97,21 @@ async def test_login_user_success():
         user_repo=user_repo,
         hasher=hasher,
         token_repo=token_repo,
-        secret_key="testsecretkey",
+        token_service=JwtTokenService(secret_key="testsecretkey-with-at-least-32-bytes", algorithm="HS256"),
     )
 
     result = await use_case.execute(email="user@plante.org", password="secretpassword")
 
-    assert result.access_token is not None
-    assert result.refresh_token is not None
+    tokens = JwtTokenService(secret_key="testsecretkey-with-at-least-32-bytes", algorithm="HS256")
+    assert tokens.verify(result.access_token, TokenKind.ACCESS) == fake_user.id
+    assert tokens.verify(result.refresh_token, TokenKind.REFRESH) == fake_user.id
     assert result.token_type == "bearer"
     token_repo.save_refresh_token.assert_called_once()
 
 @pytest.mark.asyncio
 async def test_login_invalid_password_raises():
     fake_user = User(
-        id=str(uuid.uuid4()),
+        id=UserId(uuid.uuid4()),
         email="user@plante.org",
         hashed_password="hashed_secret",
         location=UserLocation(country="BR", state="SP"),
@@ -129,7 +132,7 @@ async def test_login_invalid_password_raises():
         user_repo=user_repo,
         hasher=hasher,
         token_repo=token_repo,
-        secret_key="testsecretkey",
+        token_service=JwtTokenService(secret_key="testsecretkey-with-at-least-32-bytes", algorithm="HS256"),
     )
 
     with pytest.raises(UnauthorizedError, match="Invalid email or password"):

@@ -1,22 +1,14 @@
 from src.adapters.persistence.models.user_model import UserModel
 from src.domain.entities.user import User
-from src.domain.value_objects.subscription_tier import SubscriptionTier
+from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.user_location import UserLocation
 
 
 class UserMapper:
     @staticmethod
     def to_domain(model: UserModel) -> User:
-        # Resolve o enum pelo nome se model.subscription for str (ex: 'FREE' -> SubscriptionTier.FREE)
-        if isinstance(model.subscription, str):
-            tier = SubscriptionTier[model.subscription]
-        elif isinstance(model.subscription, SubscriptionTier):
-            tier = model.subscription
-        else:
-            tier = SubscriptionTier.FREE
-
         return User(
-            id=model.id,
+            id=UserId(model.id),
             email=model.email,
             hashed_password=model.hashed_password,
             location=UserLocation(
@@ -24,7 +16,7 @@ class UserMapper:
                 state=model.location_state,
             ),
             is_verified=model.is_verified,
-            subscription=tier,
+            subscription=model.subscription,
             tokens_used_today=model.tokens_used_today,
             garden_count=model.garden_count,
             fcm_token=model.fcm_token,
@@ -44,7 +36,7 @@ class UserMapper:
             location_country=entity.location.country,
             location_state=entity.location.state,
             is_verified=entity.is_verified,
-            subscription=entity.subscription.name,
+            subscription=entity.subscription,
             tokens_used_today=entity.tokens_used_today,
             garden_count=entity.garden_count,
             fcm_token=entity.fcm_token,

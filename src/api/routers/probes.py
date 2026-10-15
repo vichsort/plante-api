@@ -1,20 +1,21 @@
 import asyncio
 import time
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Annotated, Literal
 
 import structlog
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
-from redis.asyncio import Redis
+from fastapi import APIRouter, Depends, Response
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from src.adapters.cache.redis_client import RedisClient
 from src.api.response import ApiResponse
+from src.domain.value_objects.json_value import JsonObject
 from src.infrastructure.container import Container
 
-log = structlog.get_logger()
+log = structlog.stdlib.get_logger()
 
 _CHECK_TIMEOUT_SECONDS = 2.0
 _READINESS_CACHE_TTL_SECONDS = 5.0
@@ -58,23 +59,32 @@ readiness_cache = ReadinessCache()
 router = APIRouter(prefix="/health", tags=["infra"])
 
 
-@router.get("/liveness", status_code=200, response_model=ApiResponse[dict[str, Any]])
-async def liveness() -> ApiResponse[dict[str, Any]]:
+class LivenessResponse(BaseModel):
+    status: Literal["alive"] = "alive"
+
+
+class ReadinessResponse(BaseModel):
+    status: Literal["ready"] = "ready"
+    checks: dict[str, bool]
+
+
+@router.get("/liveness", status_code=200, response_model=ApiResponse[LivenessResponse])
+async def liveness() -> ApiResponse[LivenessResponse]:
     """Processo está de pé. Não verifica dependências externas."""
-    return ApiResponse.success(data={"status": "alive"})
+    return ApiResponse.success(LivenessResponse())
 
 
 @router.get(
     "/readiness",
     status_code=200,
-    response_model=ApiResponse[dict[str, Any]],
+    response_model=ApiResponse[ReadinessResponse],
     responses={503: {"model": ApiResponse[None], "description": "PLANTE_5003_SERVICE_NOT_READY"}},
 )
 @inject
 async def readiness(
-    engine: AsyncEngine = Depends(Provide[Container.infra.engine]),
-    redis: Redis = Depends(Provide[Container.adapters.redis]),
-) -> ApiResponse[dict[str, Any]] | JSONResponse:
+    engine: Annotated[AsyncEngine, Depends(Provide[Container.infra.engine])],
+    redis: Annotated[RedisClient, Depends(Provide[Container.adapters.redis])],
+) -> ApiResponse[ReadinessResponse] | Response:
     """Instância pronta para receber tráfego: Postgres e Redis respondendo."""
     async def run_checks() -> dict[str, bool]:
         database_ok, redis_ok = await asyncio.gather(
@@ -86,14 +96,15 @@ async def readiness(
     checks = await readiness_cache.get(run_checks)
 
     if not all(checks.values()):
+        details: JsonObject = {"checks": {name: ok for name, ok in checks.items()}}
         body = ApiResponse.fail(
             code="PLANTE_5003_SERVICE_NOT_READY",
             message="Service dependencies are not ready.",
-            details={"checks": checks},
+            details=details,
         )
-        return JSONResponse(status_code=503, content=body.model_dump())
+        return Response(content=body.model_dump_json(), status_code=503, media_type="application/json")
 
-    return ApiResponse.success(data={"status": "ready", "checks": checks})
+    return ApiResponse.success(ReadinessResponse(checks=checks))
 
 
 async def _ping_database(engine: AsyncEngine) -> None:

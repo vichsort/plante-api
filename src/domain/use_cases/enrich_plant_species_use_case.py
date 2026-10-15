@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-from typing import Any
 
+from src.domain.entities.plant_species import PlantSpecies
 from src.domain.exceptions import (
     ExternalServiceError,
-    PlantNotFoundError,
+    SpeciesNotFoundError,
     SubscriptionRequiredError,
     UserNotFoundError,
 )
@@ -11,17 +11,18 @@ from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.plant_enricher import IPlantEnricher
 from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.ids import PlantSpeciesId, UserId
 
 
 @dataclass(frozen=True)
 class EnrichPlantInputDTO:
-    user_id: Any
-    species_id: Any
+    user_id: UserId
+    species_id: PlantSpeciesId
 
 class EnrichPlantSpeciesUseCase:
     raises = (
         ExternalServiceError,
-        PlantNotFoundError,
+        SpeciesNotFoundError,
         SubscriptionRequiredError,
         UserNotFoundError,
     )
@@ -30,20 +31,20 @@ class EnrichPlantSpeciesUseCase:
         self,
         user_repo: IUserRepository,
         species_repo: IPlantSpeciesRepository,
-        enricher: IPlantEnricher
-    ):
+        enricher: IPlantEnricher,
+    ) -> None:
         self.user_repo = user_repo
         self.species_repo = species_repo
         self.enricher = enricher
 
-    async def execute(self, dto: EnrichPlantInputDTO) -> dict[str, Any]:
+    async def execute(self, dto: EnrichPlantInputDTO) -> PlantSpecies:
         user = await self.user_repo.get_by_id(dto.user_id)
         if not user:
             raise UserNotFoundError(user_id=dto.user_id)
 
         species = await self.species_repo.get_by_id(dto.species_id)
         if not species:
-            raise PlantNotFoundError(dto.species_id)
+            raise SpeciesNotFoundError(dto.species_id)
 
         SubscriptionPolicy.enforce_can_deep_analyze(user)
 
@@ -58,9 +59,4 @@ class EnrichPlantSpeciesUseCase:
         user.consume_deep_analysis_token()
         await self.user_repo.save(user)
 
-        return {
-            "scientific_name": species.scientific_name,
-            "common_names": list(species.common_names),
-            "is_edible": species.is_edible,
-            "habitat": species.habitat,
-        }
+        return species

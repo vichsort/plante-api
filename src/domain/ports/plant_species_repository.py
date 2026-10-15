@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Any
 
 from src.domain.entities.plant_species import EnrichmentStatus, PlantSpecies
+from src.domain.value_objects.ids import PlantSpeciesId
 
 
 class IPlantSpeciesRepository(ABC):
@@ -10,7 +10,7 @@ class IPlantSpeciesRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_by_id(self, species_id: Any) -> PlantSpecies | None:
+    async def get_by_id(self, species_id: PlantSpeciesId) -> PlantSpecies | None:
         ...
 
     @abstractmethod

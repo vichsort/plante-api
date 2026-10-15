@@ -3,8 +3,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from uuid import uuid4
 
+from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
 
@@ -17,7 +18,7 @@ class User:
     Todas as mutações de estado passam por métodos — nunca por atribuição direta.
     """
 
-    id: Any
+    id: UserId
     email: str
     hashed_password: str
     location: UserLocation
@@ -52,7 +53,7 @@ class User:
     ) -> User:
         """Único ponto de entrada para criação de um novo usuário."""
         return cls(
-            id=None,
+            id=UserId(uuid4()),
             email=email,
             hashed_password=hashed_password,
             location=location,

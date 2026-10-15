@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
 
 from src.domain.exceptions import (
     ForbiddenError,
@@ -13,13 +12,14 @@ from src.domain.ports.identification_sample_repository import (
 )
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.ids import IdentificationSampleId, UserId, UserPlantId
 
 
 @dataclass(frozen=True)
 class DeleteUserPlantInputDTO:
-    user_id: Any
-    user_plant_id: Any
-    sample_id: Any
+    user_id: UserId
+    user_plant_id: UserPlantId
+    sample_id: IdentificationSampleId
 
 class DeleteUserPlantUseCase:
     raises = (ForbiddenError, PlantNotFoundError, SampleNotFoundError, UserNotFoundError)
@@ -41,7 +41,7 @@ class DeleteUserPlantUseCase:
         if plant is None:
             raise PlantNotFoundError(dto.user_plant_id)
 
-        if str(plant.user_id) != str(dto.user_id):
+        if plant.user_id != dto.user_id:
             raise ForbiddenError("Você não tem permissão para remover esta planta.")
 
         user = await self.user_repo.get_by_id(dto.user_id)

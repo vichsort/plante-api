@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from uuid import uuid4
 
 from src.domain.entities.care_schedule import CareSchedule, CareType
 from src.domain.entities.plant_identification_sample import PlantIdentificationSample
@@ -34,14 +34,41 @@ from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
 from src.domain.value_objects.care_interval import CareInterval
+from src.domain.value_objects.confidence_score import ConfidenceScore
+from src.domain.value_objects.ids import (
+    IdentificationSampleId,
+    ReferenceImageId,
+    UserId,
+    UserPlantId,
+)
+from src.domain.value_objects.sources import IdentificationOrigin
 
 
 @dataclass(frozen=True)
 class IdentifyPlantInputDTO:
-    user_id: Any
+    user_id: UserId
     image_bytes: bytes
     latitude: float | None = None
     longitude: float | None = None
+
+
+@dataclass(frozen=True)
+class IdentifyPlantOutput:
+    user_plant_id: UserPlantId
+    sample_id: IdentificationSampleId
+    scientific_name: str
+    confidence: ConfidenceScore
+    image_url: str
+    needs_human_review: bool
+
+
+# Origem da identificação -> como a planta registra quem a identificou
+_IDENTIFICATION_SOURCE: dict[IdentificationOrigin, IdentificationSource] = {
+    "kindwise": IdentificationSource.KINDWISE,
+    "plantnet": IdentificationSource.PLANTNET,
+    "consensus": IdentificationSource.CONSENSUS,
+    "consensus_partial": IdentificationSource.CONSENSUS,
+}
 
 
 class IdentifyPlantUseCase:
@@ -74,7 +101,7 @@ class IdentifyPlantUseCase:
         self.storage = storage
         self.publisher = publisher
 
-    async def execute(self, dto: IdentifyPlantInputDTO) -> dict[str, Any]:
+    async def execute(self, dto: IdentifyPlantInputDTO) -> IdentifyPlantOutput:
         now = datetime.now(UTC)
 
         user = await self.user_repo.get_by_id(dto.user_id)
@@ -105,7 +132,7 @@ class IdentifyPlantUseCase:
                 scientific_name=result.scientific_name,
             )
             await self.reference_image_repo.save(PlantReferenceImage(
-                id=None,
+                id=ReferenceImageId(uuid4()),
                 scientific_name=result.scientific_name,
                 storage_key=key,
                 source=similar.source,
@@ -126,8 +153,6 @@ class IdentifyPlantUseCase:
             species = await self.species_repo.save(species)
 
         care_schedule = CareSchedule(
-            id=None,
-            user_plant_id=None,
             care_type=CareType.WATER,
             interval=CareInterval(days=7),
             is_active=True,
@@ -135,11 +160,11 @@ class IdentifyPlantUseCase:
         )
 
         user_plant = await self.user_plant_repo.save(UserPlant(
-            id=None,
+            id=UserPlantId(uuid4()),
             user_id=user.id,
             scientific_name=result.scientific_name,
             identification_confidence=result.confidence.value,
-            identification_source=IdentificationSource.KINDWISE if result.source == "kindwise" else IdentificationSource.CONSENSUS,
+            identification_source=_IDENTIFICATION_SOURCE[result.source],
             status=IdentificationStatus.IDENTIFIED,
             care_schedule=care_schedule,
             primary_image_url=user_image_key,
@@ -166,11 +191,11 @@ class IdentifyPlantUseCase:
             is_first_plant=False,
         ))
 
-        return {
-            "user_plant_id": user_plant.id,
-            "sample_id": sample.id,
-            "scientific_name": species.scientific_name,
-            "confidence": result.confidence.as_percentage(),
-            "image_url": user_image_key,
-            "needs_human_review": result.confidence.requires_human_review(),
-        }
+        return IdentifyPlantOutput(
+            user_plant_id=user_plant.id,
+            sample_id=sample.id,
+            scientific_name=species.scientific_name,
+            confidence=result.confidence,
+            image_url=user_image_key,
+            needs_human_review=result.confidence.requires_human_review(),
+        )

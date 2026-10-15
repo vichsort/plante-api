@@ -3,6 +3,11 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
+from src.domain.ports.achievement_repository import AchievementView
+from src.domain.value_objects.ids import AchievementId
+from src.domain.value_objects.subscription_tier import SubscriptionTier
+from tests.factories import NOW, days_from_now, make_user
+
 
 def test_change_email_route_success(client: TestClient, auth_headers: dict[str, str]):
     mock_use_case = AsyncMock()
@@ -50,13 +55,11 @@ def test_update_location_route_success(client: TestClient, auth_headers: dict[st
     assert payload["data"]["message"] == "Location updated successfully."
 
 def test_upgrade_subscription_route_success(client: TestClient, auth_headers: dict[str, str]):
-    user_id = str(uuid.uuid4())
     mock_use_case = AsyncMock()
-    mock_use_case.execute.return_value = {
-        "user_id": user_id,
-        "subscription": "PRO",
-        "expires_at": "2027-08-10T16:00:00+00:00",
-    }
+    mock_use_case.execute.return_value = make_user(
+        subscription=SubscriptionTier.PRO,
+        subscription_expires_at=days_from_now(365),
+    )
 
     with client.app.state.container.use_cases.upgrade_subscription_use_case.override(mock_use_case):
         response = client.post(
@@ -71,14 +74,9 @@ def test_upgrade_subscription_route_success(client: TestClient, auth_headers: di
     assert payload["data"]["subscription"] == "PRO"
 
 def test_list_achievements_route_success(client: TestClient, auth_headers: dict[str, str]):
-    achievement_id = str(uuid.uuid4())
     mock_use_case = AsyncMock()
     mock_use_case.execute.return_value = [
-        {
-            "id": achievement_id,
-            "badge_code": "FIRST_PLANT_ADDED",
-            "unlocked_at": "2026-08-01T12:00:00+00:00",
-        }
+        AchievementView(id=AchievementId(uuid.uuid4()), badge_code="FIRST_PLANT_ADDED", unlocked_at=NOW),
     ]
 
     with client.app.state.container.use_cases.list_user_achievements_use_case.override(mock_use_case):

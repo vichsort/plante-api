@@ -1,6 +1,5 @@
 import os
 import uuid
-from typing import Any
 
 import structlog
 from celery import Celery, Task
@@ -34,20 +33,20 @@ _CORRELATION_HEADER = "plante_correlation_id"
 
 
 @before_task_publish.connect
-def _attach_correlation_id(headers: dict[str, Any] | None = None, **_: Any) -> None:
+def _attach_correlation_id(headers: dict[str, object] | None = None, **_: object) -> None:
     correlation_id = structlog.contextvars.get_contextvars().get("correlation_id")
     if headers is not None and correlation_id:
         headers[_CORRELATION_HEADER] = correlation_id
 
 
 @task_prerun.connect
-def _bind_correlation_id(task: "Task[Any, Any] | None" = None, **_: Any) -> None:
+def _bind_correlation_id(task: object = None, **_: object) -> None:
     # Tasks do beat (sem requisição de origem) ganham um ID próprio por execução
-    correlation_id = getattr(task.request, _CORRELATION_HEADER, None) if task else None
+    correlation_id = getattr(task.request, _CORRELATION_HEADER, None) if isinstance(task, Task) else None
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(correlation_id=correlation_id or str(uuid.uuid4()))
 
 
 @task_postrun.connect
-def _clear_correlation_id(**_: Any) -> None:
+def _clear_correlation_id(**_: object) -> None:
     structlog.contextvars.clear_contextvars()

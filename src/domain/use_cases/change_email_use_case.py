@@ -1,6 +1,5 @@
 import secrets
 from dataclasses import dataclass
-from typing import Any
 
 from src.domain.exceptions import (
     EmailAlreadyInUseError,
@@ -11,12 +10,13 @@ from src.domain.ports.email_sender import IEmailSender
 from src.domain.ports.otp_repository import IOtpRepository
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.verification_code import VerificationCode
 
 
 @dataclass(frozen=True)
 class ChangeEmailInputDTO:
-    user_id: Any
+    user_id: UserId
     current_password: str
     new_email: str
 

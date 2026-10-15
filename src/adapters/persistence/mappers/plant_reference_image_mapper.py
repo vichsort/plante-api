@@ -1,17 +1,18 @@
 from src.adapters.persistence.models import PlantReferenceImageModel
-from src.domain.entities.plant_reference_image import ImageSource, PlantReferenceImage
+from src.domain.entities.plant_reference_image import PlantReferenceImage
+from src.domain.value_objects.ids import ReferenceImageId, UserId
 
 
 class PlantReferenceImageMapper:
     @staticmethod
     def to_domain(model: PlantReferenceImageModel) -> PlantReferenceImage:
         return PlantReferenceImage(
-            id=model.id,
+            id=ReferenceImageId(model.id),
             scientific_name=model.scientific_name,
             storage_key=model.storage_key,
-            source=ImageSource(model.source),
+            source=model.source,
             created_at=model.created_at,
-            user_id=model.user_id,
+            user_id=UserId(model.user_id) if model.user_id else None,
         )
 
     @staticmethod
@@ -20,7 +21,7 @@ class PlantReferenceImageMapper:
             id=entity.id,
             scientific_name=entity.scientific_name,
             storage_key=entity.storage_key,
-            source=entity.source.value,
+            source=entity.source,
             created_at=entity.created_at,
             user_id=entity.user_id,
         )

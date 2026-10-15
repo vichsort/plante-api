@@ -1,27 +1,27 @@
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from enum import Enum
-from typing import Any
+from enum import StrEnum
 
 from src.domain.entities.care_schedule import CareSchedule
 from src.domain.exceptions import PlantNotReadyForWateringError
+from src.domain.value_objects.ids import UserId, UserPlantId
 from src.domain.value_objects.streak import Streak
 
 
-class IdentificationStatus(Enum):
+class IdentificationStatus(StrEnum):
     PENDING_ENRICHMENT = "pending_enrichment"
     IDENTIFIED = "identified"
     ENRICHED = "enriched"
 
-class IdentificationSource(Enum):
+class IdentificationSource(StrEnum):
     KINDWISE = "kindwise"
     PLANTNET = "plantnet"
     CONSENSUS = "consensus"
 
 @dataclass(slots=True)
 class UserPlant:
-    id: Any
-    user_id: Any
+    id: UserPlantId
+    user_id: UserId
     scientific_name: str
     identification_confidence: float
     identification_source: IdentificationSource

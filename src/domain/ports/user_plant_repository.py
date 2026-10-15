@@ -1,8 +1,17 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
 
+from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.user_plant import UserPlant
+from src.domain.value_objects.ids import UserId, UserPlantId
+
+
+@dataclass(frozen=True)
+class PlantDetails:
+    """Planta do jardim com a espécie correspondente (None enquanto a espécie não foi cadastrada)."""
+    plant: UserPlant
+    species: PlantSpecies | None
 
 
 class IUserPlantRepository(ABC):
@@ -11,27 +20,23 @@ class IUserPlantRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_by_id(self, user_plant_id: Any, user_id: Any | None = None) -> UserPlant | None:
+    async def get_by_id(self, user_plant_id: UserPlantId, user_id: UserId | None = None) -> UserPlant | None:
         ...
 
     @abstractmethod
-    async def list_by_user(self, user_id: Any) -> list[UserPlant]:
+    async def list_by_user(self, user_id: UserId) -> list[UserPlant]:
         ...
 
     @abstractmethod
-    async def delete(self, user_plant_id: Any, user_id: Any) -> bool:
+    async def delete(self, user_plant_id: UserPlantId, user_id: UserId) -> bool:
         ...
 
     @abstractmethod
-    async def count_by_user(self, user_id: Any) -> int:
+    async def count_by_user(self, user_id: UserId) -> int:
         ...
 
     @abstractmethod
-    async def get_garden_view_for_user(self, user_id: Any) -> list[dict[str, Any]]:
-        ...
-
-    @abstractmethod
-    async def get_plant_details_view(self, user_plant_id: Any, user_id: Any) -> dict[str, Any] | None:
+    async def get_details(self, user_plant_id: UserPlantId, user_id: UserId) -> PlantDetails | None:
         ...
 
     @abstractmethod

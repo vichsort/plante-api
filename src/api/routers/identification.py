@@ -1,9 +1,9 @@
-from typing import Any
+from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
-from src.api.deps import get_current_user_id
+from src.api.deps import CurrentUserId
 from src.api.openapi import error_responses
 from src.api.response import ApiResponse
 from src.api.schemas.identification import (
@@ -11,9 +11,7 @@ from src.api.schemas.identification import (
     ConfirmPlantIdentificationResponse,
     IdentifyPlantResponse,
 )
-from src.domain.exceptions import (
-    UnauthorizedError,
-)
+from src.domain.exceptions import UnauthorizedError
 from src.domain.use_cases.confirm_plant_identification_use_case import (
     ConfirmPlantIdentificationInputDTO,
     ConfirmPlantIdentificationUseCase,
@@ -22,9 +20,11 @@ from src.domain.use_cases.identify_plant_use_case import (
     IdentifyPlantInputDTO,
     IdentifyPlantUseCase,
 )
+from src.domain.value_objects.ids import IdentificationSampleId
 from src.infrastructure.container import Container
 
 router = APIRouter(prefix="/identify", tags=["identification"], responses=error_responses(UnauthorizedError))
+
 
 @router.post(
     "",
@@ -34,22 +34,20 @@ router = APIRouter(prefix="/identify", tags=["identification"], responses=error_
 )
 @inject
 async def identify_plant(
-    image: UploadFile = File(...),
-    latitude: float | None = Form(None),
-    longitude: float | None = Form(None),
-    use_case: IdentifyPlantUseCase = Depends(Provide[Container.use_cases.identify_plant_use_case]),
-    user_id: Any = Depends(get_current_user_id),
+    image: Annotated[UploadFile, File()],
+    use_case: Annotated[IdentifyPlantUseCase, Depends(Provide[Container.use_cases.identify_plant_use_case])],
+    user_id: CurrentUserId,
+    latitude: Annotated[float | None, Form()] = None,
+    longitude: Annotated[float | None, Form()] = None,
 ) -> ApiResponse[IdentifyPlantResponse]:
-    image_bytes = await image.read()
-
-    result = await use_case.execute(IdentifyPlantInputDTO(
+    output = await use_case.execute(IdentifyPlantInputDTO(
         user_id=user_id,
-        image_bytes=image_bytes,
+        image_bytes=await image.read(),
         latitude=latitude,
         longitude=longitude,
     ))
+    return ApiResponse.success(IdentifyPlantResponse.from_domain(output))
 
-    return ApiResponse.success(IdentifyPlantResponse(**result))
 
 @router.post(
     "/confirm",
@@ -60,11 +58,14 @@ async def identify_plant(
 @inject
 async def confirm_plant_identification(
     body: ConfirmPlantIdentificationRequest,
-    use_case: ConfirmPlantIdentificationUseCase = Depends(Provide[Container.use_cases.confirm_plant_identification]),
-    user_id: Any = Depends(get_current_user_id),
+    use_case: Annotated[
+        ConfirmPlantIdentificationUseCase,
+        Depends(Provide[Container.use_cases.confirm_plant_identification]),
+    ],
+    user_id: CurrentUserId,
 ) -> ApiResponse[ConfirmPlantIdentificationResponse]:
-    result = await use_case.execute(ConfirmPlantIdentificationInputDTO(
+    sample = await use_case.execute(ConfirmPlantIdentificationInputDTO(
         user_id=user_id,
-        sample_id=body.sample_id,
+        sample_id=IdentificationSampleId(body.sample_id),
     ))
-    return ApiResponse.success(ConfirmPlantIdentificationResponse(**result))
+    return ApiResponse.success(ConfirmPlantIdentificationResponse.from_domain(sample))

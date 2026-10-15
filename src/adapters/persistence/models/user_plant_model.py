@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from src.domain.entities.user_plant import IdentificationSource, IdentificationStatus
 
-from .base import AuditMixin, Base
+from .base import AuditMixin, Base, enum_values
 
 
 class UserPlantModel(Base, AuditMixin):
@@ -21,12 +21,12 @@ class UserPlantModel(Base, AuditMixin):
     )
     scientific_name: Mapped[str] = mapped_column(String(255), nullable=False)
     identification_confidence: Mapped[float] = mapped_column(Float, nullable=False)
-    identification_source: Mapped[str] = mapped_column(
-        SAEnum(IdentificationSource, values_callable=lambda e: [x.value for x in e], name="identificationSource"),
+    identification_source: Mapped[IdentificationSource] = mapped_column(
+        SAEnum(IdentificationSource, values_callable=enum_values, name="identificationSource"),
         nullable=False,
     )
-    status: Mapped[str] = mapped_column(
-        SAEnum(IdentificationStatus, values_callable=lambda e: [x.value for x in e], name="identificationStatus"),
+    status: Mapped[IdentificationStatus] = mapped_column(
+        SAEnum(IdentificationStatus, values_callable=enum_values, name="identificationStatus"),
         nullable=False,
     )
     added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

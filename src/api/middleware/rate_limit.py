@@ -1,13 +1,11 @@
 import time
 from collections.abc import Awaitable, Callable
-from typing import Any, Protocol, TypeVar
+from typing import Protocol, TypeVar
 
 import structlog
 from fastapi import Request
-from redis.asyncio import Redis
-from redis.exceptions import RedisError
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import JSONResponse, Response
+from starlette.responses import Response
 from starlette.types import ASGIApp
 
 from src.api.response import ApiResponse
@@ -16,8 +14,9 @@ from src.domain.exceptions import (
     RateLimitExceededError,
     UnauthorizedError,
 )
+from src.domain.value_objects.ids import UserId
 
-log = structlog.get_logger()
+log = structlog.stdlib.get_logger()
 
 # Limites padronizados por minuto
 _DEFAULT_RATE_LIMIT = 60       # 60 req/min para rotas gerais
@@ -53,6 +52,11 @@ class CallGuard(Protocol):
     async def call(self, func: Callable[[], Awaitable[T]]) -> T: ...
 
 
+class WindowCounter(Protocol):
+    """Contador compartilhado entre processos (Redis em produção)."""
+    async def increment_with_expiry(self, key: str, ttl_seconds: int) -> int: ...
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """
     Middleware de Rate Limiting com janela fixa por cliente e escopo (geral / sensível).
@@ -68,8 +72,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         app: ASGIApp,
         requests_per_minute: int = _DEFAULT_RATE_LIMIT,
         sensitive_requests_per_minute: int = _SENSITIVE_RATE_LIMIT,
-        redis_provider: Callable[[], Redis] | None = None,
-        token_decoder: Callable[[str], Any] | None = None,
+        redis_provider: Callable[[], WindowCounter] | None = None,
+        token_decoder: Callable[[str], UserId] | None = None,
         redis_breaker: CallGuard | None = None,
     ) -> None:
         super().__init__(app)
@@ -105,9 +109,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             log.warning("rate_limit.exceeded", client=client, client_ip=client_ip, path=path, count=count, limit=limit)
             exc = RateLimitExceededError(limit=limit, retry_after_seconds=retry_after)
             envelope = ApiResponse.fail(code=exc.code, message=exc.message, details=exc.details)
-            return JSONResponse(
+            return Response(
+                content=envelope.model_dump_json(),
                 status_code=exc.status_code,
-                content=envelope.model_dump(),
+                media_type="application/json",
                 headers={
                     "Retry-After": str(retry_after),
                     "X-RateLimit-Limit": str(limit),
@@ -155,13 +160,5 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return self._memory_counters[key]
 
 
-async def _increment_in_redis(provider: Callable[[], Redis], key: str) -> int:
-    try:
-        redis = provider()
-        async with redis.pipeline(transaction=True) as pipe:
-            pipe.incr(key)
-            pipe.expire(key, _WINDOW_SECONDS * 2)
-            count, _ = await pipe.execute()
-        return int(count)
-    except (RedisError, OSError) as exc:
-        raise ExternalServiceError(message=f"{type(exc).__name__}: {exc}", service="Redis", retryable=True) from exc
+async def _increment_in_redis(provider: Callable[[], WindowCounter], key: str) -> int:
+    return await provider().increment_with_expiry(key, ttl_seconds=_WINDOW_SECONDS * 2)

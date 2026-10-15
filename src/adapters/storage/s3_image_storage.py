@@ -1,13 +1,13 @@
 import uuid
-from typing import Any
 
 import aioboto3
 import httpx
-from structlog import get_logger
+import structlog
 
 from src.domain.ports.image_storage import IImageStorage
+from src.domain.value_objects.ids import UserId
 
-logger = get_logger()
+logger = structlog.stdlib.get_logger()
 
 _IDENTIFICATION_PREFIX = "identifications"
 _REFERENCES_PREFIX = "species/references"
@@ -23,10 +23,6 @@ def _build_reference_key(scientific_name: str) -> str:
     return f"{_REFERENCES_PREFIX}/{_sanitize(scientific_name)}/{uuid.uuid4()}.jpg"
 
 class S3ImageStorage(IImageStorage):
-    _bucket: str
-    _region: str
-    _session: Any
-
     def __init__(
         self,
         bucket_name: str,
@@ -47,7 +43,7 @@ class S3ImageStorage(IImageStorage):
         image_bytes: bytes,
         scientific_name: str,
         confidence_value: float,
-        user_id: Any,
+        user_id: UserId,
     ) -> str:
         key = _build_identification_key(scientific_name)
 

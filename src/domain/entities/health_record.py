@@ -1,10 +1,12 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Any
+from enum import StrEnum
+
+from src.domain.value_objects.ids import HealthRecordId, UserId, UserPlantId
+from src.domain.value_objects.sources import HealthSource
 
 
-class HealthSeverity(Enum):
+class HealthSeverity(StrEnum):
     HEALTHY = "healthy"
     LOW = "low"
     MODERATE = "moderate"
@@ -13,15 +15,15 @@ class HealthSeverity(Enum):
 
 @dataclass(frozen=True)
 class HealthRecord:
-    id: Any
-    user_plant_id: Any
+    id: HealthRecordId
+    user_plant_id: UserPlantId
     scientific_name: str
     vitality_score: float
     severity: HealthSeverity
-    source: str
+    source: HealthSource
     image_key: str
     diagnosed_at: datetime | None = None
-    user_id: Any = None
+    user_id: UserId | None = None
     issues_detected: tuple[str, ...] = field(default_factory=tuple)
     treatment_plan: tuple[str, ...] = field(default_factory=tuple)
     recovery_estimate_days: int | None = None

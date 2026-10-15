@@ -1,36 +1,38 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
-from typing import Any
+from enum import StrEnum
+from uuid import uuid4
+
+from src.domain.value_objects.ids import PlantSpeciesId
 
 
-class EnrichmentStatus(Enum):
+class EnrichmentStatus(StrEnum):
     PENDING = "pending"
     ENRICHED = "enriched"
     FAILED = "failed"
 
-class LightRequirement(Enum):
+class LightRequirement(StrEnum):
     LOW = "low"
     INDIRECT = "indirect"
     DIRECT = "direct"
     FULL_SUN = "full_sun"
 
-class SoilType(Enum):
+class SoilType(StrEnum):
     SANDY = "sandy"
     CLAY = "clay"
     LOAMY = "loamy"
     WELL_DRAINING = "well_draining"
 
-class EnrichmentSource(Enum):
+class EnrichmentSource(StrEnum):
     GEMINI = "gemini"
     KINDWISE = "kindwise"
     PLANTNET = "plantnet"
 
 @dataclass(frozen=True)
 class PlantSpecies:
+    id: PlantSpeciesId
     scientific_name: str
     enrichment_status: EnrichmentStatus
-    id: Any = None
 
     family: str | None = None
     genus: str | None = None
@@ -75,6 +77,7 @@ class PlantSpecies:
         gbif_id: str | None = None,
     ) -> "PlantSpecies":
         return cls(
+            id=PlantSpeciesId(uuid4()),
             scientific_name=scientific_name,
             enrichment_status=EnrichmentStatus.PENDING,
             family=family,

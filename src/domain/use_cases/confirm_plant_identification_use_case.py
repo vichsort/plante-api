@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
 
+from src.domain.entities.plant_identification_sample import PlantIdentificationSample
 from src.domain.events.domain_events import PlantIdentificationConfirmedEvent
 from src.domain.exceptions import SampleNotFoundError, UserNotFoundError
 from src.domain.ports.domain_publisher import IDomainPublisher
@@ -9,12 +9,13 @@ from src.domain.ports.identification_sample_repository import (
     IIdentificationSampleRepository,
 )
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.ids import IdentificationSampleId, UserId
 
 
 @dataclass(frozen=True)
 class ConfirmPlantIdentificationInputDTO:
-    user_id: Any
-    sample_id: Any
+    user_id: UserId
+    sample_id: IdentificationSampleId
 
 class ConfirmPlantIdentificationUseCase:
     raises = (SampleNotFoundError, UserNotFoundError)
@@ -29,7 +30,7 @@ class ConfirmPlantIdentificationUseCase:
         self._sample_repo = sample_repo
         self._publisher = publisher
 
-    async def execute(self, dto: ConfirmPlantIdentificationInputDTO) -> dict[str, Any]:
+    async def execute(self, dto: ConfirmPlantIdentificationInputDTO) -> PlantIdentificationSample:
         now = datetime.now(UTC)
 
         user = await self._user_repo.get_by_id(dto.user_id)
@@ -37,7 +38,7 @@ class ConfirmPlantIdentificationUseCase:
             raise UserNotFoundError(user_id=dto.user_id)
 
         sample = await self._sample_repo.get_by_id(dto.sample_id)
-        if sample is None or str(sample.user_id) != str(dto.user_id):
+        if sample is None or sample.user_id != dto.user_id:
             raise SampleNotFoundError(dto.sample_id)
 
         confirmed = sample.confirm(confirmed_at=now)
@@ -51,9 +52,4 @@ class ConfirmPlantIdentificationUseCase:
             )
         )
 
-        return {
-            "sample_id": confirmed.id,
-            "scientific_name": confirmed.scientific_name,
-            "status": confirmed.status.value,
-            "confirmed_at": confirmed.confirmed_at.isoformat() if confirmed.confirmed_at else None,
-        }
+        return confirmed

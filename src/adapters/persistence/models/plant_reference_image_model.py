@@ -6,7 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from src.domain.entities.plant_reference_image import ImageSource
 
-from .base import AuditMixin, Base
+from .base import AuditMixin, Base, enum_values
 
 
 class PlantReferenceImageModel(Base, AuditMixin):
@@ -14,8 +14,8 @@ class PlantReferenceImageModel(Base, AuditMixin):
 
     scientific_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
-    source: Mapped[str] = mapped_column(
-        SAEnum(ImageSource, values_callable=lambda e: [x.value for x in e], name="imageSource"),
+    source: Mapped[ImageSource] = mapped_column(
+        SAEnum(ImageSource, values_callable=enum_values, name="imageSource"),
         nullable=False,
     )
     user_id: Mapped[uuid.UUID | None] = mapped_column(

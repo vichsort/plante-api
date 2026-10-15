@@ -1,7 +1,15 @@
 from abc import ABC
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+
+from src.domain.value_objects.ids import (
+    HealthRecordId,
+    HealthSampleId,
+    IdentificationSampleId,
+    PlantSpeciesId,
+    UserId,
+    UserPlantId,
+)
 
 
 @dataclass(frozen=True)
@@ -11,12 +19,12 @@ class DomainEvent(ABC):
 
 @dataclass(frozen=True)
 class PlantIdentifiedEvent(DomainEvent):
-    user_id: Any
-    species_id: Any
+    user_id: UserId
+    species_id: PlantSpeciesId
     is_first_plant: bool
     
     @classmethod
-    def create(cls, user_id: Any, species_id: Any, is_first_plant: bool) -> 'PlantIdentifiedEvent':
+    def create(cls, user_id: UserId, species_id: PlantSpeciesId, is_first_plant: bool) -> 'PlantIdentifiedEvent':
         return cls(
             occurred_on=datetime.now(UTC),
             user_id=user_id,
@@ -26,12 +34,12 @@ class PlantIdentifiedEvent(DomainEvent):
 
 @dataclass(frozen=True)
 class StreakBrokenEvent(DomainEvent):
-    user_id: Any
-    user_plant_id: Any
+    user_id: UserId
+    user_plant_id: UserPlantId
     last_streak_count: int
 
     @classmethod
-    def create(cls, user_id: Any, user_plant_id: Any, last_count: int) -> 'StreakBrokenEvent':
+    def create(cls, user_id: UserId, user_plant_id: UserPlantId, last_count: int) -> 'StreakBrokenEvent':
         return cls(
             occurred_on=datetime.now(UTC),
             user_id=user_id,
@@ -41,17 +49,17 @@ class StreakBrokenEvent(DomainEvent):
 
 @dataclass(frozen=True)
 class PlantAddedToGardenEvent(DomainEvent):
-    user_id: Any
-    user_plant_id: Any
-    species_id: Any
+    user_id: UserId
+    user_plant_id: UserPlantId
+    species_id: PlantSpeciesId
     is_first_plant: bool
 
     @classmethod
     def create(
         cls,
-        user_id: Any,
-        user_plant_id: Any,
-        species_id: Any,
+        user_id: UserId,
+        user_plant_id: UserPlantId,
+        species_id: PlantSpeciesId,
         is_first_plant: bool,
     ) -> "PlantAddedToGardenEvent":
         return cls(
@@ -64,11 +72,11 @@ class PlantAddedToGardenEvent(DomainEvent):
 
 @dataclass(frozen=True)
 class UserRegisteredEvent(DomainEvent):
-    user_id: Any
+    user_id: UserId
     email: str
 
     @classmethod
-    def create(cls, user_id: Any, email: str) -> "UserRegisteredEvent":
+    def create(cls, user_id: UserId, email: str) -> "UserRegisteredEvent":
         return cls(
             occurred_on=datetime.now(UTC),
             user_id=user_id,
@@ -77,14 +85,14 @@ class UserRegisteredEvent(DomainEvent):
 
 @dataclass(frozen=True)
 class SubscriptionUpgradedEvent(DomainEvent):
-    user_id: Any
+    user_id: UserId
     plan_name: str
     expires_at: datetime
 
     @classmethod
     def create(
         cls,
-        user_id: Any,
+        user_id: UserId,
         plan_name: str,
         expires_at: datetime,
     ) -> "SubscriptionUpgradedEvent":
@@ -97,15 +105,15 @@ class SubscriptionUpgradedEvent(DomainEvent):
 
 @dataclass(frozen=True)
 class PlantIdentificationConfirmedEvent(DomainEvent):
-    user_id: Any
-    sample_id: Any
+    user_id: UserId
+    sample_id: IdentificationSampleId
     scientific_name: str
 
     @classmethod
     def create(
         cls,
-        user_id: Any,
-        sample_id: Any,
+        user_id: UserId,
+        sample_id: IdentificationSampleId,
         scientific_name: str,
     ) -> "PlantIdentificationConfirmedEvent":
         return cls(
@@ -117,17 +125,17 @@ class PlantIdentificationConfirmedEvent(DomainEvent):
 
 @dataclass(frozen=True)
 class HealthDiagnosisConfirmedEvent(DomainEvent):
-    user_id: Any
-    health_record_id: Any
-    sample_id: Any
+    user_id: UserId
+    health_record_id: HealthRecordId
+    sample_id: HealthSampleId
     scientific_name: str
 
     @classmethod
     def create(
         cls,
-        user_id: Any,
-        health_record_id: Any,
-        sample_id: Any,
+        user_id: UserId,
+        health_record_id: HealthRecordId,
+        sample_id: HealthSampleId,
         scientific_name: str,
     ) -> "HealthDiagnosisConfirmedEvent":
         return cls(
@@ -140,15 +148,15 @@ class HealthDiagnosisConfirmedEvent(DomainEvent):
 
 @dataclass(frozen=True)
 class PlantWateredEvent(DomainEvent):
-    user_id: Any
-    user_plant_id: Any
+    user_id: UserId
+    user_plant_id: UserPlantId
     current_streak: int
 
     @classmethod
     def create(
         cls, 
-        user_id: Any, 
-        user_plant_id: Any, 
+        user_id: UserId, 
+        user_plant_id: UserPlantId, 
         current_streak: int
     ) -> 'PlantWateredEvent':
         return cls(

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 from src.domain.entities.health_identification_sample import HealthIdentificationSample
+from src.domain.value_objects.ids import HealthRecordId
 
 
 class IHealthIdentificationSampleRepository(ABC):
@@ -12,7 +13,7 @@ class IHealthIdentificationSampleRepository(ABC):
     @abstractmethod
     async def get_by_health_record_id(
         self,
-        health_record_id: int,
+        health_record_id: HealthRecordId,
     ) -> HealthIdentificationSample | None:
         """Busca a sample associada a um diagnóstico — usado no use case de confirmação."""
         ...

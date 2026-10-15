@@ -5,6 +5,7 @@ from src.adapters.persistence.mappers.health_record_mapper import HealthRecordMa
 from src.adapters.persistence.models.health_record_model import HealthRecordModel
 from src.domain.entities.health_record import HealthRecord
 from src.domain.ports.health_record_repository import IHealthRecordRepository
+from src.domain.value_objects.ids import HealthRecordId, UserPlantId
 
 
 class HealthRecordRepository(IHealthRecordRepository):
@@ -18,13 +19,13 @@ class HealthRecordRepository(IHealthRecordRepository):
         await self._session.flush()
         return HealthRecordMapper.to_domain(model)
 
-    async def get_by_id(self, record_id: int) -> HealthRecord | None:
+    async def get_by_id(self, record_id: HealthRecordId) -> HealthRecord | None:
         stmt = select(HealthRecordModel).where(HealthRecordModel.id == record_id)
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return HealthRecordMapper.to_domain(model) if model else None
 
-    async def get_latest_by_plant(self, user_plant_id: int) -> HealthRecord | None:
+    async def get_latest_by_plant(self, user_plant_id: UserPlantId) -> HealthRecord | None:
         stmt = (
             select(HealthRecordModel)
             .where(HealthRecordModel.user_plant_id == user_plant_id)
@@ -35,7 +36,7 @@ class HealthRecordRepository(IHealthRecordRepository):
         model = result.scalar_one_or_none()
         return HealthRecordMapper.to_domain(model) if model else None
 
-    async def list_by_plant(self, user_plant_id: int, limit: int = 20) -> list[HealthRecord]:
+    async def list_by_plant(self, user_plant_id: UserPlantId, limit: int = 20) -> list[HealthRecord]:
         stmt = (
             select(HealthRecordModel)
             .where(HealthRecordModel.user_plant_id == user_plant_id)

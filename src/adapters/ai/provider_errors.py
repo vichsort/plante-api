@@ -6,7 +6,7 @@ import structlog
 
 from src.domain.exceptions import ExternalServiceError, InvalidImageError
 
-log = structlog.get_logger()
+log = structlog.stdlib.get_logger()
 
 _INVALID_IMAGE_STATUSES = frozenset({400})
 _MISCONFIGURED_STATUSES = frozenset({401, 403})

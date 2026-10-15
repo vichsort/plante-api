@@ -22,7 +22,7 @@ async def test_close_connections_closes_all_even_if_one_fails():
         await _close_connections(container)
 
     engine.dispose.assert_awaited_once()
-    redis.aclose.assert_awaited_once()
+    redis.close.assert_awaited_once()
     weather_http.aclose.assert_awaited_once()
 
 

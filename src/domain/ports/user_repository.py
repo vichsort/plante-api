@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 from src.domain.entities.user import User
+from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 
 
@@ -11,7 +12,7 @@ class IUserRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_by_id(self, user_id: int) -> User | None:
+    async def get_by_id(self, user_id: UserId) -> User | None:
         ...
 
     @abstractmethod
@@ -19,14 +20,14 @@ class IUserRepository(ABC):
         ...
 
     @abstractmethod
-    async def update_fcm_token(self, user_id: int, fcm_token: str) -> None:
+    async def update_fcm_token(self, user_id: UserId, fcm_token: str) -> None:
         """Atualizado sempre que o app reinicia e gera novo token."""
         ...
 
     @abstractmethod
     async def update_subscription(
         self,
-        user_id: int,
+        user_id: UserId,
         tier: SubscriptionTier,
         expires_at: datetime,
     ) -> None:

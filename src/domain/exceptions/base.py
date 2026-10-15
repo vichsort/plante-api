@@ -1,4 +1,4 @@
-from typing import Any
+from src.domain.value_objects.json_value import JsonObject
 
 
 class PlantEError(Exception):
@@ -10,18 +10,19 @@ class PlantEError(Exception):
 
     def __init__(
         self,
-        message: str,
+        message: str | None = None,
         code: str | None = None,
         status_code: int | None = None,
-        details: dict[str, Any] | None = None,
-    ):
-        self.message = message
+        details: JsonObject | None = None,
+    ) -> None:
+        # Sem mensagem, a docstring da classe descreve o erro
+        self.message = message or (type(self).__doc__ or self.code).strip()
         if code:
             self.code = code
         if status_code:
             self.status_code = status_code
         self.details = details or {}
-        super().__init__(message)
+        super().__init__(self.message)
 
 
 DomainException = PlantEError

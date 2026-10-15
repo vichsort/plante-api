@@ -1,10 +1,11 @@
 from datetime import date
-from typing import Any
 
 import httpx
 import structlog
+from pydantic import BaseModel, ConfigDict, ValidationError
 
-from src.adapters.weather.nominatim_geocoder import GeocodingError, NominatimGeocoder
+from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
+from src.domain.exceptions import ExternalServiceError, GeocodingError
 from src.domain.ports.weather_service import (
     DailyWeather,
     IWeatherService,
@@ -14,7 +15,7 @@ from src.domain.ports.weather_service import (
 from src.domain.value_objects.geo_coordinates import GeoCoordinates
 from src.domain.value_objects.user_location import UserLocation
 
-log = structlog.get_logger()
+log = structlog.stdlib.get_logger()
 
 _FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 
@@ -29,7 +30,25 @@ _ATTENTION_CODES = frozenset({
     80, 81, 82,
 })
 
-def _wmo_to_severity(code: int) -> WeatherSeverity:
+class _Daily(BaseModel):
+    """Séries diárias do Open-Meteo: listas paralelas, com `null` quando falta a medição."""
+    model_config = ConfigDict(frozen=True)
+
+    time: list[date]
+    weathercode: list[int | None]
+    temperature_2m_max: list[float | None]
+    temperature_2m_min: list[float | None]
+    precipitation_sum: list[float | None]
+    relativehumidity_2m_max: list[float | None]
+
+
+class _Forecast(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    daily: _Daily
+
+
+def _wmo_to_severity(code: int | None) -> WeatherSeverity:
     if code in _CRITICAL_CODES:
         return WeatherSeverity.CRITICAL
     if code in _ATTENTION_CODES:
@@ -37,9 +56,6 @@ def _wmo_to_severity(code: int) -> WeatherSeverity:
     return WeatherSeverity.NORMAL
 
 class OpenMeteoAdapter(IWeatherService):
-    _client: httpx.AsyncClient
-    _geocoder: NominatimGeocoder
-
     def __init__(
         self,
         client: httpx.AsyncClient,
@@ -55,8 +71,7 @@ class OpenMeteoAdapter(IWeatherService):
         forecast_days: int = 7,
     ) -> WeatherContext:
         coords = await self._resolve_coords(location)
-        raw = await self._fetch_forecast(coords, forecast_days)
-        days = self._parse_days(raw)
+        days = self._parse_days(await self._fetch_forecast(coords, forecast_days))
 
         has_critical = any(d.severity == WeatherSeverity.CRITICAL for d in days)
 
@@ -78,10 +93,8 @@ class OpenMeteoAdapter(IWeatherService):
             log.warning("weather.geocoding_failed", location=str(location))
             raise
 
-    async def _fetch_forecast(
-        self, coords: GeoCoordinates, forecast_days: int
-    ) -> dict[str, Any]:
-        params: dict[str, Any] = {
+    async def _fetch_forecast(self, coords: GeoCoordinates, forecast_days: int) -> _Forecast:
+        params: dict[str, str | int | float | list[str]] = {
             "latitude": coords.latitude,
             "longitude": coords.longitude,
             "daily": [
@@ -97,22 +110,21 @@ class OpenMeteoAdapter(IWeatherService):
         log.debug("weather.request", lat=coords.latitude, lon=coords.longitude)
         response = await self._client.get(_FORECAST_URL, params=params, timeout=8.0)
         response.raise_for_status()
-        data: dict[str, Any] = response.json()
-        return data
+        try:
+            return _Forecast.model_validate_json(response.content)
+        except ValidationError as exc:
+            raise ExternalServiceError(message="Unexpected response format.", service="OpenMeteo") from exc
 
-    def _parse_days(self, data: dict[str, Any]) -> list[DailyWeather]:
-        daily = data["daily"]
-        days = []
-        for i, iso_date in enumerate(daily["time"]):
-            code = daily["weathercode"][i]
-            days.append(
-                DailyWeather(
-                    date=date.fromisoformat(iso_date),
-                    temperature_max=daily["temperature_2m_max"][i] or 0.0,
-                    temperature_min=daily["temperature_2m_min"][i] or 0.0,
-                    precipitation_mm=daily["precipitation_sum"][i] or 0.0,
-                    humidity_percent=daily["relativehumidity_2m_max"][i] or 0.0,
-                    severity=_wmo_to_severity(code),
-                )
+    def _parse_days(self, forecast: _Forecast) -> list[DailyWeather]:
+        daily = forecast.daily
+        return [
+            DailyWeather(
+                date=day,
+                temperature_max=daily.temperature_2m_max[i] or 0.0,
+                temperature_min=daily.temperature_2m_min[i] or 0.0,
+                precipitation_mm=daily.precipitation_sum[i] or 0.0,
+                humidity_percent=daily.relativehumidity_2m_max[i] or 0.0,
+                severity=_wmo_to_severity(daily.weathercode[i]),
             )
-        return days
+            for i, day in enumerate(daily.time)
+        ]

@@ -1,4 +1,4 @@
-from typing import Any
+from uuid import UUID
 
 from src.domain.exceptions.base import PlantEError
 
@@ -28,7 +28,7 @@ class IdentificationNotFoundError(PlantEError):
     code = "PLANTE_4012_IDENTIFICATION_NOT_FOUND"
     status_code = 404
 
-    def __init__(self, identification_id: Any):
+    def __init__(self, identification_id: UUID):
         super().__init__(
             message=f"Identification {identification_id} not found.",
         )
@@ -55,9 +55,9 @@ class SpeciesNotFoundError(PlantEError):
     code = "PLANTE_4014_SPECIES_NOT_FOUND"
     status_code = 404
 
-    def __init__(self, species_id: Any):
+    def __init__(self, species: UUID | str):  # ID ou nome científico
         super().__init__(
-            message=f"Species {species_id} not found.",
+            message=f"Species {species} not found.",
         )
 
 
@@ -66,7 +66,7 @@ class SampleNotFoundError(PlantEError):
     code = "PLANTE_4015_SAMPLE_NOT_FOUND"
     status_code = 404
 
-    def __init__(self, sample_id: Any):
+    def __init__(self, sample_id: UUID):
         super().__init__(
             message=f"Sample {sample_id} not found.",
         )

@@ -5,7 +5,7 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
-log = structlog.get_logger()
+log = structlog.stdlib.get_logger()
 
 class AuditMiddleware(BaseHTTPMiddleware):
     """

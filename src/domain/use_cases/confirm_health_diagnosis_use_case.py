@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from uuid import uuid4
 
 from src.domain.entities.health_identification_sample import (
     HealthIdentificationSample,
@@ -20,12 +20,13 @@ from src.domain.ports.health_raw_response_repository import IHealthRawResponseRe
 from src.domain.ports.health_record_repository import IHealthRecordRepository
 from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.user_repository import IUserRepository
+from src.domain.value_objects.ids import HealthRecordId, HealthSampleId, UserId
 
 
 @dataclass(frozen=True)
 class ConfirmHealthDiagnosisInputDTO:
-    user_id: Any
-    health_record_id: Any
+    user_id: UserId
+    health_record_id: HealthRecordId
 
 
 class ConfirmHealthDiagnosisUseCase:
@@ -47,7 +48,7 @@ class ConfirmHealthDiagnosisUseCase:
         self._storage = storage
         self._publisher = publisher
 
-    async def execute(self, dto: ConfirmHealthDiagnosisInputDTO) -> dict[str, Any]:
+    async def execute(self, dto: ConfirmHealthDiagnosisInputDTO) -> HealthIdentificationSample:
         now = datetime.now(UTC)
 
         user = await self._user_repo.get_by_id(dto.user_id)
@@ -55,26 +56,23 @@ class ConfirmHealthDiagnosisUseCase:
             raise UserNotFoundError(user_id=dto.user_id)
 
         record = await self._health_record_repo.get_by_id(dto.health_record_id)
-        if record is None:
+        if record is None or record.user_id != dto.user_id:
             raise HealthRecordNotFoundError(dto.health_record_id)
 
-        raw_response = await self._health_raw_repo.get(dto.health_record_id)
-        if raw_response is None:
+        pending = await self._health_raw_repo.get(dto.health_record_id)
+        if pending is None:
             raise RawResponseExpiredError(dto.health_record_id)
 
-        reference_keys: list[str] = []
-        for disease in raw_response.get("result", {}).get("disease", {}).get("suggestions", []):
-            for img in disease.get("similar_images", []):
-                url = img.get("url")
-                if url:
-                    key = await self._storage.download_and_rehost(
-                        external_url=url,
-                        scientific_name=record.scientific_name,
-                    )
-                    reference_keys.append(key)
+        reference_keys = [
+            await self._storage.download_and_rehost(
+                external_url=url,
+                scientific_name=record.scientific_name,
+            )
+            for url in pending.similar_images_urls
+        ]
 
         sample = HealthIdentificationSample(
-            id=None,
+            id=HealthSampleId(uuid4()),
             health_record_id=record.id,
             scientific_name=record.scientific_name,
             user_image_key=record.image_key,
@@ -83,7 +81,7 @@ class ConfirmHealthDiagnosisUseCase:
             issues_detected=record.issues_detected,
             treatment_plan=record.treatment_plan,
             identification_source=record.source,
-            raw_response=raw_response,
+            raw_response=pending.raw_response,
             status=HealthSampleStatus.CONFIRMED,
             created_at=now,
             user_id=dto.user_id,
@@ -105,10 +103,4 @@ class ConfirmHealthDiagnosisUseCase:
             )
         )
 
-        return {
-            "sample_id": saved.id,
-            "health_record_id": record.id,
-            "scientific_name": record.scientific_name,
-            "status": saved.status.value,
-            "confirmed_at": saved.confirmed_at.isoformat() if saved.confirmed_at else None,
-        }
+        return saved

@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date
-from enum import Enum
+from enum import StrEnum
 
 from src.domain.value_objects.geo_coordinates import GeoCoordinates
 from src.domain.value_objects.user_location import UserLocation
 
 
-class WeatherSeverity(Enum):
+class WeatherSeverity(StrEnum):
     NORMAL = "normal"
     ATTENTION = "attention"     # calor ou frio moderado, chuva acima do normal
     CRITICAL = "critical"       # geada, seca extrema, tempestade

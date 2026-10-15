@@ -1,19 +1,30 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from dataclasses import dataclass
+
+from src.domain.value_objects.ids import HealthRecordId
+from src.domain.value_objects.json_value import JsonObject
+
+
+@dataclass(frozen=True)
+class PendingHealthAssessment:
+    """
+    Avaliação do Kindwise guardada entre o diagnóstico e a confirmação do usuário: a resposta
+    bruta (para o dataset de treino) e as imagens de referência que serão rehospedadas.
+    """
+    raw_response: JsonObject
+    similar_images_urls: tuple[str, ...]
 
 
 class IHealthRawResponseRepository(ABC):
     @abstractmethod
-    async def save(self, health_record_id: int, raw_response: dict[str, Any]) -> None:
-        """Persiste o raw_response do Kindwise com TTL de 24h."""
+    async def save(self, health_record_id: HealthRecordId, assessment: PendingHealthAssessment) -> None:
         ...
 
     @abstractmethod
-    async def get(self, health_record_id: int) -> dict[str, Any] | None:
-        """Retorna o raw_response associado ao health_record_id, ou None se expirado."""
+    async def get(self, health_record_id: HealthRecordId) -> PendingHealthAssessment | None:
+        """None se a avaliação nunca existiu ou já expirou."""
         ...
 
     @abstractmethod
-    async def delete(self, health_record_id: int) -> None:
-        """Remove o raw_response após confirmação — libera memória antecipadamente."""
+    async def delete(self, health_record_id: HealthRecordId) -> None:
         ...

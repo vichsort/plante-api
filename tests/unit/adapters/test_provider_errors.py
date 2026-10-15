@@ -214,19 +214,41 @@ async def test_plantnet_sends_multipart_upload(monkeypatch, image, content_type)
     assert b'name="organs"\r\n\r\nauto' in body
 
 
+_EMPTY_RESULTS = [
+    (kindwise_adapter, KindwiseAdapter, {"result": {"classification": {"suggestions": []}}}),
+    (plantnet_adapter, PlantNetAdapter, {"results": []}),
+]
+
+
 @pytest.mark.asyncio
-@pytest.mark.parametrize("module, adapter_cls", [(kindwise_adapter, KindwiseAdapter), (plantnet_adapter, PlantNetAdapter)])
-async def test_empty_results_are_invalid_image(monkeypatch, module, adapter_cls):
-    _patch_transport(monkeypatch, module, 200)
+@pytest.mark.parametrize("module, adapter_cls, body", _EMPTY_RESULTS)
+async def test_empty_results_are_invalid_image(monkeypatch, module, adapter_cls, body):
+    _patch_transport(monkeypatch, module, 200, json=body)
     with pytest.raises(InvalidImageError):
         await adapter_cls(api_key="test").identify(b"img")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("module, adapter_cls, body", [
+    (kindwise_adapter, KindwiseAdapter, {"result": "unexpected"}),
+    (kindwise_adapter, KindwiseAdapter, [1, 2]),
+    (plantnet_adapter, PlantNetAdapter, {"results": [{"score": "high"}]}),
+    (plantnet_adapter, PlantNetAdapter, [1, 2]),
+])
+async def test_response_outside_contract_is_provider_failure(monkeypatch, module, adapter_cls, body):
+    _patch_transport(monkeypatch, module, 200, json=body)
+    with pytest.raises(ExternalServiceError) as raised:
+        await adapter_cls(api_key="test").identify(b"img")
+    assert raised.value.retryable is False
 
 
 class _FakeModels:
     def __init__(self, outcome) -> None:
         self._outcome = outcome
+        self.calls: list[dict] = []
 
     def generate_content(self, **kwargs):
+        self.calls.append(kwargs)
         if isinstance(self._outcome, Exception):
             raise self._outcome
         return type("Response", (), {"text": self._outcome})()
@@ -234,7 +256,7 @@ class _FakeModels:
 
 def _gemini(outcome) -> GeminiAdapter:
     adapter = GeminiAdapter(api_key="test")
-    adapter._client = type("Client", (), {"models": _FakeModels(outcome)})()
+    adapter._client._client = type("Client", (), {"models": _FakeModels(outcome)})()
     return adapter
 
 
@@ -262,10 +284,47 @@ async def test_gemini_invalid_json_is_external_error():
     assert raised.value.retryable is False
 
 
+_DIAGNOSIS = {
+    "severity": "moderate",
+    "vitality_score": 0.4,
+    "issues_detected": ["leaf_spots"],
+    "treatment_plan": ["Remover folhas afetadas"],
+    "recovery_estimate_days": 14,
+    "notes": None,
+}
+
+
 @pytest.mark.asyncio
-async def test_gemini_valid_json_is_parsed():
-    payload = json.dumps({"vitality_score": 0.4})
-    assert (await _gemini(payload)._generate("prompt")) == {"vitality_score": 0.4}
+async def test_gemini_structured_response_is_parsed():
+    result = await _gemini(json.dumps(_DIAGNOSIS)).diagnose_health("Monstera deliciosa", ["leaf_spots"])
+    assert result.vitality_score == 0.4
+    assert result.treatment_plan == ("Remover folhas afetadas",)
+    assert result.recovery_estimate_days == 14
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("payload", [
+    {"vitality_score": 0.4},  # campos obrigatórios ausentes: antes virava vitalidade 1.0 em silêncio
+    {**_DIAGNOSIS, "severity": "terrible"},
+    {**_DIAGNOSIS, "vitality_score": 7.0},
+])
+async def test_gemini_response_outside_schema_is_external_error(payload):
+    with pytest.raises(ExternalServiceError) as raised:
+        await _gemini(json.dumps(payload)).diagnose_health("Monstera deliciosa", [])
+    assert raised.value.retryable is False
+
+
+@pytest.mark.asyncio
+async def test_gemini_requests_structured_output():
+    models = _FakeModels(json.dumps(_DIAGNOSIS))
+    adapter = GeminiAdapter(api_key="test")
+    adapter._client._client = type("Client", (), {"models": models})()
+
+    await adapter.diagnose_health("Monstera deliciosa", [])
+
+    config = models.calls[0]["config"]
+    assert config.response_mime_type == "application/json"
+    assert config.response_schema.__name__ == "HealthDiagnosisSchema"
 
 
 def test_plantnet_parses_real_response_shape():

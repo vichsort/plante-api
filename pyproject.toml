@@ -25,6 +25,7 @@ dependencies = [
     # --- Config / Validação ---
     "pydantic==2.9.2",
     "pydantic-settings==2.5.2",
+    "typing-extensions==4.15.0",
     "python-dotenv==1.2.2",
     # --- Auth ---
     "bcrypt==5.0.0",
@@ -77,10 +78,53 @@ markers = ["contract: chama as APIs reais dos provedores de IA"]
 python_version = "3.12"
 strict = true
 files = ["src"]
+mypy_path = "typings"  # stubs locais de bibliotecas sem tipos (ex.: firebase_admin)
+plugins = ["pydantic.mypy"]
+# `Any` é proibido: nem escrito, nem vindo de decorators ou de expressões de bibliotecas
+disallow_any_explicit = true
+disallow_any_decorated = true
+disallow_any_expr = true
 
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# Cola de biblioteca: módulos cujo papel é falar com uma biblioteca que tipa a própria API com
+# `Any` (decorators do FastAPI/dependency_injector/Celery são `Callable[..., Any]`; o typeshed tipa
+# toda corrotina como `Coroutine[Any, Any, T]`). Neles, `Any` escrito continua proibido; só a
+# checagem de expressões/decorators é desligada, e o dado que sai daqui para o domínio já sai
+# tipado. Lista fechada: entrar nela exige justificativa.
 [[tool.mypy.overrides]]
-module = ["firebase_admin", "firebase_admin.*"]  # sem stubs publicados
-ignore_missing_imports = true
+module = [
+    # Clientes de bibliotecas, isolados num módulo cada
+    "src.adapters.cache.redis_client",  # redis-py: todo comando devolve Any
+    "src.adapters.ai.gemini.client",  # google-genai: config e erros tipados com Any
+    "src.adapters.security.jwt_token_service",  # PyJWT: payload é dict[str, Any] (validado por Pydantic logo depois)
+    "src.adapters.persistence.*",  # SQLAlchemy ORM: modelos e consultas carregam genéricos com Any
+    # Celery: tasks e sinais
+    "src.adapters.events.celery_publisher",
+    "src.infrastructure.celery_config",
+    "src.workers.*",
+    # FastAPI / dependency_injector: decorators de rota e @inject, scope ASGI, erros de validação
+    "src.api.routers.*",
+    "src.api.deps",
+    "src.api.exception_handlers",
+    "src.api.middleware.audit",
+    "src.main",
+    # Composição: containers do dependency_injector e pydantic-settings
+    "src.infrastructure.container",
+    "src.infrastructure.containers.*",
+    "src.infrastructure.settings",
+]
+disallow_any_expr = false
+disallow_any_decorated = false
+
+# Subclasse de BaseSettings: o mypy sintetiza o __init__ a partir do `**values: Any` do
+# pydantic-settings. Nenhum Any é escrito no módulo; é a única exceção a `disallow_any_explicit`.
+[[tool.mypy.overrides]]
+module = ["src.infrastructure.settings"]
+disallow_any_explicit = false
 
 # ---------------------------------------------------------------------------
 # Ruff (linter + formatter — substitui flake8/black/isort)
@@ -90,7 +134,7 @@ line-length = 88
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]  # pycodestyle, pyflakes, isort, pyupgrade
+select = ["E", "F", "I", "UP", "ANN401"]  # pycodestyle, pyflakes, isort, pyupgrade, Any em anotação
 ignore = ["E501", "UP046"]
 
 [tool.ruff.lint.isort]

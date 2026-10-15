@@ -7,7 +7,7 @@ import structlog
 
 from src.domain.exceptions import ExternalServiceError
 
-log = structlog.get_logger()
+log = structlog.stdlib.get_logger()
 
 T = TypeVar("T")
 

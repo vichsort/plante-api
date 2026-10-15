@@ -1,11 +1,11 @@
 import httpx
 from dependency_injector import containers, providers
-from redis.asyncio import Redis
 
 from src.adapters.ai.consensus.consensus_adapter import ConsensusIdentifier
 from src.adapters.ai.gemini.gemini_adapter import GeminiAdapter
 from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
+from src.adapters.cache.redis_client import RedisClient
 from src.adapters.cache.redis_health_raw_response_repository import (
     RedisHealthRawResponseRepository,
 )
@@ -20,6 +20,7 @@ from src.adapters.resilience import (
     CircuitBreakerPlantIdentifier,
 )
 from src.adapters.security.bcrypt_hasher import BcryptHasher
+from src.adapters.security.jwt_token_service import JwtTokenService
 from src.adapters.storage.s3_image_storage import S3ImageStorage
 from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
 from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
@@ -33,10 +34,15 @@ class AdaptersContainer(containers.DeclarativeContainer):
     password_hasher = providers.Singleton(BcryptHasher)
     domain_publisher = providers.Singleton(CeleryPublisher)
 
+    token_service = providers.Singleton(
+        JwtTokenService,
+        secret_key=settings.provided.secret_key,
+        algorithm=settings.provided.jwt_algorithm,
+    )
+
     redis = providers.Singleton(
-        Redis.from_url,
+        RedisClient.from_url,
         url=settings.provided.redis_url,
-        decode_responses=False,
         socket_timeout=settings.provided.redis_socket_timeout_seconds,
         socket_connect_timeout=settings.provided.redis_connect_timeout_seconds,
     )

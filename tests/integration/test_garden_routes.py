@@ -1,25 +1,16 @@
-import uuid
 from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
+from tests.factories import NOW, make_user_plant
+
 
 def test_get_garden_route_success(client: TestClient, auth_headers: dict[str, str]):
-    user_plant_id = str(uuid.uuid4())
+    plant = make_user_plant()
+    plant.nickname = "Clotilde"
+    user_plant_id = str(plant.id)
     mock_use_case = AsyncMock()
-    mock_use_case.execute.return_value = [
-        {
-            "id": user_plant_id,
-            "scientific_name": "Monstera deliciosa",
-            "nickname": "Clotilde",
-            "display_name": "Clotilde",
-            "primary_image_url": "https://storage.plante.org/img.jpg",
-            "last_watered_at": "2026-08-01T10:00:00+00:00",
-            "next_due_at": "2026-08-03T10:00:00+00:00",
-            "needs_watering": True,
-            "streak_count": 3,
-        }
-    ]
+    mock_use_case.execute.return_value = [plant]
 
     with client.app.state.container.use_cases.get_user_garden_use_case.override(mock_use_case):
         response = client.get("/garden", headers=auth_headers)
@@ -30,17 +21,15 @@ def test_get_garden_route_success(client: TestClient, auth_headers: dict[str, st
     assert len(payload["data"]) == 1
     assert payload["data"][0]["id"] == user_plant_id
     assert payload["data"][0]["nickname"] == "Clotilde"
+    assert payload["data"][0]["display_name"] == "Clotilde"
     assert "x-response-time-ms" in response.headers
 
 def test_water_plant_route_success(client: TestClient, auth_headers: dict[str, str]):
-    user_plant_id = str(uuid.uuid4())
+    plant = make_user_plant()
+    plant.water(NOW)
+    user_plant_id = str(plant.id)
     mock_use_case = AsyncMock()
-    mock_use_case.execute.return_value = {
-        "user_plant_id": user_plant_id,
-        "last_watered_at": "2026-08-10T16:00:00+00:00",
-        "next_due_at": "2026-08-12T16:00:00+00:00",
-        "current_streak": 4,
-    }
+    mock_use_case.execute.return_value = plant
 
     with client.app.state.container.use_cases.water_plant_use_case.override(mock_use_case):
         response = client.post(f"/garden/{user_plant_id}/water", headers=auth_headers)
@@ -49,4 +38,5 @@ def test_water_plant_route_success(client: TestClient, auth_headers: dict[str, s
     payload = response.json()
     assert payload["ok"] is True
     assert payload["data"]["user_plant_id"] == user_plant_id
-    assert payload["data"]["current_streak"] == 4
+    assert payload["data"]["current_streak"] == 1
+    assert payload["data"]["last_watered_at"] == "2026-10-15T12:00:00Z"
