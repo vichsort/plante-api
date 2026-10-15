@@ -62,6 +62,14 @@ Embora o código viva em uma estrutura Hexagonal unificada, o domínio do **Plan
 * **Ports Requeridos**: `IPlantIdentifier` (Kindwise, PlantNet, Gemini), `IIdentificationSampleRepository`, `IPlantSpeciesRepository`.
 * **Regras de Negócio**:
   - Se dois provedores concordarem com o mesmo nome científico acima de 80% de confiança, a amostra é confirmada automaticamente por consenso.
+  - **Consenso (`ConsensusIdentifier`, ativo com `CONSENSUS_ENABLED=true`)**: Kindwise e PlantNet são consultados em paralelo (timeout de 10s cada) e a `ConsensusPolicy` escolhe a espécie:
+    - Acordo exato → média ponderada (Kindwise 60%, PlantNet 40%), `source="consensus"`.
+    - Acordo de gênero → vence o maior score, `source="consensus_partial"`, sempre `low_confidence`.
+    - Desacordo total → vence o Kindwise, salvo se o PlantNet tiver 20 pontos percentuais a mais; sempre `low_confidence`.
+    - Um provedor falha → o outro decide sozinho (`source` = nome dele). Os dois falham → `InvalidImageError` prevalece sobre `ExternalServiceError`.
+    - **Veto**: se o Kindwise afirmar que a imagem não é planta (`is_plant.binary == false` → `NotAPlantError`), a requisição falha com `PLANTE_4013` mesmo que o PlantNet tenha devolvido uma espécie. Outras falhas do Kindwise (sugestões vazias, imagem ilegível) não vetam.
+    - As imagens de referência (`similar_images`) vêm do provedor cujos dados venceram (Kindwise no acordo exato) e são gravadas com a origem correta (`kindwise_similar` / `plantnet_similar`).
+    - O `raw_response` da amostra guarda as duas respostas: `{"kindwise": ..., "plantnet": ...}`, com `null` para o provedor que falhou. Com o consenso desligado, guarda só a resposta do Kindwise.
   - Samples confirmadas há mais de 30 dias passam por worker diário de **anonimização** para alimentar a base pública de treinamento ML sem expor o `user_id`.
 
 ---
