@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from redis.asyncio import Redis
 
+from src.adapters.resilience.circuit_breaker import CircuitBreaker
 from src.api.deps import decode_access_token
 from src.api.middleware import (
     CorrelationIdMiddleware,
@@ -338,7 +339,9 @@ def test_rate_limit_backs_off_redis_after_failure():
         return fake
 
     client = TestClient(_rate_limited_app(
-        requests_per_minute=100, redis_provider=flaky_redis, redis_backoff_seconds=30, clock=clock,
+        requests_per_minute=100,
+        redis_provider=flaky_redis,
+        redis_breaker=CircuitBreaker("Redis", failure_threshold=1, recovery_timeout_seconds=30, clock=clock),
     ))
 
     for _ in range(3):
@@ -373,7 +376,7 @@ async def test_rate_limit_does_not_hang_on_unresponsive_redis():
     server = await asyncio.start_server(never_reply, "127.0.0.1", 0)
     port = server.sockets[0].getsockname()[1]
     redis = Redis.from_url(f"redis://127.0.0.1:{port}", socket_timeout=0.2, socket_connect_timeout=0.2)
-    app = _rate_limited_app(redis_provider=lambda: redis)
+    app = _rate_limited_app(redis_provider=lambda: redis, redis_breaker=CircuitBreaker("Redis", failure_threshold=1))
 
     try:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:

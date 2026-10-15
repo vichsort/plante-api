@@ -6,6 +6,7 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 
+from src.adapters.resilience.circuit_breaker import CircuitBreaker
 from src.api.deps import decode_access_token
 from src.api.exception_handlers import register_exception_handlers
 from src.api.middleware import (
@@ -81,6 +82,8 @@ def create_app() -> FastAPI:
         RateLimitMiddleware,
         redis_provider=container.adapters.redis,
         token_decoder=partial(decode_access_token, secret=settings.secret_key, algorithm=settings.jwt_algorithm),
+        # Após uma falha do Redis, só o contador em memória por 30s antes de tentar de novo
+        redis_breaker=CircuitBreaker("Redis", failure_threshold=1, recovery_timeout_seconds=30.0),
     )
     app.add_middleware(AuditMiddleware)
     app.add_middleware(CorrelationIdMiddleware)
