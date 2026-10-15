@@ -23,24 +23,22 @@ async def anonymize_confirmed_samples(container: Container | None = None) -> dic
     Idempotente: rodar duas vezes não causa efeito colateral.
     """
     cnt = container or Container()
-    sample_repo = cnt.repositories.identification_sample_repository()
-
     cutoff = datetime.now(UTC) - timedelta(days=RETENTION_DAYS)
-    samples = await sample_repo.get_confirmed_before(cutoff=cutoff)
 
     anonymized = 0
     failed = 0
 
-    for sample in samples:
-        try:
+    async with cnt.infra.unit_of_work() as uow:
+        for sample in await uow.identification_samples.get_confirmed_before(cutoff=cutoff):
             if sample.user_id is None:
                 continue
-            updated = sample.anonymize()
-            await sample_repo.save(updated)
-            anonymized += 1
-        except Exception as e:
-            logger.error("anonymization_failed", sample_id=str(sample.id), error=str(e))
-            failed += 1
+            try:
+                await uow.identification_samples.save(sample.anonymize())
+                anonymized += 1
+            except Exception as e:
+                logger.error("anonymization_failed", sample_id=str(sample.id), error=str(e))
+                failed += 1
+        await uow.commit()
 
     logger.info("anonymization_done", anonymized=anonymized, failed=failed)
     return {"anonymized": anonymized, "failed": failed}

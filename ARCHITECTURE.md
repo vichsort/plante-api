@@ -20,10 +20,16 @@ O PlantE API é projetado sob os seguintes princípios inegociáveis:
 2. **Injeção de Dependências Desacoplada (`dependency-injector`)**:
    - Nenhuma classe de Use Case instancia repositórios ou serviços diretamente. Todas as dependências são declaradas via abstrações (`Ports`) e injetadas pelo container central (`src/infrastructure/container.py`).
 
-3. **Pragmatismo & Legibilidade**:
+3. **Transações via Unit of Work (`IUnitOfWork`, `src/domain/ports/unit_of_work.py`)**:
+   - Use cases não recebem repositórios SQL soltos: recebem um `uow` e acessam `uow.users`, `uow.user_plants`… dentro de `async with self.uow as uow:`. Todos os repositórios do bloco compartilham uma transação; **nada é gravado sem `await uow.commit()`** e o que não foi confirmado é desfeito ao sair do bloco (inclusive com exceção).
+   - O use case define a fronteira: eventos são publicados e efeitos fora do banco (OTP, e-mail, Redis) acontecem **depois** do commit — o e-mail de verificação não sai para usuário que não foi gravado.
+   - Chamadas lentas (IA, S3) ficam **fora** da transação: `/identify`, `/diagnose` e a confirmação de diagnóstico fazem leitura curta → serviços externos → escrita curta, relendo o usuário antes de cobrar tokens. Custo aceito: se a escrita falhar depois do upload, o arquivo no S3 fica órfão.
+   - Workers usam o mesmo mecanismo (`container.infra.unit_of_work()`). Redis e S3 não são transacionais e ficam fora do `uow`. Testes unitários usam `tests/fakes.py::FakeUnitOfWork`; `tests/integration/persistence/test_unit_of_work.py` confere commit/rollback no Postgres real.
+
+4. **Pragmatismo & Legibilidade**:
    - Manter a estrutura Hexagonal coesa (`src/domain/`, `src/adapters/`, `src/api/`) sem criar micro-módulos desnecessários ou sobre-engenharia prematura.
 
-4. **Extensibilidade Open-Source via Plugin/Registry Pattern**:
+5. **Extensibilidade Open-Source via Plugin/Registry Pattern**:
    - Novas integrações de IA, gateways de notificação e sensores IoT devem ser adicionadas como novos `Adapters` implementando `Ports` existentes, sem alterar a regra de negócio do Domínio.
 
 ---

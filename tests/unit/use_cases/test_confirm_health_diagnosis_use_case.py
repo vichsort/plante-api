@@ -9,6 +9,7 @@ from src.domain.use_cases.confirm_health_diagnosis_use_case import (
     ConfirmHealthDiagnosisUseCase,
 )
 from tests.factories import make_health_record, make_user
+from tests.fakes import FakeUnitOfWork
 
 
 def _use_case(record_owner_is_caller: bool) -> tuple[ConfirmHealthDiagnosisUseCase, ConfirmHealthDiagnosisInputDTO, AsyncMock]:
@@ -30,9 +31,7 @@ def _use_case(record_owner_is_caller: bool) -> tuple[ConfirmHealthDiagnosisUseCa
     storage.download_and_rehost.side_effect = lambda external_url, scientific_name: f"rehosted/{external_url[-5:]}"
 
     use_case = ConfirmHealthDiagnosisUseCase(
-        user_repo=user_repo,
-        health_record_repo=record_repo,
-        health_sample_repo=sample_repo,
+        uow=FakeUnitOfWork(users=user_repo, health_records=record_repo, health_samples=sample_repo),
         health_raw_repo=raw_repo,
         storage=storage,
         publisher=AsyncMock(),

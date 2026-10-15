@@ -1,12 +1,8 @@
 from dependency_injector import containers, providers
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.adapters.persistence.session import build_engine, build_session_factory
+from src.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
 from src.infrastructure.settings import Settings
-
-
-def build_session_instance(session_factory: async_sessionmaker[AsyncSession]) -> AsyncSession:
-    return session_factory()
 
 
 class InfraContainer(containers.DeclarativeContainer):
@@ -23,7 +19,8 @@ class InfraContainer(containers.DeclarativeContainer):
         engine=engine,
     )
 
-    session = providers.Factory(
-        build_session_instance,
+    # Um por use case: cada `async with` abre uma sessão própria e a fecha no fim
+    unit_of_work = providers.Factory(
+        SqlAlchemyUnitOfWork,
         session_factory=session_factory,
     )

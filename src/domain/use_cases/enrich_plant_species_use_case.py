@@ -9,8 +9,7 @@ from src.domain.exceptions import (
 )
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.plant_enricher import IPlantEnricher
-from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
-from src.domain.ports.user_repository import IUserRepository
+from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import PlantSpeciesId, UserId
 
 
@@ -29,34 +28,39 @@ class EnrichPlantSpeciesUseCase:
 
     def __init__(
         self,
-        user_repo: IUserRepository,
-        species_repo: IPlantSpeciesRepository,
+        uow: IUnitOfWork,
         enricher: IPlantEnricher,
     ) -> None:
-        self.user_repo = user_repo
-        self.species_repo = species_repo
+        self.uow = uow
         self.enricher = enricher
 
     async def execute(self, dto: EnrichPlantInputDTO) -> PlantSpecies:
-        user = await self.user_repo.get_by_id(dto.user_id)
-        if not user:
-            raise UserNotFoundError(user_id=dto.user_id)
+        async with self.uow as uow:
+            user = await uow.users.get_by_id(dto.user_id)
+            if not user:
+                raise UserNotFoundError(user_id=dto.user_id)
 
-        species = await self.species_repo.get_by_id(dto.species_id)
-        if not species:
-            raise SpeciesNotFoundError(dto.species_id)
+            species = await uow.species.get_by_id(dto.species_id)
+            if not species:
+                raise SpeciesNotFoundError(dto.species_id)
 
-        SubscriptionPolicy.enforce_can_deep_analyze(user)
+            SubscriptionPolicy.enforce_can_deep_analyze(user)
 
+        # Chamada lenta fora da transação
         if not species.is_enriched:
             try:
                 await self.enricher.enrich_species(species.scientific_name)
             except Exception:
                 raise ExternalServiceError(message="Nossos botânicos de IA estão indisponíveis no momento. Tente novamente mais tarde.")
-            
-            await self.species_repo.save(species)
 
-        user.consume_deep_analysis_token()
-        await self.user_repo.save(user)
+        async with self.uow as uow:
+            user = await uow.users.get_by_id(dto.user_id)
+            if not user:
+                raise UserNotFoundError(user_id=dto.user_id)
+            if not species.is_enriched:
+                await uow.species.save(species)
+            user.consume_deep_analysis_token()
+            await uow.users.save(user)
+            await uow.commit()
 
         return species

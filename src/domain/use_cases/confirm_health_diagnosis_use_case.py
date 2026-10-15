@@ -13,13 +13,9 @@ from src.domain.exceptions import (
     UserNotFoundError,
 )
 from src.domain.ports.domain_publisher import IDomainPublisher
-from src.domain.ports.health_identification_sample_repository import (
-    IHealthIdentificationSampleRepository,
-)
 from src.domain.ports.health_raw_response_repository import IHealthRawResponseRepository
-from src.domain.ports.health_record_repository import IHealthRecordRepository
 from src.domain.ports.image_storage import IImageStorage
-from src.domain.ports.user_repository import IUserRepository
+from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import HealthRecordId, HealthSampleId, UserId
 
 
@@ -34,16 +30,12 @@ class ConfirmHealthDiagnosisUseCase:
 
     def __init__(
         self,
-        user_repo: IUserRepository,
-        health_record_repo: IHealthRecordRepository,
-        health_sample_repo: IHealthIdentificationSampleRepository,
+        uow: IUnitOfWork,
         health_raw_repo: IHealthRawResponseRepository,
         storage: IImageStorage,
         publisher: IDomainPublisher,
     ) -> None:
-        self._user_repo = user_repo
-        self._health_record_repo = health_record_repo
-        self._health_sample_repo = health_sample_repo
+        self._uow = uow
         self._health_raw_repo = health_raw_repo
         self._storage = storage
         self._publisher = publisher
@@ -51,18 +43,21 @@ class ConfirmHealthDiagnosisUseCase:
     async def execute(self, dto: ConfirmHealthDiagnosisInputDTO) -> HealthIdentificationSample:
         now = datetime.now(UTC)
 
-        user = await self._user_repo.get_by_id(dto.user_id)
-        if user is None:
-            raise UserNotFoundError(user_id=dto.user_id)
+        # 1. Leitura curta: a transação não fica aberta durante o download das imagens
+        async with self._uow as uow:
+            user = await uow.users.get_by_id(dto.user_id)
+            if user is None:
+                raise UserNotFoundError(user_id=dto.user_id)
 
-        record = await self._health_record_repo.get_by_id(dto.health_record_id)
-        if record is None or record.user_id != dto.user_id:
-            raise HealthRecordNotFoundError(dto.health_record_id)
+            record = await uow.health_records.get_by_id(dto.health_record_id)
+            if record is None or record.user_id != dto.user_id:
+                raise HealthRecordNotFoundError(dto.health_record_id)
 
         pending = await self._health_raw_repo.get(dto.health_record_id)
         if pending is None:
             raise RawResponseExpiredError(dto.health_record_id)
 
+        # 2. Serviços externos
         reference_keys = [
             await self._storage.download_and_rehost(
                 external_url=url,
@@ -71,26 +66,27 @@ class ConfirmHealthDiagnosisUseCase:
             for url in pending.similar_images_urls
         ]
 
-        sample = HealthIdentificationSample(
-            id=HealthSampleId(uuid4()),
-            health_record_id=record.id,
-            scientific_name=record.scientific_name,
-            user_image_key=record.image_key,
-            reference_image_keys=tuple(reference_keys),
-            vitality_score=record.vitality_score,
-            issues_detected=record.issues_detected,
-            treatment_plan=record.treatment_plan,
-            identification_source=record.source,
-            raw_response=pending.raw_response,
-            status=HealthSampleStatus.CONFIRMED,
-            created_at=now,
-            user_id=dto.user_id,
-            confirmed_at=now,
-            recovery_estimate_days=record.recovery_estimate_days,
-            notes=record.notes,
-        )
-
-        saved = await self._health_sample_repo.save(sample)
+        # 3. Escrita
+        async with self._uow as uow:
+            saved = await uow.health_samples.save(HealthIdentificationSample(
+                id=HealthSampleId(uuid4()),
+                health_record_id=record.id,
+                scientific_name=record.scientific_name,
+                user_image_key=record.image_key,
+                reference_image_keys=tuple(reference_keys),
+                vitality_score=record.vitality_score,
+                issues_detected=record.issues_detected,
+                treatment_plan=record.treatment_plan,
+                identification_source=record.source,
+                raw_response=pending.raw_response,
+                status=HealthSampleStatus.CONFIRMED,
+                created_at=now,
+                user_id=dto.user_id,
+                confirmed_at=now,
+                recovery_estimate_days=record.recovery_estimate_days,
+                notes=record.notes,
+            ))
+            await uow.commit()
 
         await self._health_raw_repo.delete(dto.health_record_id)
 

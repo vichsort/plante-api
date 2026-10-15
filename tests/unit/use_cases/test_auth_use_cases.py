@@ -16,6 +16,7 @@ from src.domain.use_cases.register_user_use_case import (
 from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
+from tests.fakes import FakeUnitOfWork
 
 
 @pytest.mark.asyncio
@@ -40,7 +41,7 @@ async def test_register_user_success():
 
     publisher = AsyncMock()
 
-    use_case = RegisterUserUseCase(user_repo=user_repo, hasher=hasher, publisher=publisher)
+    use_case = RegisterUserUseCase(uow=FakeUnitOfWork(users=user_repo), hasher=hasher, publisher=publisher)
 
     result = await use_case.execute(RegisterUserInputDTO(
         email="new@plante.org",
@@ -63,7 +64,7 @@ async def test_register_user_email_already_in_use():
     hasher = MagicMock()
     publisher = AsyncMock()
 
-    use_case = RegisterUserUseCase(user_repo=user_repo, hasher=hasher, publisher=publisher)
+    use_case = RegisterUserUseCase(uow=FakeUnitOfWork(users=user_repo), hasher=hasher, publisher=publisher)
 
     with pytest.raises(EmailAlreadyInUseError):
         await use_case.execute(RegisterUserInputDTO(
@@ -94,7 +95,7 @@ async def test_login_user_success():
     token_repo = AsyncMock()
 
     use_case = LoginUseCase(
-        user_repo=user_repo,
+        uow=FakeUnitOfWork(users=user_repo),
         hasher=hasher,
         token_repo=token_repo,
         token_service=JwtTokenService(secret_key="testsecretkey-with-at-least-32-bytes", algorithm="HS256"),
@@ -129,7 +130,7 @@ async def test_login_invalid_password_raises():
     token_repo = AsyncMock()
 
     use_case = LoginUseCase(
-        user_repo=user_repo,
+        uow=FakeUnitOfWork(users=user_repo),
         hasher=hasher,
         token_repo=token_repo,
         token_service=JwtTokenService(secret_key="testsecretkey-with-at-least-32-bytes", algorithm="HS256"),
@@ -146,7 +147,7 @@ async def test_register_normalizes_email_before_lookup_and_save():
     hasher = MagicMock()
     hasher.hash.return_value = "hashed_secret"
 
-    use_case = RegisterUserUseCase(user_repo=user_repo, hasher=hasher, publisher=AsyncMock())
+    use_case = RegisterUserUseCase(uow=FakeUnitOfWork(users=user_repo), hasher=hasher, publisher=AsyncMock())
     result = await use_case.execute(RegisterUserInputDTO(
         email="  New.User@Plante.ORG ",
         password="secretpassword",
@@ -161,7 +162,7 @@ async def test_register_normalizes_email_before_lookup_and_save():
 async def test_login_looks_up_normalized_email():
     user_repo = AsyncMock()
     user_repo.get_by_email.return_value = None
-    use_case = LoginUseCase(user_repo=user_repo, hasher=MagicMock(), token_repo=AsyncMock(), token_service=MagicMock())
+    use_case = LoginUseCase(uow=FakeUnitOfWork(users=user_repo), hasher=MagicMock(), token_repo=AsyncMock(), token_service=MagicMock())
 
     with pytest.raises(UnauthorizedError):
         await use_case.execute(email="Dev@Plante.org", password="x")

@@ -12,12 +12,7 @@ from src.domain.exceptions import (
 )
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.domain_publisher import IDomainPublisher
-from src.domain.ports.identification_sample_repository import (
-    IIdentificationSampleRepository,
-)
-from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
-from src.domain.ports.user_plant_repository import IUserPlantRepository
-from src.domain.ports.user_repository import IUserRepository
+from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import IdentificationSampleId, UserId, UserPlantId
 
 
@@ -39,49 +34,43 @@ class AddPlantToGardenUseCase:
 
     def __init__(
         self,
-        user_repo: IUserRepository,
-        user_plant_repo: IUserPlantRepository,
-        species_repo: IPlantSpeciesRepository,
-        sample_repo: IIdentificationSampleRepository,
+        uow: IUnitOfWork,
         publisher: IDomainPublisher,
     ) -> None:
-        self.user_repo = user_repo
-        self.user_plant_repo = user_plant_repo
-        self.species_repo = species_repo
-        self.sample_repo = sample_repo
+        self.uow = uow
         self.publisher = publisher
 
     async def execute(self, dto: AddPlantToGardenInputDTO) -> None:
         now = datetime.now(UTC)
 
-        user = await self.user_repo.get_by_id(dto.user_id)
-        if user is None:
-            raise UserNotFoundError(user_id=dto.user_id)
+        async with self.uow as uow:
+            user = await uow.users.get_by_id(dto.user_id)
+            if user is None:
+                raise UserNotFoundError(user_id=dto.user_id)
 
-        user_plant = await self.user_plant_repo.get_by_id(dto.user_plant_id)
-        if user_plant is None:
-            raise PlantNotFoundError(dto.user_plant_id)
+            user_plant = await uow.user_plants.get_by_id(dto.user_plant_id)
+            if user_plant is None:
+                raise PlantNotFoundError(dto.user_plant_id)
 
-        if user_plant.user_id != dto.user_id:
-            raise ForbiddenError("Você não tem permissão para adicionar esta planta.")
+            if user_plant.user_id != dto.user_id:
+                raise ForbiddenError("Você não tem permissão para adicionar esta planta.")
 
-        species = await self.species_repo.get_by_scientific_name(user_plant.scientific_name)
-        if species is None:
-            raise SpeciesNotFoundError(user_plant.scientific_name)
+            species = await uow.species.get_by_scientific_name(user_plant.scientific_name)
+            if species is None:
+                raise SpeciesNotFoundError(user_plant.scientific_name)
 
-        sample = await self.sample_repo.get_by_id(dto.sample_id)
-        if sample is None:
-            raise SampleNotFoundError(dto.sample_id)
+            sample = await uow.identification_samples.get_by_id(dto.sample_id)
+            if sample is None:
+                raise SampleNotFoundError(dto.sample_id)
 
-        SubscriptionPolicy.enforce_can_add_to_garden(user)
+            SubscriptionPolicy.enforce_can_add_to_garden(user)
 
-        is_first = user.garden_count == 0
-        user.add_plant_to_garden()
+            is_first = user.garden_count == 0
+            user.add_plant_to_garden()
 
-        confirmed_sample = sample.confirm(confirmed_at=now)
-
-        await self.user_repo.save(user)
-        await self.sample_repo.save(confirmed_sample)
+            await uow.users.save(user)
+            await uow.identification_samples.save(sample.confirm(confirmed_at=now))
+            await uow.commit()
 
         await self.publisher.publish(
             PlantAddedToGardenEvent.create(

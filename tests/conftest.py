@@ -13,7 +13,12 @@ from docker.errors import DockerException
 from fastapi.testclient import TestClient
 from redis.asyncio import Redis
 from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from testcontainers.community.postgres import PostgresContainer
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.wait_strategies import LogMessageWaitStrategy
@@ -93,25 +98,35 @@ def postgres_url() -> Iterator[str]:
 
 
 @pytest_asyncio.fixture
-async def db_session(postgres_url: str) -> AsyncIterator[AsyncSession]:
+async def db_connection(postgres_url: str) -> AsyncIterator[AsyncConnection]:
     """
-    Sessão no Postgres de teste. Tudo roda numa transação desfeita ao final; `commit()` nos
-    testes só fecha um savepoint, então os testes não enxergam dados uns dos outros.
+    Conexão com uma transação externa desfeita ao final: os testes não enxergam dados uns dos
+    outros. Sessões abertas nela usam savepoints, então `commit()` só fecha um savepoint.
     """
     engine = create_async_engine(postgres_url)
     async with engine.connect() as connection:
         transaction = await connection.begin()
-        session = AsyncSession(
-            bind=connection,
-            expire_on_commit=False,
-            join_transaction_mode="create_savepoint",
-        )
         try:
-            yield session
+            yield connection
         finally:
-            await session.close()
             await transaction.rollback()
     await engine.dispose()
+
+
+@pytest.fixture
+def session_factory(db_connection: AsyncConnection) -> async_sessionmaker[AsyncSession]:
+    """Fábrica de sessões na conexão do teste (a mesma que o `SqlAlchemyUnitOfWork` recebe)."""
+    return async_sessionmaker(
+        bind=db_connection,
+        expire_on_commit=False,
+        join_transaction_mode="create_savepoint",
+    )
+
+
+@pytest_asyncio.fixture
+async def db_session(session_factory: async_sessionmaker[AsyncSession]) -> AsyncIterator[AsyncSession]:
+    async with session_factory() as session:
+        yield session
 
 
 @pytest.fixture(scope="session")

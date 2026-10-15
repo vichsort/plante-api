@@ -1,31 +1,17 @@
 from dependency_injector import containers, providers
 
-from src.domain.ports.achievement_repository import IAchievementRepository
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.email_sender import IEmailSender
 from src.domain.ports.health_analyzer import IHealthAnalyzer
-from src.domain.ports.health_identification_sample_repository import (
-    IHealthIdentificationSampleRepository,
-)
 from src.domain.ports.health_raw_response_repository import IHealthRawResponseRepository
-from src.domain.ports.health_record_repository import IHealthRecordRepository
-from src.domain.ports.identification_sample_repository import (
-    IIdentificationSampleRepository,
-)
 from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.otp_repository import IOtpRepository
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.plant_enricher import IPlantEnricher
 from src.domain.ports.plant_identifier import IPlantIdentifier
-from src.domain.ports.plant_nutritional_repository import IPlantNutritionalRepository
-from src.domain.ports.plant_reference_image_repository import (
-    IPlantReferenceImageRepository,
-)
-from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
 from src.domain.ports.token_repository import ITokenRepository
 from src.domain.ports.token_service import ITokenService
-from src.domain.ports.user_plant_repository import IUserPlantRepository
-from src.domain.ports.user_repository import IUserRepository
+from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.use_cases.add_plant_to_garden_use_case import AddPlantToGardenUseCase
 from src.domain.use_cases.break_streak_cron_use_case import BreakStreakCronUseCase
 from src.domain.use_cases.change_email_use_case import ChangeEmailUseCase
@@ -64,18 +50,10 @@ from src.infrastructure.settings import Settings
 class UseCasesContainer(containers.DeclarativeContainer):
     settings: providers.Dependency[Settings] = providers.Dependency()
 
-    user_repository: providers.Dependency[IUserRepository] = providers.Dependency()
+    unit_of_work: providers.Dependency[IUnitOfWork] = providers.Dependency()
     token_repository: providers.Dependency[ITokenRepository] = providers.Dependency()
     otp_repository: providers.Dependency[IOtpRepository] = providers.Dependency()
-    user_plant_repository: providers.Dependency[IUserPlantRepository] = providers.Dependency()
-    plant_species_repository: providers.Dependency[IPlantSpeciesRepository] = providers.Dependency()
-    identification_sample_repository: providers.Dependency[IIdentificationSampleRepository] = providers.Dependency()
-    health_record_repository: providers.Dependency[IHealthRecordRepository] = providers.Dependency()
-    health_identification_sample_repository: providers.Dependency[IHealthIdentificationSampleRepository] = providers.Dependency()
     health_raw_response_repository: providers.Dependency[IHealthRawResponseRepository] = providers.Dependency()
-    plant_nutritional_repository: providers.Dependency[IPlantNutritionalRepository] = providers.Dependency()
-    achievement_repository: providers.Dependency[IAchievementRepository] = providers.Dependency()
-    plant_reference_image_repository: providers.Dependency[IPlantReferenceImageRepository] = providers.Dependency()
 
     password_hasher: providers.Dependency[IPasswordHasher] = providers.Dependency()
     email_sender: providers.Dependency[IEmailSender] = providers.Dependency()
@@ -89,7 +67,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
 
     login_use_case = providers.Factory(
         LoginUseCase,
-        user_repo=user_repository,
+        uow=unit_of_work,
         hasher=password_hasher,
         token_repo=token_repository,
         token_service=token_service,
@@ -108,7 +86,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
 
     change_email_use_case = providers.Factory(
         ChangeEmailUseCase,
-        user_repo=user_repository,
+        uow=unit_of_work,
         otp_repo=otp_repository,
         hasher=password_hasher,
         email_sender=email_sender,
@@ -116,56 +94,50 @@ class UseCasesContainer(containers.DeclarativeContainer):
 
     change_password_use_case = providers.Factory(
         ChangePasswordUseCase,
-        user_repo=user_repository,
+        uow=unit_of_work,
         hasher=password_hasher,
         email_sender=email_sender,
     )
 
     register_user_use_case = providers.Factory(
         RegisterUserUseCase,
-        user_repo=user_repository,
+        uow=unit_of_work,
         hasher=password_hasher,
         publisher=domain_publisher,
     )
 
     verify_email_use_case = providers.Factory(
         VerifyEmailUseCase,
-        user_repo=user_repository,
+        uow=unit_of_work,
         otp_repo=otp_repository,
     )
 
     upgrade_subscription_use_case = providers.Factory(
         UpgradeSubscriptionUseCase,
-        user_repo=user_repository,
+        uow=unit_of_work,
         publisher=domain_publisher,
     )
 
     update_location_fallback_use_case = providers.Factory(
         UpdateLocationFallbackUseCase,
-        user_repo=user_repository,
+        uow=unit_of_work,
     )
 
     add_plant_to_garden_use_case = providers.Factory(
         AddPlantToGardenUseCase,
-        user_repo=user_repository,
-        user_plant_repo=user_plant_repository,
-        species_repo=plant_species_repository,
-        sample_repo=identification_sample_repository,
+        uow=unit_of_work,
         publisher=domain_publisher,
     )
 
     confirm_plant_identification = providers.Factory(
         ConfirmPlantIdentificationUseCase,
-        user_repo=user_repository,
-        sample_repo=identification_sample_repository,
+        uow=unit_of_work,
         publisher=domain_publisher,
     )
 
     confirm_health_diagnosis = providers.Factory(
         ConfirmHealthDiagnosisUseCase,
-        user_repo=user_repository,
-        health_record_repo=health_record_repository,
-        health_sample_repo=health_identification_sample_repository,
+        uow=unit_of_work,
         health_raw_repo=health_raw_response_repository,
         storage=image_storage,
         publisher=domain_publisher,
@@ -173,28 +145,22 @@ class UseCasesContainer(containers.DeclarativeContainer):
 
     delete_user_plant_use_case = providers.Factory(
         DeleteUserPlantUseCase,
-        user_repo=user_repository,
-        user_plant_repo=user_plant_repository,
-        sample_repo=identification_sample_repository,
+        uow=unit_of_work,
     )
 
     get_user_garden_use_case = providers.Factory(
         GetUserGardenUseCase,
-        user_plant_repo=user_plant_repository,
+        uow=unit_of_work,
     )
 
     get_plant_details_use_case = providers.Factory(
         GetPlantDetailsUseCase,
-        user_plant_repo=user_plant_repository,
+        uow=unit_of_work,
     )
 
     identify_plant_use_case = providers.Factory(
         IdentifyPlantUseCase,
-        user_repo=user_repository,
-        species_repo=plant_species_repository,
-        user_plant_repo=user_plant_repository,
-        reference_image_repo=plant_reference_image_repository,
-        sample_repo=identification_sample_repository,
+        uow=unit_of_work,
         plant_identifier=plant_identifier,
         storage=image_storage,
         publisher=domain_publisher,
@@ -202,33 +168,30 @@ class UseCasesContainer(containers.DeclarativeContainer):
 
     enrich_plant_species_use_case = providers.Factory(
         EnrichPlantSpeciesUseCase,
-        user_repo=user_repository,
-        species_repo=plant_species_repository,
+        uow=unit_of_work,
         enricher=plant_enricher,
     )
 
     water_plant_use_case = providers.Factory(
         WaterPlantUseCase,
-        user_plant_repo=user_plant_repository,
+        uow=unit_of_work,
         publisher=domain_publisher,
     )
 
     break_streak_cron_use_case = providers.Factory(
         BreakStreakCronUseCase,
-        user_plant_repo=user_plant_repository,
+        uow=unit_of_work,
         publisher=domain_publisher,
     )
 
     list_user_achievements_use_case = providers.Factory(
         ListUserAchievementsUseCase,
-        achievement_repo=achievement_repository,
+        uow=unit_of_work,
     )
 
     diagnose_health_use_case = providers.Factory(
         DiagnoseHealthUseCase,
-        user_repo=user_repository,
-        user_plant_repo=user_plant_repository,
-        health_repo=health_record_repository,
+        uow=unit_of_work,
         health_analyzer=health_analyzer,
         plant_enricher=plant_enricher,
         storage=image_storage,
@@ -237,6 +200,5 @@ class UseCasesContainer(containers.DeclarativeContainer):
 
     get_health_history_use_case = providers.Factory(
         GetHealthHistoryUseCase,
-        user_plant_repo=user_plant_repository,
-        health_repo=health_record_repository,
+        uow=unit_of_work,
     )

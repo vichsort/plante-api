@@ -17,11 +17,9 @@ from src.domain.ports.health_raw_response_repository import (
     IHealthRawResponseRepository,
     PendingHealthAssessment,
 )
-from src.domain.ports.health_record_repository import IHealthRecordRepository
 from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.plant_enricher import HealthDiagnosisEnrichment, IPlantEnricher
-from src.domain.ports.user_plant_repository import IUserPlantRepository
-from src.domain.ports.user_repository import IUserRepository
+from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import HealthRecordId, UserId, UserPlantId
 
 log = structlog.stdlib.get_logger()
@@ -55,17 +53,13 @@ class DiagnoseHealthUseCase:
 
     def __init__(
         self,
-        user_repo: IUserRepository,
-        user_plant_repo: IUserPlantRepository,
-        health_repo: IHealthRecordRepository,
+        uow: IUnitOfWork,
         health_analyzer: IHealthAnalyzer,
         plant_enricher: IPlantEnricher,
         storage: IImageStorage,
         health_raw_repo: IHealthRawResponseRepository,
     ) -> None:
-        self._user_repo = user_repo
-        self._user_plant_repo = user_plant_repo
-        self._health_repo = health_repo
+        self._uow = uow
         self._health_analyzer = health_analyzer
         self._plant_enricher = plant_enricher
         self._storage = storage
@@ -74,16 +68,17 @@ class DiagnoseHealthUseCase:
     async def execute(self, dto: DiagnoseHealthInputDTO) -> DiagnoseHealthOutput:
         now = datetime.now(UTC)
 
-        user = await self._user_repo.get_by_id(dto.user_id)
-        if not user:
-            raise UserNotFoundError(user_id=dto.user_id)
+        # 1. Leitura curta: a transação não fica aberta durante as chamadas à IA e ao S3
+        async with self._uow as uow:
+            user = await uow.users.get_by_id(dto.user_id)
+            if not user:
+                raise UserNotFoundError(user_id=dto.user_id)
 
-        user_plant = await self._user_plant_repo.get_by_id(dto.user_plant_id, dto.user_id)
-        if not user_plant:
-            raise PlantNotFoundError(dto.user_plant_id)
+            user_plant = await uow.user_plants.get_by_id(dto.user_plant_id, dto.user_id)
+            if not user_plant:
+                raise PlantNotFoundError(dto.user_plant_id)
 
-        user.consume_identify_token()
-
+        # 2. Serviços externos
         assessment = await self._health_analyzer.assess_health(dto.image_bytes)
 
         issues = [d.name for d in assessment.diseases]
@@ -97,9 +92,6 @@ class DiagnoseHealthUseCase:
                 )
             except ExternalServiceError as exc:
                 log.warning("diagnose.enrichment_unavailable", error=exc.message)
-            else:
-                # Token extra só é cobrado quando a análise complementar foi entregue
-                user.consume_identify_token()
 
         vitality = enrichment.vitality_score if enrichment else assessment.health_probability
         severity = _map_severity(vitality)
@@ -111,23 +103,36 @@ class DiagnoseHealthUseCase:
             user_id=dto.user_id,
         )
 
-        record = await self._health_repo.save(HealthRecord(
-            id=HealthRecordId(uuid4()),
-            user_plant_id=dto.user_plant_id,
-            user_id=dto.user_id,
-            scientific_name=user_plant.scientific_name,
-            diagnosed_at=now,
-            vitality_score=vitality,
-            severity=severity,
-            source="kindwise+gemini" if enrichment else "kindwise",
-            image_key=image_key,
-            issues_detected=tuple(issues),
-            treatment_plan=enrichment.treatment_plan if enrichment else (),
-            recovery_estimate_days=enrichment.recovery_estimate_days if enrichment else None,
-            notes=enrichment.notes if enrichment else None,
-        ))
+        # 3. Escrita; o usuário é relido para cobrar os tokens sobre o estado atual
+        async with self._uow as uow:
+            user = await uow.users.get_by_id(dto.user_id)
+            if not user:
+                raise UserNotFoundError(user_id=dto.user_id)
 
-        await self._user_repo.save(user)
+            user.consume_identify_token()
+            if enrichment:
+                # Token extra só é cobrado quando a análise complementar foi entregue
+                user.consume_identify_token()
+
+            record = await uow.health_records.save(HealthRecord(
+                id=HealthRecordId(uuid4()),
+                user_plant_id=dto.user_plant_id,
+                user_id=dto.user_id,
+                scientific_name=user_plant.scientific_name,
+                diagnosed_at=now,
+                vitality_score=vitality,
+                severity=severity,
+                source="kindwise+gemini" if enrichment else "kindwise",
+                image_key=image_key,
+                issues_detected=tuple(issues),
+                treatment_plan=enrichment.treatment_plan if enrichment else (),
+                recovery_estimate_days=enrichment.recovery_estimate_days if enrichment else None,
+                notes=enrichment.notes if enrichment else None,
+            ))
+
+            await uow.users.save(user)
+            await uow.commit()
+
         await self._health_raw_repo.save(record.id, PendingHealthAssessment(
             raw_response=assessment.raw_response,
             similar_images_urls=assessment.all_similar_images_urls,

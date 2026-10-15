@@ -6,7 +6,7 @@ from src.domain.events.domain_events import UserRegisteredEvent
 from src.domain.exceptions import EmailAlreadyInUseError
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.password_hasher import IPasswordHasher
-from src.domain.ports.user_repository import IUserRepository
+from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.email import normalize_email
 from src.domain.value_objects.user_location import UserLocation
 
@@ -23,32 +23,32 @@ class RegisterUserUseCase:
 
     def __init__(
         self,
-        user_repo: IUserRepository,
+        uow: IUnitOfWork,
         hasher: IPasswordHasher,
         publisher: IDomainPublisher,
     ) -> None:
-        self.user_repo = user_repo
+        self.uow = uow
         self.hasher = hasher
         self.publisher = publisher
 
     async def execute(self, dto: RegisterUserInputDTO) -> User:
         email = normalize_email(dto.email)
-        if await self.user_repo.get_by_email(email):
-            raise EmailAlreadyInUseError()
-
         hashed_pw = self.hasher.hash(dto.password)
 
-        now = datetime.now(UTC)
-        user = User.create_new(
-            email=email,
-            hashed_password=hashed_pw,
-            location=UserLocation(country=dto.country, state=dto.state),
-            current_time=now,
-        )
+        async with self.uow as uow:
+            if await uow.users.get_by_email(email):
+                raise EmailAlreadyInUseError()
 
-        saved_user = await self.user_repo.save(user)
+            user = User.create_new(
+                email=email,
+                hashed_password=hashed_pw,
+                location=UserLocation(country=dto.country, state=dto.state),
+                current_time=datetime.now(UTC),
+            )
+            saved_user = await uow.users.save(user)
+            await uow.commit()
 
-        event = UserRegisteredEvent.create(user_id=saved_user.id, email=saved_user.email)
-        await self.publisher.publish(event)
+        # Depois do commit: o e-mail de verificação não sai para usuário que não foi gravado
+        await self.publisher.publish(UserRegisteredEvent.create(user_id=saved_user.id, email=saved_user.email))
 
         return saved_user

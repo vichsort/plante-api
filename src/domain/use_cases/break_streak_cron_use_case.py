@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 from src.domain.events.domain_events import StreakBrokenEvent
 from src.domain.ports.domain_publisher import IDomainPublisher
-from src.domain.ports.user_plant_repository import IUserPlantRepository
+from src.domain.ports.unit_of_work import IUnitOfWork
 
 
 @dataclass(frozen=True)
@@ -17,34 +17,32 @@ class BreakStreakCronUseCase:
 
     def __init__(
         self,
-        user_plant_repo: IUserPlantRepository,
+        uow: IUnitOfWork,
         publisher: IDomainPublisher,
     ) -> None:
-        self.user_plant_repo = user_plant_repo
+        self.uow = uow
         self.publisher = publisher
 
     async def execute(self) -> BreakStreakResult:
         now = datetime.now(UTC)
-        
-        overdue_plants = await self.user_plant_repo.get_overdue_plants(now)
-        
+        events: list[StreakBrokenEvent] = []
         processed = 0
-        broken = 0
 
-        for plant in overdue_plants:
-            processed += 1
-            
-            old_streak = plant.watering_streak.current_count
-            
-            if plant.check_and_reset_streak(now):
-                broken += 1
-                await self.user_plant_repo.save(plant)
-                
-                event = StreakBrokenEvent.create(
-                    user_id=plant.user_id,
-                    user_plant_id=plant.id,
-                    last_count=old_streak
-                )
-                await self.publisher.publish(event)
+        async with self.uow as uow:
+            for plant in await uow.user_plants.get_overdue_plants(now):
+                processed += 1
+                old_streak = plant.watering_streak.current_count
 
-        return BreakStreakResult(processed=processed, broken=broken)
+                if plant.check_and_reset_streak(now):
+                    await uow.user_plants.save(plant)
+                    events.append(StreakBrokenEvent.create(
+                        user_id=plant.user_id,
+                        user_plant_id=plant.id,
+                        last_count=old_streak,
+                    ))
+            await uow.commit()
+
+        for event in events:
+            await self.publisher.publish(event)
+
+        return BreakStreakResult(processed=processed, broken=len(events))

@@ -11,6 +11,7 @@ from src.domain.use_cases.identify_plant_use_case import (
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.sources import IdentificationOrigin
 from tests.factories import make_species, make_user
+from tests.fakes import FakeUnitOfWork
 
 
 @pytest.mark.asyncio
@@ -39,12 +40,9 @@ async def test_identification_source_follows_origin(origin: IdentificationOrigin
     storage = AsyncMock()
     storage.upload_identification_image.return_value = "identifications/key.jpg"
 
+    uow = FakeUnitOfWork(users=user_repo, species=species_repo, user_plants=user_plant_repo, reference_images=AsyncMock(), identification_samples=sample_repo)
     use_case = IdentifyPlantUseCase(
-        user_repo=user_repo,
-        species_repo=species_repo,
-        user_plant_repo=user_plant_repo,
-        reference_image_repo=AsyncMock(),
-        sample_repo=sample_repo,
+        uow=uow,
         plant_identifier=identifier,
         storage=storage,
         publisher=AsyncMock(),
@@ -55,3 +53,6 @@ async def test_identification_source_follows_origin(origin: IdentificationOrigin
     saved_plant = user_plant_repo.save.call_args.args[0]
     assert saved_plant.identification_source == expected
     assert sample_repo.save.call_args.args[0].identification_source == origin
+    # Leitura e escrita em transações separadas (a IA roda entre elas); só a escrita confirma
+    assert uow.opened == 2
+    assert uow.commits == 1

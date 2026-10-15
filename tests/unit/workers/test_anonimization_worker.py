@@ -10,6 +10,7 @@ from src.domain.entities.plant_identification_sample import (
 )
 from src.infrastructure.container import Container
 from src.workers.anonimization_worker import anonymize_confirmed_samples
+from tests.fakes import FakeUnitOfWork
 
 
 @pytest.mark.asyncio
@@ -36,10 +37,12 @@ async def test_anonymize_confirmed_samples_task():
     mock_repo = AsyncMock()
     mock_repo.get_confirmed_before.return_value = [sample]
 
+    uow = FakeUnitOfWork(identification_samples=mock_repo)
     container = Container()
-    with container.repositories.identification_sample_repository.override(mock_repo):
+    with container.infra.unit_of_work.override(uow):
         result = await anonymize_confirmed_samples(container=container)
 
     assert result["anonymized"] == 1
     assert result["failed"] == 0
-    mock_repo.save.assert_called_once()
+    assert mock_repo.save.call_args.args[0].user_id is None
+    assert uow.committed

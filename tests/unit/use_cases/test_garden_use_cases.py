@@ -22,6 +22,7 @@ from tests.factories import (
     make_user,
     make_user_plant,
 )
+from tests.fakes import FakeUnitOfWork
 
 
 @pytest.mark.asyncio
@@ -45,10 +46,7 @@ async def test_add_plant_to_garden_success():
     publisher = AsyncMock()
 
     use_case = AddPlantToGardenUseCase(
-        user_repo=user_repo,
-        user_plant_repo=user_plant_repo,
-        species_repo=species_repo,
-        sample_repo=sample_repo,
+        uow=FakeUnitOfWork(users=user_repo, user_plants=user_plant_repo, species=species_repo, identification_samples=sample_repo),
         publisher=publisher,
     )
 
@@ -73,7 +71,7 @@ async def test_water_plant_use_case_success():
 
     publisher = AsyncMock()
 
-    use_case = WaterPlantUseCase(user_plant_repo=user_plant_repo, publisher=publisher)
+    use_case = WaterPlantUseCase(uow=FakeUnitOfWork(user_plants=user_plant_repo), publisher=publisher)
 
     result = await use_case.execute(WaterPlantInputDTO(
         user_id=user_plant.user_id,
@@ -92,7 +90,7 @@ async def test_get_user_garden_use_case():
     user_plant_repo = AsyncMock()
     user_plant_repo.list_by_user.return_value = [plant]
 
-    use_case = GetUserGardenUseCase(user_plant_repo=user_plant_repo)
+    use_case = GetUserGardenUseCase(uow=FakeUnitOfWork(user_plants=user_plant_repo))
     items = await use_case.execute(GetUserGardenInputDTO(user_id=plant.user_id))
 
     assert items == [plant]

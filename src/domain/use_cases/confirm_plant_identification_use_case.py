@@ -5,10 +5,7 @@ from src.domain.entities.plant_identification_sample import PlantIdentificationS
 from src.domain.events.domain_events import PlantIdentificationConfirmedEvent
 from src.domain.exceptions import SampleNotFoundError, UserNotFoundError
 from src.domain.ports.domain_publisher import IDomainPublisher
-from src.domain.ports.identification_sample_repository import (
-    IIdentificationSampleRepository,
-)
-from src.domain.ports.user_repository import IUserRepository
+from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import IdentificationSampleId, UserId
 
 
@@ -22,27 +19,27 @@ class ConfirmPlantIdentificationUseCase:
 
     def __init__(
         self,
-        user_repo: IUserRepository,
-        sample_repo: IIdentificationSampleRepository,
+        uow: IUnitOfWork,
         publisher: IDomainPublisher,
     ) -> None:
-        self._user_repo = user_repo
-        self._sample_repo = sample_repo
+        self._uow = uow
         self._publisher = publisher
 
     async def execute(self, dto: ConfirmPlantIdentificationInputDTO) -> PlantIdentificationSample:
         now = datetime.now(UTC)
 
-        user = await self._user_repo.get_by_id(dto.user_id)
-        if user is None:
-            raise UserNotFoundError(user_id=dto.user_id)
+        async with self._uow as uow:
+            user = await uow.users.get_by_id(dto.user_id)
+            if user is None:
+                raise UserNotFoundError(user_id=dto.user_id)
 
-        sample = await self._sample_repo.get_by_id(dto.sample_id)
-        if sample is None or sample.user_id != dto.user_id:
-            raise SampleNotFoundError(dto.sample_id)
+            sample = await uow.identification_samples.get_by_id(dto.sample_id)
+            if sample is None or sample.user_id != dto.user_id:
+                raise SampleNotFoundError(dto.sample_id)
 
-        confirmed = sample.confirm(confirmed_at=now)
-        await self._sample_repo.save(confirmed)
+            confirmed = sample.confirm(confirmed_at=now)
+            await uow.identification_samples.save(confirmed)
+            await uow.commit()
 
         await self._publisher.publish(
             PlantIdentificationConfirmedEvent.create(

@@ -7,7 +7,7 @@ from src.domain.exceptions import UnauthorizedError
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.token_repository import ITokenRepository
 from src.domain.ports.token_service import ITokenService, TokenKind
-from src.domain.ports.user_repository import IUserRepository
+from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.email import normalize_email
 
 log = structlog.stdlib.get_logger()
@@ -28,18 +28,20 @@ class LoginUseCase:
 
     def __init__(
         self,
-        user_repo: IUserRepository,
+        uow: IUnitOfWork,
         hasher: IPasswordHasher,
         token_repo: ITokenRepository,
         token_service: ITokenService,
     ) -> None:
-        self._user_repo = user_repo
+        self._uow = uow
         self._hasher = hasher
         self._token_repo = token_repo
         self._token_service = token_service
 
     async def execute(self, email: str, password: str) -> LoginResult:
-        user = await self._user_repo.get_by_email(normalize_email(email))
+        async with self._uow as uow:
+            user = await uow.users.get_by_email(normalize_email(email))
+
         if not user or not self._hasher.verify(password, user.hashed_password):
             raise UnauthorizedError("Invalid email or password.")
 

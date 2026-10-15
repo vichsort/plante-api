@@ -7,11 +7,7 @@ from src.domain.exceptions import (
     SampleNotFoundError,
     UserNotFoundError,
 )
-from src.domain.ports.identification_sample_repository import (
-    IIdentificationSampleRepository,
-)
-from src.domain.ports.user_plant_repository import IUserPlantRepository
-from src.domain.ports.user_repository import IUserRepository
+from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import IdentificationSampleId, UserId, UserPlantId
 
 
@@ -24,37 +20,31 @@ class DeleteUserPlantInputDTO:
 class DeleteUserPlantUseCase:
     raises = (ForbiddenError, PlantNotFoundError, SampleNotFoundError, UserNotFoundError)
 
-    def __init__(
-        self,
-        user_repo: IUserRepository,
-        user_plant_repo: IUserPlantRepository,
-        sample_repo: IIdentificationSampleRepository,
-    ) -> None:
-        self.user_repo = user_repo
-        self.user_plant_repo = user_plant_repo
-        self.sample_repo = sample_repo
+    def __init__(self, uow: IUnitOfWork) -> None:
+        self.uow = uow
 
     async def execute(self, dto: DeleteUserPlantInputDTO) -> None:
         now = datetime.now(UTC)
 
-        plant = await self.user_plant_repo.get_by_id(dto.user_plant_id, dto.user_id)
-        if plant is None:
-            raise PlantNotFoundError(dto.user_plant_id)
+        async with self.uow as uow:
+            plant = await uow.user_plants.get_by_id(dto.user_plant_id, dto.user_id)
+            if plant is None:
+                raise PlantNotFoundError(dto.user_plant_id)
 
-        if plant.user_id != dto.user_id:
-            raise ForbiddenError("Você não tem permissão para remover esta planta.")
+            if plant.user_id != dto.user_id:
+                raise ForbiddenError("Você não tem permissão para remover esta planta.")
 
-        user = await self.user_repo.get_by_id(dto.user_id)
-        if user is None:
-            raise UserNotFoundError(user_id=dto.user_id)
+            user = await uow.users.get_by_id(dto.user_id)
+            if user is None:
+                raise UserNotFoundError(user_id=dto.user_id)
 
-        sample = await self.sample_repo.get_by_id(dto.sample_id)
-        if sample is None:
-            raise SampleNotFoundError(dto.sample_id)
+            sample = await uow.identification_samples.get_by_id(dto.sample_id)
+            if sample is None:
+                raise SampleNotFoundError(dto.sample_id)
 
-        user.remove_plant_from_garden()
-        rejected_sample = sample.reject(rejected_at=now)
+            user.remove_plant_from_garden()
 
-        await self.user_plant_repo.delete(user_plant_id=dto.user_plant_id, user_id=dto.user_id)
-        await self.user_repo.save(user)
-        await self.sample_repo.save(rejected_sample)
+            await uow.user_plants.delete(user_plant_id=dto.user_plant_id, user_id=dto.user_id)
+            await uow.users.save(user)
+            await uow.identification_samples.save(sample.reject(rejected_at=now))
+            await uow.commit()
