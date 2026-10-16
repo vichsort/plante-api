@@ -7,9 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.adapters.persistence.repositories.user_plant_repository import (
     UserPlantRepository,
 )
-from src.adapters.persistence.repositories.user_repository import UserRepository
 from src.domain.entities.care_schedule import CareSchedule, CareType
-from src.domain.entities.user import User
 from src.domain.entities.user_plant import (
     IdentificationSource,
     IdentificationStatus,
@@ -17,7 +15,9 @@ from src.domain.entities.user_plant import (
 )
 from src.domain.value_objects.care_interval import CareInterval
 from src.domain.value_objects.ids import UserPlantId
-from src.domain.value_objects.user_location import UserLocation
+from src.modules.identity.adapters.persistence.repositories.user import UserRepository
+from src.modules.identity.domain.entities.user import User
+from src.modules.identity.domain.value_objects.user_location import UserLocation
 from tests.factories import CALENDAR
 from tests.integration.persistence.seed import seed_identification
 

@@ -2,27 +2,21 @@
 `SqlAlchemyUnitOfWork` contra o Postgres: só o que é confirmado fica gravado. Antes dele nada era
 persistido (nenhum `commit` em `src`) e os testes não viam porque confirmavam à mão.
 """
-from unittest.mock import MagicMock
-
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.adapters.persistence.repositories.user_repository import UserRepository
 from src.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
-from src.domain.events.domain_events import UserRegisteredEvent
-from src.domain.use_cases.register_user_use_case import (
-    RegisterUserInputDTO,
-    RegisterUserUseCase,
-)
 from src.modules.catalog.adapters.persistence.unit_of_work import (
     SqlAlchemyCatalogUnitOfWork,
 )
 from src.modules.catalog.domain.services.species_registry import SpeciesRegistry
+from src.modules.identity.adapters.persistence.unit_of_work import (
+    SqlAlchemyIdentityUnitOfWork,
+)
 from src.modules.training.adapters.persistence.unit_of_work import (
     SqlAlchemyTrainingUnitOfWork,
 )
 from src.modules.training.domain.services.recorder import TrainingRecorder
-from src.shared.domain import DomainEvent, IDomainPublisher
 from tests.factories import (
     make_identification,
     make_species,
@@ -33,12 +27,12 @@ from tests.factories import (
 
 
 async def _user_exists(session_factory: async_sessionmaker[AsyncSession], email: str) -> bool:
-    async with session_factory() as session:
-        return await UserRepository(session).get_by_email(email) is not None
+    async with SqlAlchemyIdentityUnitOfWork(session_factory) as uow:
+        return await uow.users.get_by_email(email) is not None
 
 
 async def test_commit_persists_changes(session_factory: async_sessionmaker[AsyncSession]) -> None:
-    async with SqlAlchemyUnitOfWork(session_factory) as uow:
+    async with SqlAlchemyIdentityUnitOfWork(session_factory) as uow:
         await uow.users.save(make_user(email="commit@plante.org"))
         await uow.commit()
 
@@ -46,7 +40,7 @@ async def test_commit_persists_changes(session_factory: async_sessionmaker[Async
 
 
 async def test_leaving_without_commit_discards_changes(session_factory: async_sessionmaker[AsyncSession]) -> None:
-    async with SqlAlchemyUnitOfWork(session_factory) as uow:
+    async with SqlAlchemyIdentityUnitOfWork(session_factory) as uow:
         await uow.users.save(make_user(email="no-commit@plante.org"))
 
     assert not await _user_exists(session_factory, "no-commit@plante.org")
@@ -54,7 +48,7 @@ async def test_leaving_without_commit_discards_changes(session_factory: async_se
 
 async def test_exception_discards_changes(session_factory: async_sessionmaker[AsyncSession]) -> None:
     with pytest.raises(RuntimeError):
-        async with SqlAlchemyUnitOfWork(session_factory) as uow:
+        async with SqlAlchemyIdentityUnitOfWork(session_factory) as uow:
             await uow.users.save(make_user(email="boom@plante.org"))
             raise RuntimeError("falha no meio do use case")
 
@@ -64,9 +58,10 @@ async def test_exception_discards_changes(session_factory: async_sessionmaker[As
 async def test_repositories_share_one_transaction(session_factory: async_sessionmaker[AsyncSession]) -> None:
     async with SqlAlchemyUnitOfWork(session_factory) as uow:
         # A cadeia de FKs (usuário → identificação → planta, espécie, amostra de treino) só é
-        # satisfeita se todos os repositórios usam a mesma transação, inclusive o do módulo
-        # training, que entra pelo service e se junta à transação aberta aqui
-        user = await uow.users.save(make_user(email="shared@plante.org"))
+        # satisfeita se todos os repositórios usam a mesma transação, inclusive os dos módulos
+        # (identity, catalog, training), que se juntam à transação aberta aqui
+        async with SqlAlchemyIdentityUnitOfWork(session_factory) as accounts:
+            user = await accounts.users.save(make_user(email="shared@plante.org"))
         species = await SpeciesRegistry(SqlAlchemyCatalogUnitOfWork(session_factory)).save(make_species("Pilea peperomioides"))
         training = make_training_identification_sample("Pilea peperomioides")
         await TrainingRecorder(SqlAlchemyTrainingUnitOfWork(session_factory)).record_identification_sample(training)
@@ -81,7 +76,7 @@ async def test_repositories_share_one_transaction(session_factory: async_session
 
 
 async def test_can_be_reopened_and_rejects_nesting(session_factory: async_sessionmaker[AsyncSession]) -> None:
-    uow = SqlAlchemyUnitOfWork(session_factory)
+    uow = SqlAlchemyIdentityUnitOfWork(session_factory)
     async with uow:
         with pytest.raises(RuntimeError, match="already open"):
             async with uow:
@@ -91,27 +86,3 @@ async def test_can_be_reopened_and_rejects_nesting(session_factory: async_sessio
         await uow.commit()
 
     assert await _user_exists(session_factory, "reopen@plante.org")
-
-
-class _PublisherThatChecksPersistence(IDomainPublisher):
-    """Ao receber o evento, confere numa sessão separada que o usuário já foi gravado."""
-
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
-        self._session_factory = session_factory
-        self.user_was_persisted: bool | None = None
-
-    async def publish(self, event: DomainEvent) -> None:
-        assert isinstance(event, UserRegisteredEvent)
-        self.user_was_persisted = await _user_exists(self._session_factory, event.email)
-
-
-async def test_register_persists_user_before_publishing(session_factory: async_sessionmaker[AsyncSession]) -> None:
-    publisher = _PublisherThatChecksPersistence(session_factory)
-    hasher = MagicMock()
-    hasher.hash.return_value = "hashed"
-    use_case = RegisterUserUseCase(uow=SqlAlchemyUnitOfWork(session_factory), hasher=hasher, publisher=publisher)
-
-    await use_case.execute(RegisterUserInputDTO(email="E2E@Plante.org", password="Secret123", country="BR", state="SP"))
-
-    assert publisher.user_was_persisted is True
-    assert await _user_exists(session_factory, "e2e@plante.org")

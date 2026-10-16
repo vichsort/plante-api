@@ -4,7 +4,6 @@ from uuid import UUID
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
-from src.api.schemas.auth import MessageResponse
 from src.api.schemas.identification import (
     IdentificationFeedbackRequest,
     IdentifyPlantResponse,
@@ -19,7 +18,7 @@ from src.domain.use_cases.identify_plant_use_case import (
     IdentifyPlantUseCase,
 )
 from src.domain.value_objects.ids import IdentificationId
-from src.shared.api import ApiResponse, CurrentUserId, error_responses
+from src.shared.api import ApiResponse, CurrentUserId, MessageResponse, error_responses
 from src.shared.domain import UnauthorizedError
 
 router = APIRouter(prefix="/identify", tags=["identification"], responses=error_responses(UnauthorizedError))

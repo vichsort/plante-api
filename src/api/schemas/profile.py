@@ -1,22 +1,10 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 from src.domain.ports.achievement_repository import AchievementView
 
-
-class ChangeEmailRequest(BaseModel):
-    current_password: str
-    new_email: EmailStr
-
-class ChangePasswordRequest(BaseModel):
-    current_password: str
-    new_password: str
-
-class UpdateLocationRequest(BaseModel):
-    country: str
-    state: str
 
 class AchievementItemResponse(BaseModel):
     id: UUID

@@ -3,7 +3,7 @@ import pytest
 from dependency_injector import providers
 
 from src.bootstrap.container import Container
-from src.main import wire
+from src.bootstrap.wiring import wire
 
 
 def test_container_wires_without_error():

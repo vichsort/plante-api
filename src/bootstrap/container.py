@@ -5,6 +5,7 @@ from src.bootstrap.containers.infra import InfraContainer
 from src.bootstrap.containers.use_cases import UseCasesContainer
 from src.bootstrap.settings import Settings
 from src.modules.catalog.container import CatalogContainer
+from src.modules.identity.container import IdentityContainer
 from src.modules.subscription.container import SubscriptionContainer
 from src.modules.training.container import TrainingContainer
 from src.shared.domain import LocalCalendar
@@ -38,6 +39,17 @@ class Container(containers.DeclarativeContainer):
         session_factory=infra.session_factory,
     )
 
+    identity = providers.Container(
+        IdentityContainer,
+        session_factory=infra.session_factory,
+        redis=adapters.redis,
+        publisher=adapters.domain_publisher,
+        secret_key=settings.provided.secret_key,
+        jwt_algorithm=settings.provided.jwt_algorithm,
+        aws_region=settings.provided.aws_region,
+        ses_sender_email=settings.provided.ses_sender_email,
+    )
+
     subscription = providers.Container(
         SubscriptionContainer,
         session_factory=infra.session_factory,
@@ -49,10 +61,6 @@ class Container(containers.DeclarativeContainer):
         UseCasesContainer,
         settings=settings,
         unit_of_work=infra.unit_of_work,
-        token_repository=adapters.token_repository,
-        otp_repository=adapters.otp_repository,
-        password_hasher=adapters.password_hasher,
-        email_sender=adapters.email_sender,
         domain_publisher=adapters.domain_publisher,
         plant_identifier=adapters.plant_identifier,
         health_analyzer=adapters.health_analyzer,
@@ -60,9 +68,9 @@ class Container(containers.DeclarativeContainer):
         species_registry=catalog.registry,
         image_storage=adapters.image_storage,
         image_sanitizer=adapters.image_sanitizer,
-        token_service=adapters.token_service,
         training_recorder=training.recorder,
         token_wallet=subscription.token_wallet,
         garden_quota=subscription.garden_quota,
         local_calendar=calendar,
+        user_directory=identity.directory,
     )

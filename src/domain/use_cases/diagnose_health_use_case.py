@@ -10,6 +10,7 @@ from src.domain.ports.health_analyzer import IHealthAnalyzer
 from src.domain.ports.health_enricher import HealthDiagnosisEnrichment, IHealthEnricher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import HealthRecordId, UserPlantId
+from src.modules.identity import IUserDirectory
 from src.modules.subscription import (
     FeatureCost,
     ITokenWallet,
@@ -80,10 +81,12 @@ class DiagnoseHealthUseCase:
         health_analyzer: IHealthAnalyzer,
         plant_enricher: IHealthEnricher,
         storage: IImageStorage,
+        users: IUserDirectory,
         wallet: ITokenWallet,
         training: ITrainingRecorder,
     ) -> None:
         self._training = training
+        self._users = users
         self._wallet = wallet
         self._uow = uow
         self._sanitizer = sanitizer
@@ -96,16 +99,14 @@ class DiagnoseHealthUseCase:
 
         # 1. Leitura curta: a transação não fica aberta durante as chamadas à IA e ao S3
         async with self._uow as uow:
-            user = await uow.users.get_by_id(dto.user_id)
-            if not user:
-                raise UserNotFoundError(user_id=dto.user_id)
+            region = await self._users.region_of(dto.user_id)
 
             user_plant = await uow.user_plants.get_by_id(dto.user_plant_id, dto.user_id)
             if not user_plant:
                 raise PlantNotFoundError(dto.user_plant_id)
 
-            await self._wallet.ensure_can_diagnose(user.id, now)
-            can_enrich = await self._wallet.can_enrich_diagnosis(user.id, now)
+            await self._wallet.ensure_can_diagnose(dto.user_id, now)
+            can_enrich = await self._wallet.can_enrich_diagnosis(dto.user_id, now)
 
         # 2. Serviços externos, só com a foto já sem metadados (GPS, aparelho, data)
         image_bytes = self._sanitizer.sanitize(dto.image_bytes)
@@ -151,14 +152,10 @@ class DiagnoseHealthUseCase:
 
         # 3. Escrita (os tokens são cobrados sobre o saldo travado nela)
         async with self._uow as uow:
-            user = await uow.users.get_by_id(dto.user_id)
-            if not user:
-                raise UserNotFoundError(user_id=dto.user_id)
-
-            await self._wallet.charge(user.id, FeatureCost.DIAGNOSIS, now)
+            await self._wallet.charge(dto.user_id, FeatureCost.DIAGNOSIS, now)
             if enrichment:
                 # Token extra só é cobrado quando a análise complementar foi entregue
-                await self._wallet.charge(user.id, FeatureCost.DIAGNOSIS_ENRICHMENT, now)
+                await self._wallet.charge(dto.user_id, FeatureCost.DIAGNOSIS_ENRICHMENT, now)
 
             training_sample = TrainingHealthSample(
                 id=TrainingHealthSample.new_id(),
@@ -169,7 +166,7 @@ class DiagnoseHealthUseCase:
                 source=source,
                 signals=assessment.signals,
                 period=month_of(now),
-                location=TrainingLocation.coarse(user.location.country, user.location.state, dto.latitude, dto.longitude),
+                location=TrainingLocation.coarse(region.country, region.state, dto.latitude, dto.longitude),
                 issues_detected=tuple(issues),
                 treatment_plan=treatment_plan,
                 reference_image_keys=reference_keys,

@@ -4,19 +4,15 @@ from src.adapters.ai.consensus.consensus_adapter import ConsensusIdentifier
 from src.adapters.ai.gemini.gemini_adapter import GeminiHealthEnricher
 from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
-from src.adapters.cache.redis_otp_repository import RedisOtpRepository
-from src.adapters.cache.redis_token_repository import RedisTokenRepository
-from src.adapters.email.ses_email_sender import SesEmailSender
-from src.adapters.events.celery_publisher import CeleryPublisher
 from src.adapters.resilience import (
     CircuitBreakerHealthAnalyzer,
     CircuitBreakerPlantIdentifier,
 )
-from src.adapters.security.bcrypt_hasher import BcryptHasher
-from src.adapters.security.jwt_token_service import JwtTokenService
 from src.bootstrap.celery_config import celery_app
 from src.bootstrap.settings import Settings
+from src.modules.identity.workers import route_event as identity_events
 from src.shared.adapters import (
+    CeleryPublisher,
     CircuitBreaker,
     PillowImageSanitizer,
     RedisClient,
@@ -27,38 +23,15 @@ from src.shared.adapters import (
 class AdaptersContainer(containers.DeclarativeContainer):
     settings: providers.Dependency[Settings] = providers.Dependency()
 
-    password_hasher = providers.Singleton(BcryptHasher)
     image_sanitizer = providers.Singleton(PillowImageSanitizer)
-    domain_publisher = providers.Singleton(CeleryPublisher, celery_app=celery_app)
-
-    token_service = providers.Singleton(
-        JwtTokenService,
-        secret_key=settings.provided.secret_key,
-        algorithm=settings.provided.jwt_algorithm,
-    )
+    # Cada módulo com tasks entrega a rota dos próprios eventos
+    domain_publisher = providers.Singleton(CeleryPublisher, celery_app=celery_app, routes=[identity_events])
 
     redis = providers.Singleton(
         RedisClient.from_url,
         url=settings.provided.redis_url,
         socket_timeout=settings.provided.redis_socket_timeout_seconds,
         socket_connect_timeout=settings.provided.redis_connect_timeout_seconds,
-    )
-
-    token_repository = providers.Singleton(
-        RedisTokenRepository,
-        redis=redis,
-    )
-
-    otp_repository = providers.Singleton(
-        RedisOtpRepository,
-        redis=redis,
-    )
-
-
-    email_sender = providers.Singleton(
-        SesEmailSender,
-        region=settings.provided.aws_region,
-        sender_email=settings.provided.ses_sender_email,
     )
 
     image_storage = providers.Singleton(

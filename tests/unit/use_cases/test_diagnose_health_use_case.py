@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from src.domain.entities.user import User
 from src.domain.ports.health_analyzer import DiseaseHint, HealthAssessmentResult
 from src.domain.ports.health_enricher import HealthDiagnosisEnrichment
 from src.domain.use_cases.diagnose_health_use_case import (
@@ -11,6 +10,8 @@ from src.domain.use_cases.diagnose_health_use_case import (
     DiagnoseHealthUseCase,
 )
 from src.domain.value_objects.ids import UserPlantId
+from src.modules.identity.domain.entities.user import User
+from src.modules.identity.tests.fakes import FakeUserDirectory
 from src.modules.subscription import SubscriptionRequiredError
 from src.modules.subscription.tests.fakes import FakeTokenWallet
 from src.modules.training import DiseaseSuggestion, HealthSignals
@@ -22,8 +23,6 @@ from tests.fakes import FakeUnitOfWork, MarkingSanitizer
 
 def _use_case(enricher: AsyncMock, used_today: int = 0) -> tuple[DiagnoseHealthUseCase, User, FakeUnitOfWork]:
     user = make_user()
-    user_repo = AsyncMock()
-    user_repo.get_by_id.return_value = user
 
     user_plant_repo = AsyncMock()
     user_plant_repo.get_by_id.return_value = make_user_plant(user_id=user.id)
@@ -43,7 +42,7 @@ def _use_case(enricher: AsyncMock, used_today: int = 0) -> tuple[DiagnoseHealthU
     storage.upload_identification_image.return_value = "health/key.jpg"
     storage.upload_training_image.return_value = "training/identifications/health.jpg"
     storage.download_and_rehost.return_value = "species/references/ref.jpg"
-    uow = FakeUnitOfWork(users=user_repo, user_plants=user_plant_repo, health_records=health_repo)
+    uow = FakeUnitOfWork(user_plants=user_plant_repo, health_records=health_repo)
 
     use_case = DiagnoseHealthUseCase(
         sanitizer=MarkingSanitizer(),
@@ -51,6 +50,7 @@ def _use_case(enricher: AsyncMock, used_today: int = 0) -> tuple[DiagnoseHealthU
         health_analyzer=analyzer,
         plant_enricher=enricher,
         storage=storage,
+        users=FakeUserDirectory(location=user.location),
         wallet=FakeTokenWallet(used_today=used_today),
         training=FakeTrainingRecorder(),
     )

@@ -28,6 +28,7 @@ from src.domain.use_cases.water_plant_use_case import (
 from src.domain.value_objects.ids import IdentificationId, UserPlantId
 from src.domain.value_objects.streak import Streak
 from src.modules.catalog import PlantSpeciesId
+from src.modules.identity.tests.fakes import FakeUserDirectory
 from src.modules.subscription import PlantLimitExceededError
 from src.modules.subscription.tests.fakes import FakeGardenQuota
 from src.modules.training import (
@@ -43,25 +44,23 @@ from tests.factories import (
     CALENDAR,
     make_care_schedule,
     make_identification,
-    make_user,
     make_user_plant,
 )
 from tests.fakes import FakeUnitOfWork
 
 
 def _garden_use_case(identification: Identification | None, existing: UserPlant | None = None, plants_in_garden: int = 0):
-    user_repo = AsyncMock()
-    user_repo.get_by_id.return_value = make_user()
     identifications = AsyncMock()
     identifications.get_for_user.return_value = identification
     user_plants = AsyncMock()
     user_plants.get_by_identification.return_value = existing
     user_plants.count_by_user.return_value = plants_in_garden
     user_plants.save.side_effect = lambda plant: plant
-    uow = FakeUnitOfWork(users=user_repo, identifications=identifications, user_plants=user_plants)
+    uow = FakeUnitOfWork(identifications=identifications, user_plants=user_plants)
     publisher = AsyncMock()
     use_case = AddPlantToGardenUseCase(
-        uow=uow, publisher=publisher, calendar=CALENDAR, quota=FakeGardenQuota(), training=FakeTrainingRecorder(),
+        uow=uow, publisher=publisher, calendar=CALENDAR, users=FakeUserDirectory(), quota=FakeGardenQuota(),
+        training=FakeTrainingRecorder(),
     )
     return use_case, uow, publisher
 

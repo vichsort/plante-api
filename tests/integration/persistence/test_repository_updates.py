@@ -1,5 +1,4 @@
 """`save` de entidade já persistida atualiza a linha (antes fazia INSERT e violava a PK)."""
-from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,13 +8,11 @@ from src.adapters.persistence.repositories.health_record_repository import (
 from src.adapters.persistence.repositories.user_plant_repository import (
     UserPlantRepository,
 )
-from src.adapters.persistence.repositories.user_repository import UserRepository
-from src.domain.entities.user import User
-from src.domain.value_objects.user_location import UserLocation
 from src.modules.catalog import PlantSpecies
 from src.modules.catalog.adapters.persistence.repositories.plant_species import (
     PlantSpeciesRepository,
 )
+from src.modules.identity.adapters.persistence.repositories.user import UserRepository
 from src.modules.training.adapters.persistence.repositories.training import (
     TrainingRepository,
 )
@@ -28,27 +25,6 @@ from tests.integration.persistence.seed import (
     seed_identification,
     seed_training_health_sample,
 )
-
-
-async def test_saving_existing_user_updates_it(db_session: AsyncSession) -> None:
-    repo = UserRepository(db_session)
-    user = await repo.save(User.create_new(
-        email="update@plante.org",
-        hashed_password="hash",
-        location=UserLocation(country="BR", state="SP"),
-        current_time=datetime.now(UTC),
-    ))
-    await db_session.commit()
-
-    loaded = await repo.get_by_id(user.id)
-    assert loaded is not None
-    loaded.request_email_change("novo@plante.org")
-    await repo.save(loaded)
-    await db_session.commit()
-
-    reloaded = await repo.get_by_id(user.id)
-    assert reloaded is not None
-    assert reloaded.pending_email == "novo@plante.org"
 
 
 async def test_saving_new_species_maps_provider_entity_id(db_session: AsyncSession) -> None:

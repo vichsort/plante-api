@@ -19,12 +19,12 @@ from src.adapters.persistence.repositories.health_record_repository import (
 from src.adapters.persistence.repositories.user_plant_repository import (
     UserPlantRepository,
 )
-from src.adapters.persistence.repositories.user_repository import UserRepository
 from src.bootstrap.models import metadata
 from src.domain.value_objects.streak import Streak
 from src.modules.catalog.adapters.persistence.repositories.plant_species import (
     PlantSpeciesRepository,
 )
+from src.modules.identity.adapters.persistence.repositories.user import UserRepository
 from src.modules.training import (
     FeedbackOrigin,
     FeedbackVerdict,

@@ -45,6 +45,10 @@ from src.modules.catalog.adapters.persistence.unit_of_work import (
     SqlAlchemyCatalogUnitOfWork,
 )
 from src.modules.catalog.domain.services.species_registry import SpeciesRegistry
+from src.modules.identity.adapters.persistence.unit_of_work import (
+    SqlAlchemyIdentityUnitOfWork,
+)
+from src.modules.identity.domain.services.user_directory import UserDirectory
 from src.modules.subscription.adapters.persistence.unit_of_work import (
     SqlAlchemySubscriptionUnitOfWork,
 )
@@ -114,9 +118,10 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     def wallet() -> TokenWallet:
         return TokenWallet(SqlAlchemySubscriptionUnitOfWork(session_factory), CALENDAR)
 
-    async with uow() as setup:
+    async with SqlAlchemyIdentityUnitOfWork(session_factory) as setup:
         user = await setup.users.save(make_user(email="flow@plante.org"))
         await setup.commit()
+    users = UserDirectory(SqlAlchemyIdentityUnitOfWork(session_factory))
 
     storage = _storage()
     enricher = AsyncMock()
@@ -125,7 +130,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     # 1. Identificar (com GPS) e dar feedback
     identified = await IdentifyPlantUseCase(
         uow=uow(), sanitizer=MarkingSanitizer(), plant_identifier=_identifier(), storage=storage, publisher=AsyncMock(),
-        wallet=wallet(), training=training(), catalog=SpeciesRegistry(SqlAlchemyCatalogUnitOfWork(session_factory)),
+        users=users, wallet=wallet(), training=training(), catalog=SpeciesRegistry(SqlAlchemyCatalogUnitOfWork(session_factory)),
     ).execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"photo", latitude=-23.5617, longitude=-46.6559))
 
     await GiveIdentificationFeedbackUseCase(uow=uow(), training=training()).execute(GiveIdentificationFeedbackInputDTO(
@@ -136,7 +141,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     # 2. Adicionar ao jardim (sinal implícito) e regar
     quota = GardenQuota(SqlAlchemySubscriptionUnitOfWork(session_factory))
     plant = (await AddPlantToGardenUseCase(
-        uow=uow(), publisher=AsyncMock(), calendar=CALENDAR, quota=quota, training=training(),
+        uow=uow(), publisher=AsyncMock(), calendar=CALENDAR, users=users, quota=quota, training=training(),
     ).execute(
         AddPlantToGardenInputDTO(user_id=user.id, identification_id=identified.identification_id)
     )).plant
@@ -147,7 +152,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     # 3. Diagnosticar e dar feedback
     diagnosis = await DiagnoseHealthUseCase(
         uow=uow(), sanitizer=MarkingSanitizer(), health_analyzer=_analyzer(), plant_enricher=enricher, storage=storage,
-        wallet=wallet(), training=training(),
+        users=users, wallet=wallet(), training=training(),
     ).execute(DiagnoseHealthInputDTO(user_id=user.id, user_plant_id=plant.id, image_bytes=b"leaf"))
 
     await GiveHealthFeedbackUseCase(uow=uow(), training=training()).execute(GiveHealthFeedbackInputDTO(

@@ -24,3 +24,12 @@ class PlantNotReadyForWateringError(PlantEError):
         super().__init__(
             message=f"Your plant is well hydrataded! Your next watering date is: {next_date}.",
         )
+
+
+class ForbiddenError(PlantEError):
+    """Usuário autenticado mas sem permissão para o recurso."""
+    code = "PLANTE_4009_FORBIDDEN"
+    status_code = 403
+
+    def __init__(self, message: str = "You do not have permission to access this resource."):
+        super().__init__(message=message)

@@ -9,6 +9,7 @@ from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.ids import IdentificationId
 from src.modules.catalog import ISpeciesRegistry
+from src.modules.identity import IUserDirectory
 from src.modules.subscription import (
     FeatureCost,
     ITokenWallet,
@@ -73,6 +74,7 @@ class IdentifyPlantUseCase:
         plant_identifier: IPlantIdentifier,
         storage: IImageStorage,
         publisher: IDomainPublisher,
+        users: IUserDirectory,
         wallet: ITokenWallet,
         training: ITrainingRecorder,
         catalog: ISpeciesRegistry,
@@ -84,17 +86,15 @@ class IdentifyPlantUseCase:
         self.plant_identifier = plant_identifier
         self.storage = storage
         self.publisher = publisher
+        self.users = users
         self.wallet = wallet
 
     async def execute(self, dto: IdentifyPlantInputDTO) -> IdentifyPlantOutput:
         now = datetime.now(UTC)
 
-        # 1. Leitura curta: a transação não fica aberta durante as chamadas à IA e ao S3
-        async with self.uow as uow:
-            user = await uow.users.get_by_id(dto.user_id)
-            if user is None:
-                raise UserNotFoundError(user_id=dto.user_id)
-            await self.wallet.ensure_can_identify(user.id, now)
+        # 1. Leituras curtas: nenhuma transação fica aberta durante as chamadas à IA e ao S3
+        region = await self.users.region_of(dto.user_id)
+        await self.wallet.ensure_can_identify(dto.user_id, now)
 
         # 2. Serviços externos, só com a foto já sem metadados (GPS, aparelho, data)
         image_bytes = self.sanitizer.sanitize(dto.image_bytes)
@@ -128,10 +128,6 @@ class IdentifyPlantUseCase:
 
         # 3. Escrita numa transação só (o token é cobrado sobre o saldo travado nela)
         async with self.uow as uow:
-            user = await uow.users.get_by_id(dto.user_id)
-            if user is None:
-                raise UserNotFoundError(user_id=dto.user_id)
-
             await self.catalog.add_reference_images(result.scientific_name, rehosted, at=now)
             species = await self.catalog.register_identified(
                 scientific_name=result.scientific_name,
@@ -151,7 +147,7 @@ class IdentifyPlantUseCase:
                 low_confidence=result.low_confidence,
                 signals=result.signals,
                 period=month_of(now),
-                location=TrainingLocation.coarse(user.location.country, user.location.state, dto.latitude, dto.longitude),
+                location=TrainingLocation.coarse(region.country, region.state, dto.latitude, dto.longitude),
                 family=result.family,
                 genus=result.genus,
                 gbif_id=result.gbif_id,
@@ -160,7 +156,7 @@ class IdentifyPlantUseCase:
             await self.training.record_identification_sample(training_sample)
 
             identification = await uow.identifications.save(Identification.create(
-                user_id=user.id,
+                user_id=dto.user_id,
                 training_sample_id=training_sample.id,
                 species_id=species.id,
                 scientific_name=result.scientific_name,
@@ -170,11 +166,11 @@ class IdentifyPlantUseCase:
                 created_at=now,
             ))
 
-            await self.wallet.charge(user.id, FeatureCost.IDENTIFY, now)
+            await self.wallet.charge(dto.user_id, FeatureCost.IDENTIFY, now)
             await uow.commit()
 
         await self.publisher.publish(PlantIdentifiedEvent.create(
-            user_id=user.id,
+            user_id=dto.user_id,
             species_id=species.id,
             is_first_plant=False,
         ))

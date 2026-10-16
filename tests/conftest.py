@@ -6,7 +6,8 @@ import jwt
 import pytest
 from fastapi.testclient import TestClient
 
-from src.main import app, wire
+from src.bootstrap.wiring import wire
+from src.main import app
 
 
 @pytest.fixture

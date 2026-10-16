@@ -5,34 +5,16 @@ Regras de negócio de cada subdomínio enquanto o código ainda está nas camada
 migrado**: a seção do subdomínio vai para o `README.md` do módulo (Propósito, Decisões, Erros) e
 sai daqui. Quando o último módulo migrar, o arquivo é apagado.
 
-Já migrados: `training`, `catalog` e `subscription` (README de cada um em `src/modules/`).
+Já migrados: `training`, `catalog`, `subscription` e `identity` (README de cada um em `src/modules/`).
 
 As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/shared/README.md`.
 
 | Seção | Vai para o módulo |
 | :--- | :--- |
-| Autenticação & Identidade | `identity` |
 | Identificação Botânica & Consenso | `identification` (+ `catalog`) |
 | Gestão de Jardim & Cuidados | `garden` |
 | Diagnóstico de Saúde | `health` |
-| Perfil & Gamificação | `identity` (perfil) e `achievements` |
-
----
-
-## Autenticação & Identidade (`Identity Context`)
-* **Propósito**: Gerenciar registro de usuários, autenticação JWT, verificação de e-mail OTP de 6 dígitos e renovação de tokens.
-* **Entidades Principais**: `User`, `VerificationCode`, `UserLocation`.
-* **Entradas (Use Cases)**: `RegisterUserUseCase`, `LoginUseCase`, `VerifyEmailUseCase`, `RefreshTokenUseCase`, `LogoutUseCase`.
-* **Saídas/Saúde**: Geração de tokens de acesso JWT, envio de e-mails OTP via `IEmailSender`, persistência de dados de auditoria em `UserRepository`.
-* **Regras de Negócio**:
-  - Todo usuário nasce com status `pending_verification` (e sem linha em `subscriptions`, ou seja, FREE).
-  - E-mail é guardado e buscado na forma canônica (`normalize_email`: sem espaços nas pontas, em minúsculas) — cadastro, login e troca de e-mail não diferenciam maiúsculas. O banco garante com o CHECK `ck_users_email_normalized`.
-  - Códigos OTP expiram em 15 minutos e são gerenciados no cache Redis (`RedisOtpRepository`).
-  - **Senha forte** (`PasswordPolicy`: 8+ caracteres, uma maiúscula, um número) no cadastro e na troca de senha.
-  - **Tokens:** access de 15 minutos, refresh de 30 dias, um refresh por usuário (login novo derruba a sessão anterior).
-    - O refresh **rotaciona**: cada uso devolve um refresh novo. Reuso de um refresh já trocado revoga a sessão (sinal de roubo; um retry do app também derruba, efeito aceito). Todo token tem `jti`, então dois emitidos no mesmo segundo nunca são iguais.
-    - **Decisão:** o logout revoga só o refresh. O access token é JWT sem estado e vale até expirar (no máximo 15 minutos). Uma lista de bloqueio no Redis custaria uma consulta por requisição, para cobrir uma janela curta.
-  - **Troca de e-mail** (`PATCH /profile/email`): o endereço novo fica pendente (`pending_email`) e recebe um código; o e-mail atual continua entrando. `POST /auth/verify-email` com esse código confirma a troca (se outra conta tiver ficado com o endereço nesse meio-tempo, 409).
+| Gamificação | `achievements` |
 
 ---
 
@@ -83,11 +65,11 @@ As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/sh
 
 ---
 
-## Perfil & Gamificação (`Profile & Gamification Context`)
-* **Propósito**: Gerenciar dados cadastrais do usuário, troca de senha/e-mail e concessão de conquistas (`Badges`). Plano e cota de tokens: `src/modules/subscription/README.md`.
+## Gamificação (`Gamification Context`)
+* **Propósito**: Concessão e listagem de conquistas (`Badges`). Conta e perfil: `src/modules/identity/README.md`; plano e cota de tokens: `src/modules/subscription/README.md`.
 * **Entidades Principais**: `Achievement`.
-* **Entradas (Use Cases)**: `ChangeEmailUseCase`, `ChangePasswordUseCase`, `UpdateLocationFallbackUseCase`, `ListUserAchievementsUseCase`.
-* **Ports Requeridos**: `IAchievementRepository`, `IUserRepository`.
+* **Entradas (Use Cases)**: `ListUserAchievementsUseCase`.
+* **Ports Requeridos**: `IAchievementRepository`.
 
 ---
 
@@ -99,10 +81,6 @@ Os erros comuns (`PLANTE_4000`, `4002`, `4006`, `4013`, `4029`, `5001`, `4220`, 
 | Código de Erro (`code`) | Exceção | Descrição | HTTP Status |
 | :--- | :--- | :--- | :---: |
 | `PLANTE_4001_PLANT_NOT_FOUND` | `PlantNotFoundError` | Planta não existe ou não pertence ao usuário. | 404 |
-| `PLANTE_4003_INVALID_VERIFICATION_CODE` | `InvalidVerificationCodeError` | Código OTP inválido ou expirado. | 400 |
-| `PLANTE_4004_EMAIL_ALREADY_IN_USE` | `EmailAlreadyInUseError` | E-mail já usado por outro usuário (cadastro ou troca de e-mail). | 409 |
-| `PLANTE_4007_WRONG_CREDENTIALS` | `InvalidCredentialsError` | Senha atual incorreta ao alterar e-mail ou senha. | 400 |
-| `PLANTE_4008_WEAK_PASSWORD` | `WeakPasswordError` | Senha (cadastro ou troca) não atende à `PasswordPolicy`. | 400 |
 | `PLANTE_4009_FORBIDDEN` | `ForbiddenError` | Autenticado, mas sem permissão sobre o recurso (ex.: planta de outro usuário). | 403 |
 | `PLANTE_4010_IDENTIFICATION_FAILED` | `PlantIdentificationError` | A IA não identificou a planta com confiança suficiente. | 422 |
 | `PLANTE_4011_LOW_CONFIDENCE` | `LowConfidenceError` | Confiança da identificação abaixo de 60% (`ConfidenceScore.is_rejected`). | 422 |
@@ -124,7 +102,3 @@ Os erros comuns (`PLANTE_4000`, `4002`, `4006`, `4013`, `4029`, `5001`, `4220`, 
 2. Implemente a interface `IPlantIdentifier` definida em `src/domain/ports/plant_identifier.py`.
 3. Registre a nova classe no container `AdaptersContainer` em `src/bootstrap/containers/adapters.py`.
 4. Adicione os testes unitários correspondentes em `tests/unit/adapters/`.
-
-### Como Adicionar um Novo Provedor de Envio de E-mail
-1. Crie o novo adapter implementando `IEmailSender`.
-2. Configure o provedor no container e a chave de configuração em `Settings` (`src/bootstrap/settings.py`).

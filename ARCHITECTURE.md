@@ -173,7 +173,16 @@ e por `tests/architecture` (`test_imports_go_through_barrels`).
 ## 5. Workers (Celery)
 
 - Task que chama código assíncrono usa `@run_async` (`src.shared.workers`).
-- A task aceita `container: Container | None = None`, para os testes injetarem dublês.
+- **Task de módulo** (`workers/tasks.py`): `@shared_task`, e as dependências entram por wiring
+  (`Provide[<Modulo>Container.x]` com `@inject`), porque o módulo não pode importar o container raiz.
+  - A composição liga os containers às tasks em `src/bootstrap/wiring.py` (o mesmo `wire` do app).
+  - O worker carrega `src/bootstrap/worker.py`, que zera os singletons depois de cada task: cada
+    task roda num event loop novo, e o cliente do Redis fica preso ao loop em que nasceu.
+  - Os testes passam as dependências direto na chamada.
+  - Task do código antigo: aceita `container: Container | None = None`, até o módulo dela migrar.
+- **Evento → task:** cada módulo entrega uma `EventRoute` (em `workers`), e a composição as passa
+  ao `CeleryPublisher` (`src.shared.adapters`). O publisher manda pelo nome da task, sem importar o
+  worker.
 - Payload da task entra por um modelo Pydantic (vem da fila, de fora do processo).
 - Subir: `celery -A src.workers worker` e, para as agendadas, `celery -A src.workers beat`
   (**uma instância só**). Todo módulo com tasks entra no `include` do `celery_app`

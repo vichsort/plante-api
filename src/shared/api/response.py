@@ -13,6 +13,10 @@ class ApiError(BaseModel):
     message: str
     details: JsonObject | None = None
 
+# `data` das rotas que só confirmam a ação (comentário, não docstring: ela iria para o OpenAPI)
+class MessageResponse(BaseModel):
+    message: str
+
 class ApiResponse[T](BaseModel):
     """Envelope padrão de todas as respostas da API."""
     ok: bool = True

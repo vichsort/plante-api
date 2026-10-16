@@ -16,8 +16,8 @@ Importa-se pela camada, nunca pela raiz nem por dentro dela (`tests/architecture
 | Camada | O que expõe |
 | :--- | :--- |
 | `src.shared.domain` | `UserId`, `LocalCalendar`, `JsonValue`/`JsonObject`, `DomainEvent`, `PlantEError` e os erros comuns, as portas `IImageStorage`, `IImageSanitizer`, `IDomainPublisher`, `IAccessTokenVerifier` |
-| `src.shared.adapters` | `Base`/`AuditMixin`/`enum_values` (SQLAlchemy), `build_engine`/`build_session_factory`, `RedisClient`, `S3ImageStorage`, `PillowImageSanitizer`, `CircuitBreaker`, `GeminiClient`, `translate_provider_errors` e o parse de JSON dos provedores |
-| `src.shared.api` | `ApiResponse`, `register_exception_handlers`, `error_responses`/`COMMON_ERROR_RESPONSES`, `CurrentUserId`/`install_authentication`, os middlewares (correlation, audit, rate limit, security headers) |
+| `src.shared.adapters` | `CeleryPublisher`/`TaskCall`/`EventRoute` (eventos → tasks), `Base`/`AuditMixin`/`enum_values` (SQLAlchemy), `build_engine`/`build_session_factory`, `RedisClient`, `S3ImageStorage`, `PillowImageSanitizer`, `CircuitBreaker`, `GeminiClient`, `translate_provider_errors` e o parse de JSON dos provedores |
+| `src.shared.api` | `ApiResponse`/`MessageResponse`, `register_exception_handlers`, `error_responses`/`COMMON_ERROR_RESPONSES`, `CurrentUserId`/`install_authentication`, os middlewares (correlation, audit, rate limit, security headers) |
 | `src.shared.workers` | `run_async` (task do Celery que chama código assíncrono) |
 
 O domínio de um módulo só pode usar `src.shared.domain` (o import-linter barra frameworks no
@@ -52,6 +52,9 @@ domínio, inclusive por caminho indireto).
   (ex.: subscription) pode descobrir que a conta não existe sem poder importar o identity.
 - **`LocalCalendar` (que dia é para o usuário)** serve à rega (garden) e à cota diária
   (subscription); o fuso vem de `LOCAL_TIMEZONE`.
+- **Eventos viram tasks pelas rotas dos módulos.** O `CeleryPublisher` não conhece evento nenhum:
+  cada módulo com tasks entrega uma `EventRoute` (evento → `TaskCall`, pelo nome da task), e a
+  composição as junta. Evento sem rota só é logado.
 - **Probes ficam na composição** (`src/bootstrap/probes.py`), não aqui: o readiness precisa do
   container (engine e Redis montados).
 

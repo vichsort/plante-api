@@ -11,6 +11,7 @@ from src.domain.use_cases.identify_plant_use_case import (
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.modules.catalog.tests.fakes import FakeSpeciesRegistry
+from src.modules.identity.tests.fakes import FakeUserDirectory
 from src.modules.subscription import FeatureCost, SubscriptionRequiredError
 from src.modules.subscription.tests.fakes import FakeTokenWallet
 from src.modules.training import TrainingIdentificationSample
@@ -30,11 +31,9 @@ def _recorder(use_case: IdentifyPlantUseCase) -> FakeTrainingRecorder:
 
 def _use_case(confidence: float = 0.9, used_today: int = 0):
     user = make_user()
-    users = AsyncMock()
-    users.get_by_id.return_value = user
     identifications = AsyncMock()
     identifications.save.side_effect = lambda identification: identification
-    uow = FakeUnitOfWork(users=users, identifications=identifications)
+    uow = FakeUnitOfWork(identifications=identifications)
 
     identifier = AsyncMock()
     identifier.identify.return_value = IdentificationResult(
@@ -54,6 +53,7 @@ def _use_case(confidence: float = 0.9, used_today: int = 0):
         plant_identifier=identifier,
         storage=storage,
         publisher=AsyncMock(),
+        users=FakeUserDirectory(location=user.location),
         wallet=FakeTokenWallet(used_today=used_today),
         training=FakeTrainingRecorder(),
         catalog=FakeSpeciesRegistry({"Monstera deliciosa": make_species()}),
@@ -121,8 +121,8 @@ async def test_reads_and_writes_in_separate_transactions_and_charges_one_token()
 
     await use_case.execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"img"))
 
-    # Leitura e escrita em transações separadas (a IA roda entre elas); só a escrita confirma
-    assert uow.opened == 2
+    # Nenhuma transação aberta durante a IA: as leituras são dos módulos; a escrita é uma só
+    assert uow.opened == 1
     assert uow.commits == 1
     assert isinstance(use_case.wallet, FakeTokenWallet)
     assert use_case.wallet.charges == [(user.id, FeatureCost.IDENTIFY)]

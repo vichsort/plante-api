@@ -104,14 +104,15 @@ module = [
     # Clientes de bibliotecas, isolados num módulo cada
     "src.shared.adapters.redis.client",  # redis-py: todo comando devolve Any
     "src.shared.adapters.providers.gemini_client",  # google-genai: config e erros tipados com Any
-    "src.adapters.security.jwt_token_service",  # PyJWT: payload é dict[str, Any] (validado por Pydantic logo depois)
+    "src.modules.identity.adapters.security.jwt_token_service",  # PyJWT: payload é dict[str, Any] (validado por Pydantic logo depois)
     "src.adapters.persistence.*",  # SQLAlchemy ORM: modelos e consultas carregam genéricos com Any
     "src.shared.adapters.persistence.*",
     "src.modules.*.adapters.persistence.*",
     # Celery: tasks e sinais
-    "src.adapters.events.celery_publisher",
     "src.bootstrap.celery_config",
     "src.workers.*",
+    "src.modules.*.workers.tasks",
+    "src.bootstrap.worker",  # sinais do Celery
     # FastAPI / dependency_injector: decorators de rota e @inject, scope ASGI, erros de validação
     "src.api.routers.*",
     "src.modules.*.api.router",
@@ -123,6 +124,7 @@ module = [
     "src.main",
     # Composição: containers do dependency_injector e pydantic-settings
     "src.bootstrap.container",
+    "src.bootstrap.wiring",
     "src.bootstrap.containers.*",
     "src.bootstrap.settings",
     "src.bootstrap.models",  # metadata do SQLAlchemy

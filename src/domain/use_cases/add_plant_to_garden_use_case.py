@@ -14,6 +14,7 @@ from src.domain.exceptions import IdentificationNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.care_interval import CareInterval
 from src.domain.value_objects.ids import IdentificationId, UserPlantId
+from src.modules.identity import IUserDirectory
 from src.modules.subscription import IGardenQuota, PlantLimitExceededError
 from src.modules.training import (
     FeedbackOrigin,
@@ -55,9 +56,11 @@ class AddPlantToGardenUseCase:
         uow: IUnitOfWork,
         publisher: IDomainPublisher,
         calendar: LocalCalendar,
+        users: IUserDirectory,
         quota: IGardenQuota,
         training: ITrainingRecorder,
     ) -> None:
+        self.users = users
         self.quota = quota
         self.uow = uow
         self.publisher = publisher
@@ -69,9 +72,7 @@ class AddPlantToGardenUseCase:
         today = self.calendar.date_of(now)
 
         async with self.uow as uow:
-            user = await uow.users.get_by_id(dto.user_id)
-            if user is None:
-                raise UserNotFoundError(user_id=dto.user_id)
+            await self.users.ensure_exists(dto.user_id)
 
             identification = await uow.identifications.get_for_user(dto.identification_id, dto.user_id)
             if identification is None:
@@ -82,11 +83,11 @@ class AddPlantToGardenUseCase:
                 return GardenPlant.of(existing, today)
 
             plants_in_garden = await uow.user_plants.count_by_user(dto.user_id)
-            await self.quota.ensure_can_add_plant(user.id, plants_in_garden, now)
+            await self.quota.ensure_can_add_plant(dto.user_id, plants_in_garden, now)
 
             plant = await uow.user_plants.save(UserPlant(
                 id=UserPlantId(uuid4()),
-                user_id=user.id,
+                user_id=dto.user_id,
                 scientific_name=identification.scientific_name,
                 identification_confidence=identification.confidence,
                 identification_source=_IDENTIFICATION_SOURCE[identification.source],
@@ -112,7 +113,7 @@ class AddPlantToGardenUseCase:
             await uow.commit()
 
         await self.publisher.publish(PlantAddedToGardenEvent.create(
-            user_id=user.id,
+            user_id=dto.user_id,
             user_plant_id=plant.id,
             species_id=identification.species_id,
             is_first_plant=plants_in_garden == 0,

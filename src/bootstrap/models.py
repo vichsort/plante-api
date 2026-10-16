@@ -5,6 +5,7 @@ repositórios → modelos), a única entrada que a composição usa.
 """
 import src.adapters.persistence.models  # noqa: F401  (tabelas do código antigo)
 import src.modules.catalog.container  # noqa: F401
+import src.modules.identity.container  # noqa: F401
 import src.modules.subscription.container  # noqa: F401
 import src.modules.training.container  # noqa: F401
 from src.shared.adapters import Base
