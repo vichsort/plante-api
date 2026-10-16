@@ -8,10 +8,7 @@ from src.domain.entities.plant_reference_image import ImageSource
 from src.domain.exceptions import NotAPlantError
 from src.domain.ports.plant_identifier import IdentificationResult, SimilarImage
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.provider_signals import (
-    IdentificationSignals,
-    SpeciesSuggestion,
-)
+from src.modules.training import IdentificationSignals, SpeciesSuggestion
 from src.shared.domain import ExternalServiceError, InvalidImageError
 
 

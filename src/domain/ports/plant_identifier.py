@@ -3,8 +3,7 @@ from dataclasses import dataclass
 
 from src.domain.entities.plant_reference_image import ImageSource
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.provider_signals import IdentificationSignals
-from src.domain.value_objects.sources import IdentificationOrigin
+from src.modules.training import IdentificationOrigin, IdentificationSignals
 
 
 @dataclass(frozen=True)

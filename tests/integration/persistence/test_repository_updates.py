@@ -9,7 +9,6 @@ from src.adapters.persistence.repositories.health_record_repository import (
 from src.adapters.persistence.repositories.plant_species_repository import (
     PlantSpeciesRepository,
 )
-from src.adapters.persistence.repositories.training_repository import TrainingRepository
 from src.adapters.persistence.repositories.user_plant_repository import (
     UserPlantRepository,
 )
@@ -18,6 +17,9 @@ from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.user import User
 from src.domain.value_objects.subscription_tier import FeatureCost
 from src.domain.value_objects.user_location import UserLocation
+from src.modules.training.adapters.persistence.repositories.training import (
+    TrainingRepository,
+)
 from tests.factories import (
     make_health_record,
     make_user,
@@ -73,7 +75,7 @@ async def test_saving_health_record_with_training_sample(db_session: AsyncSessio
     await HealthRecordRepository(db_session).save(record)
     await db_session.commit()
 
-    loaded = await HealthRecordRepository(db_session).get_by_id(record.id)
+    loaded = await HealthRecordRepository(db_session).get_for_user(record.id, user.id)
     assert loaded is not None
     assert loaded.user_id == user.id
     assert loaded.training_sample_id == training.id

@@ -6,8 +6,8 @@ na conversão para o domínio.
 """
 from pydantic import BaseModel, ConfigDict
 
-from src.domain.entities.health_record import HealthSeverity
 from src.domain.entities.plant_species import LightRequirement, SoilType
+from src.modules.training import HealthSeverity
 
 
 class _Schema(BaseModel):

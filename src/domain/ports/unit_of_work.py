@@ -6,7 +6,6 @@ from src.domain.ports.plant_reference_image_repository import (
     IPlantReferenceImageRepository,
 )
 from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
-from src.domain.ports.training_repository import ITrainingRepository
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
 from src.shared.domain import IUnitOfWork as SharedUnitOfWork
@@ -25,5 +24,4 @@ class IUnitOfWork(SharedUnitOfWork):
     reference_images: IPlantReferenceImageRepository
     identifications: IIdentificationRepository
     health_records: IHealthRecordRepository
-    training: ITrainingRepository
     achievements: IAchievementRepository

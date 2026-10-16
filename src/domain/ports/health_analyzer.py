@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from src.domain.value_objects.provider_signals import HealthSignals
+from src.modules.training import HealthSignals
 
 
 @dataclass(frozen=True)

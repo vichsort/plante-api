@@ -28,6 +28,7 @@ _ALLOWED_COLUMNS = {
 
 
 async def test_training_tables_have_only_allowed_columns(db_session: AsyncSession) -> None:
+    # Act
     result = await db_session.execute(text(
         "SELECT table_name, column_name FROM information_schema.columns "
         "WHERE table_schema = 'public' AND table_name LIKE 'training\\_%'"
@@ -36,10 +37,12 @@ async def test_training_tables_have_only_allowed_columns(db_session: AsyncSessio
     for table, column in result.tuples():
         columns.setdefault(table, set()).add(column)
 
+    # Assert
     assert columns == _ALLOWED_COLUMNS
 
 
 async def test_training_tables_only_reference_training_tables(db_session: AsyncSession) -> None:
+    # Act
     result = await db_session.execute(text(
         "SELECT src.relname, ref.relname FROM pg_constraint con "
         "JOIN pg_class src ON src.oid = con.conrelid "
@@ -47,15 +50,18 @@ async def test_training_tables_only_reference_training_tables(db_session: AsyncS
         "WHERE con.contype = 'f' AND src.relname LIKE 'training\\_%'"
     ))
 
+    # Assert
     for source, referenced in result.tuples():
         assert referenced.startswith("training_"), f"{source} aponta para {referenced} (dado do usuário)"
 
 
 async def test_training_tables_keep_no_exact_time(db_session: AsyncSession) -> None:
+    # Act
     result = await db_session.execute(text(
         "SELECT table_name || '.' || column_name FROM information_schema.columns "
         "WHERE table_schema = 'public' AND table_name LIKE 'training\\_%' "
         "AND data_type IN ('timestamp with time zone', 'timestamp without time zone', 'time without time zone')"
     ))
 
+    # Assert
     assert result.scalars().all() == []

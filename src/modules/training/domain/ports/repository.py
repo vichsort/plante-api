@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 
-from src.domain.entities.training import (
-    TrainingFeedback,
+from src.modules.training.domain.entities.feedback import TrainingFeedback
+from src.modules.training.domain.entities.samples import (
     TrainingHealthSample,
     TrainingIdentificationSample,
 )
-from src.domain.value_objects.ids import (
+from src.modules.training.domain.value_objects.ids import (
     TrainingHealthSampleId,
     TrainingIdentificationSampleId,
 )

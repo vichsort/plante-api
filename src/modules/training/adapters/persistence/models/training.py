@@ -1,7 +1,7 @@
 """
 Tabelas do dataset de treino. Anônimas por construção: sem `user_id`, sem FK para tabelas do
 usuário e sem horário exato — por isso não usam o `AuditMixin` (`created_at`/`updated_at`); o
-período é só o mês. `tests/integration/persistence/test_training_tables.py` confere as colunas
+período é só o mês. `tests/integration/test_training_tables.py` (neste módulo) confere as colunas
 contra uma lista permitida.
 """
 import uuid
@@ -21,8 +21,11 @@ from sqlalchemy import (
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.domain.entities.health_record import HealthSeverity
-from src.domain.entities.training import FeedbackOrigin, FeedbackVerdict
+from src.modules.training.domain.entities.feedback import (
+    FeedbackOrigin,
+    FeedbackVerdict,
+)
+from src.modules.training.domain.value_objects.provenance import HealthSeverity
 from src.shared.adapters import Base, enum_values
 from src.shared.domain import JsonValue
 

@@ -41,6 +41,7 @@ from src.domain.use_cases.upgrade_subscription_use_case import (
 from src.domain.use_cases.verify_email_use_case import VerifyEmailUseCase
 from src.domain.use_cases.water_plant_use_case import WaterPlantUseCase
 from src.domain.value_objects.local_calendar import LocalCalendar
+from src.modules.training import ITrainingRecorder
 from src.shared.domain import IDomainPublisher, IImageSanitizer, IImageStorage
 
 
@@ -61,6 +62,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
     image_storage: providers.Dependency[IImageStorage] = providers.Dependency()
     image_sanitizer: providers.Dependency[IImageSanitizer] = providers.Dependency()
     token_service: providers.Dependency[ITokenService] = providers.Dependency()
+    training_recorder: providers.Dependency[ITrainingRecorder] = providers.Dependency()
 
     local_calendar = providers.Singleton(
         LocalCalendar.from_name,
@@ -130,16 +132,19 @@ class UseCasesContainer(containers.DeclarativeContainer):
         uow=unit_of_work,
         publisher=domain_publisher,
         calendar=local_calendar,
+        training=training_recorder,
     )
 
     give_identification_feedback_use_case = providers.Factory(
         GiveIdentificationFeedbackUseCase,
         uow=unit_of_work,
+        training=training_recorder,
     )
 
     give_health_feedback_use_case = providers.Factory(
         GiveHealthFeedbackUseCase,
         uow=unit_of_work,
+        training=training_recorder,
     )
 
     delete_user_plant_use_case = providers.Factory(
@@ -167,6 +172,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
         storage=image_storage,
         publisher=domain_publisher,
         calendar=local_calendar,
+        training=training_recorder,
     )
 
     enrich_plant_species_use_case = providers.Factory(
@@ -203,6 +209,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
         plant_enricher=plant_enricher,
         storage=image_storage,
         calendar=local_calendar,
+        training=training_recorder,
     )
 
     get_health_history_use_case = providers.Factory(

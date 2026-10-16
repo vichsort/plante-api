@@ -2,10 +2,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.sources import (
-    IdentificationOrigin,
-    IdentificationProvider,
-)
+from src.modules.training import IdentificationOrigin, IdentificationProvider
 
 
 class ConsensusReason(StrEnum):

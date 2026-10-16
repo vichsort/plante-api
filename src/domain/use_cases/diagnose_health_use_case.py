@@ -4,8 +4,7 @@ from uuid import uuid4
 
 import structlog
 
-from src.domain.entities.health_record import HealthRecord, HealthSeverity
-from src.domain.entities.training import TrainingHealthSample
+from src.domain.entities.health_record import HealthRecord
 from src.domain.exceptions import (
     PlantNotFoundError,
     SubscriptionRequiredError,
@@ -17,9 +16,15 @@ from src.domain.ports.plant_enricher import HealthDiagnosisEnrichment, IPlantEnr
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import HealthRecordId, UserPlantId
 from src.domain.value_objects.local_calendar import LocalCalendar
-from src.domain.value_objects.sources import HealthSource
 from src.domain.value_objects.subscription_tier import FeatureCost
-from src.domain.value_objects.training_location import TrainingLocation, month_of
+from src.modules.training import (
+    HealthSeverity,
+    HealthSource,
+    ITrainingRecorder,
+    TrainingHealthSample,
+    TrainingLocation,
+    month_of,
+)
 from src.shared.domain import (
     ExternalServiceError,
     IImageSanitizer,
@@ -74,7 +79,9 @@ class DiagnoseHealthUseCase:
         plant_enricher: IPlantEnricher,
         storage: IImageStorage,
         calendar: LocalCalendar,
+        training: ITrainingRecorder,
     ) -> None:
+        self._training = training
         self._uow = uow
         self._sanitizer = sanitizer
         self._health_analyzer = health_analyzer
@@ -161,14 +168,14 @@ class DiagnoseHealthUseCase:
                 source=source,
                 signals=assessment.signals,
                 period=month_of(now),
-                location=TrainingLocation.coarse(user.location, dto.latitude, dto.longitude),
+                location=TrainingLocation.coarse(user.location.country, user.location.state, dto.latitude, dto.longitude),
                 issues_detected=tuple(issues),
                 treatment_plan=treatment_plan,
                 reference_image_keys=reference_keys,
                 recovery_estimate_days=recovery_estimate_days,
                 notes=notes,
             )
-            await uow.training.add_health_sample(training_sample)
+            await self._training.record_health_sample(training_sample)
 
             record = await uow.health_records.save(HealthRecord(
                 id=HealthRecordId(uuid4()),

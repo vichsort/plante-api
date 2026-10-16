@@ -6,11 +6,6 @@ from .identification_model import IdentificationModel
 from .plant_nutritional_model import PlantNutritionalModel
 from .plant_reference_image_model import PlantReferenceImageModel
 from .plant_species_model import PlantSpeciesModel
-from .training_models import (
-    TrainingFeedbackModel,
-    TrainingHealthSampleModel,
-    TrainingIdentificationSampleModel,
-)
 from .user_model import UserModel
 from .user_plant_model import UserPlantModel
 
@@ -28,8 +23,5 @@ __all__ = [
     "UserPlantModel",
     "IdentificationModel",
     "HealthRecordModel",
-    "TrainingIdentificationSampleModel",
-    "TrainingHealthSampleModel",
-    "TrainingFeedbackModel",
     'AchievementModel'
 ]

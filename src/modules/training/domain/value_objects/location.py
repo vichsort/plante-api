@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from src.domain.value_objects.user_location import UserLocation
-
 # 1 casa decimal ≈ 11 km: mostra em que região uma planta é comum sem apontar uma casa
 _GRID_DECIMALS = 1
 
@@ -20,15 +18,20 @@ class TrainingLocation:
             raise ValueError("grid_latitude and grid_longitude must be both set or both empty.")
 
     @classmethod
-    def coarse(cls, profile: UserLocation, latitude: float | None, longitude: float | None) -> "TrainingLocation":
-        """O GPS exato nunca é guardado: só a célula da grade, e só quando vierem as duas coordenadas."""
+    def coarse(
+        cls, country: str, state: str, latitude: float | None, longitude: float | None,
+    ) -> "TrainingLocation":
+        """
+        Estado do perfil + a célula da grade. O GPS exato nunca é guardado, e a grade só entra
+        quando vierem as duas coordenadas.
+        """
         if latitude is None or longitude is None:
-            return cls(country=profile.country, state=profile.state)
+            return cls(country=country, state=state)
         if not (-90.0 <= latitude <= 90.0 and -180.0 <= longitude <= 180.0):
             raise ValueError("Coordinates out of range.")
         return cls(
-            country=profile.country,
-            state=profile.state,
+            country=country,
+            state=state,
             grid_latitude=round(latitude, _GRID_DECIMALS),
             grid_longitude=round(longitude, _GRID_DECIMALS),
         )

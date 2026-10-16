@@ -1,29 +1,33 @@
 from pydantic import TypeAdapter
 
-from src.adapters.persistence.mappers.sources import (
-    to_health_source,
-    to_identification_origin,
-)
-from src.adapters.persistence.models import (
+from src.modules.training.adapters.persistence.models.training import (
     TrainingFeedbackModel,
     TrainingHealthSampleModel,
     TrainingIdentificationSampleModel,
 )
-from src.domain.entities.training import (
+from src.modules.training.domain.entities.feedback import (
+    HealthLabel,
+    IdentificationLabel,
     TrainingFeedback,
+)
+from src.modules.training.domain.entities.samples import (
     TrainingHealthSample,
     TrainingIdentificationSample,
 )
-from src.domain.value_objects.ids import (
+from src.modules.training.domain.value_objects.ids import (
     TrainingFeedbackId,
     TrainingHealthSampleId,
     TrainingIdentificationSampleId,
 )
-from src.domain.value_objects.provider_signals import (
+from src.modules.training.domain.value_objects.location import TrainingLocation
+from src.modules.training.domain.value_objects.provenance import (
+    parse_health_source,
+    parse_identification_origin,
+)
+from src.modules.training.domain.value_objects.provider_signals import (
     HealthSignals,
     IdentificationSignals,
 )
-from src.domain.value_objects.training_location import TrainingLocation
 from src.shared.domain import JsonValue
 
 # Sinais ficam numa coluna JSON; a leitura é validada contra as dataclasses do domínio
@@ -70,7 +74,7 @@ class TrainingMapper:
             image_key=model.image_key,
             scientific_name=model.scientific_name,
             confidence=model.confidence,
-            source=to_identification_origin(model.source),
+            source=parse_identification_origin(model.source),
             low_confidence=model.low_confidence,
             signals=_IDENTIFICATION_SIGNALS.validate_python(model.signals),
             period=model.period,
@@ -111,7 +115,7 @@ class TrainingMapper:
             scientific_name=model.scientific_name,
             vitality_score=model.vitality_score,
             severity=model.severity,
-            source=to_health_source(model.source),
+            source=parse_health_source(model.source),
             signals=_HEALTH_SIGNALS.validate_python(model.signals),
             period=model.period,
             location=_location(model),
@@ -124,27 +128,38 @@ class TrainingMapper:
 
     @staticmethod
     def feedback_to_model(entity: TrainingFeedback) -> TrainingFeedbackModel:
+        # O alvo tipado vira as colunas de sempre: exatamente uma amostra (CHECK no banco)
+        identification_sample_id: TrainingIdentificationSampleId | None
+        health_sample_id: TrainingHealthSampleId | None
+        suggestion: str | None
+        match entity.target:
+            case IdentificationLabel(sample_id=sample_id, suggested_name=suggested_name):
+                identification_sample_id, health_sample_id, suggestion = sample_id, None, suggested_name
+            case HealthLabel(sample_id=sample_id):
+                identification_sample_id, health_sample_id, suggestion = None, sample_id, None
         return TrainingFeedbackModel(
             id=entity.id,
-            identification_sample_id=entity.identification_sample_id,
-            health_sample_id=entity.health_sample_id,
+            identification_sample_id=identification_sample_id,
+            health_sample_id=health_sample_id,
             verdict=entity.verdict,
             origin=entity.origin,
-            suggested_name=entity.suggested_name,
+            suggested_name=suggestion,
             given_on=entity.given_on,
         )
 
     @staticmethod
     def feedback_to_domain(model: TrainingFeedbackModel) -> TrainingFeedback:
+        target: IdentificationLabel | HealthLabel
+        if model.identification_sample_id is not None:
+            target = IdentificationLabel(TrainingIdentificationSampleId(model.identification_sample_id), model.suggested_name)
+        elif model.health_sample_id is not None:
+            target = HealthLabel(TrainingHealthSampleId(model.health_sample_id))
+        else:
+            raise ValueError(f"Feedback {model.id} has no target.")
         return TrainingFeedback(
             id=TrainingFeedbackId(model.id),
+            target=target,
             verdict=model.verdict,
             origin=model.origin,
             given_on=model.given_on,
-            identification_sample_id=(
-                TrainingIdentificationSampleId(model.identification_sample_id)
-                if model.identification_sample_id else None
-            ),
-            health_sample_id=TrainingHealthSampleId(model.health_sample_id) if model.health_sample_id else None,
-            suggested_name=model.suggested_name,
         )

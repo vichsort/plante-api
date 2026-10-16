@@ -6,7 +6,6 @@ from uuid import uuid4
 import pytest
 
 from src.domain.entities.identification import Identification
-from src.domain.entities.training import FeedbackOrigin, FeedbackVerdict
 from src.domain.entities.user_plant import IdentificationSource, UserPlant
 from src.domain.exceptions import (
     IdentificationNotFoundError,
@@ -30,14 +29,16 @@ from src.domain.use_cases.water_plant_use_case import (
     WaterPlantInputDTO,
     WaterPlantUseCase,
 )
-from src.domain.value_objects.ids import (
-    IdentificationId,
-    PlantSpeciesId,
-    TrainingIdentificationSampleId,
-    UserPlantId,
-)
-from src.domain.value_objects.sources import IdentificationOrigin
+from src.domain.value_objects.ids import IdentificationId, PlantSpeciesId, UserPlantId
 from src.domain.value_objects.streak import Streak
+from src.modules.training import (
+    FeedbackOrigin,
+    FeedbackVerdict,
+    IdentificationLabel,
+    IdentificationOrigin,
+    TrainingIdentificationSampleId,
+)
+from src.modules.training.tests.fakes import FakeTrainingRecorder
 from src.shared.domain import UserId
 from tests.factories import (
     CALENDAR,
@@ -58,10 +59,10 @@ def _garden_use_case(identification: Identification | None, existing: UserPlant 
     user_plants.get_by_identification.return_value = existing
     user_plants.count_by_user.return_value = plants_in_garden
     user_plants.save.side_effect = lambda plant: plant
-    training = AsyncMock()
-    uow = FakeUnitOfWork(users=user_repo, identifications=identifications, user_plants=user_plants, training=training)
+    uow = FakeUnitOfWork(users=user_repo, identifications=identifications, user_plants=user_plants)
     publisher = AsyncMock()
-    return AddPlantToGardenUseCase(uow=uow, publisher=publisher, calendar=CALENDAR), uow, publisher
+    use_case = AddPlantToGardenUseCase(uow=uow, publisher=publisher, calendar=CALENDAR, training=FakeTrainingRecorder())
+    return use_case, uow, publisher
 
 
 def _identification(source: IdentificationOrigin = "consensus") -> Identification:
@@ -99,8 +100,9 @@ async def test_adding_to_garden_is_an_implicit_positive_signal():
 
     await use_case.execute(AddPlantToGardenInputDTO(user_id=identification.user_id, identification_id=identification.id))
 
-    feedback = uow.training.add_feedback.call_args.args[0]
-    assert feedback.identification_sample_id == identification.training_sample_id
+    assert isinstance(use_case.training, FakeTrainingRecorder)
+    [feedback] = use_case.training.feedback
+    assert feedback.target == IdentificationLabel(identification.training_sample_id)
     assert (feedback.verdict, feedback.origin) == (FeedbackVerdict.CORRECT, FeedbackOrigin.ADDED_TO_GARDEN)
 
 
@@ -114,7 +116,7 @@ async def test_adding_same_identification_twice_returns_existing_plant():
 
     assert item.plant is existing
     uow.user_plants.save.assert_not_called()
-    uow.training.add_feedback.assert_not_called()
+    assert isinstance(use_case.training, FakeTrainingRecorder) and use_case.training.is_empty
     publisher.publish.assert_not_called()
 
 
@@ -161,8 +163,8 @@ async def test_deleting_plant_does_not_touch_identification_or_training():
     await DeleteUserPlantUseCase(uow=uow).execute(DeleteUserPlantInputDTO(user_id=UserId(uuid4()), user_plant_id=UserPlantId(uuid4())))
 
     assert uow.committed
+    # Nem recebe o gravador do dataset: apagar planta não é rejeição da identificação
     assert uow.identifications.mock_calls == []
-    assert uow.training.mock_calls == []
 
 
 @pytest.mark.asyncio

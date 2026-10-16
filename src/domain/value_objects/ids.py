@@ -15,8 +15,3 @@ IdentificationId = NewType("IdentificationId", UUID)
 HealthRecordId = NewType("HealthRecordId", UUID)
 ReferenceImageId = NewType("ReferenceImageId", UUID)
 AchievementId = NewType("AchievementId", UUID)
-
-# Dados de treino: anônimos, sem ligação de volta com o usuário
-TrainingIdentificationSampleId = NewType("TrainingIdentificationSampleId", UUID)
-TrainingHealthSampleId = NewType("TrainingHealthSampleId", UUID)
-TrainingFeedbackId = NewType("TrainingFeedbackId", UUID)

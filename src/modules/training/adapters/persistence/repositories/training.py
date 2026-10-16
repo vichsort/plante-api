@@ -1,19 +1,19 @@
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.adapters.persistence.mappers.training_mapper import TrainingMapper
-from src.adapters.persistence.models import (
+from src.modules.training.adapters.persistence.mappers.training import TrainingMapper
+from src.modules.training.adapters.persistence.models.training import (
     TrainingFeedbackModel,
     TrainingHealthSampleModel,
     TrainingIdentificationSampleModel,
 )
-from src.domain.entities.training import (
-    TrainingFeedback,
+from src.modules.training.domain.entities.feedback import TrainingFeedback
+from src.modules.training.domain.entities.samples import (
     TrainingHealthSample,
     TrainingIdentificationSample,
 )
-from src.domain.ports.training_repository import ITrainingRepository
-from src.domain.value_objects.ids import (
+from src.modules.training.domain.ports.repository import ITrainingRepository
+from src.modules.training.domain.value_objects.ids import (
     TrainingHealthSampleId,
     TrainingIdentificationSampleId,
 )

@@ -13,7 +13,8 @@ from src.domain.use_cases.diagnose_health_use_case import (
     DiagnoseHealthUseCase,
 )
 from src.domain.value_objects.ids import UserPlantId
-from src.domain.value_objects.provider_signals import DiseaseSuggestion, HealthSignals
+from src.modules.training import DiseaseSuggestion, HealthSignals
+from src.modules.training.tests.fakes import FakeTrainingRecorder
 from src.shared.domain import ExternalServiceError, UserId
 from tests.factories import CALENDAR, make_user, make_user_plant
 from tests.fakes import FakeUnitOfWork, MarkingSanitizer
@@ -51,6 +52,7 @@ def _use_case(enricher: AsyncMock) -> tuple[DiagnoseHealthUseCase, User, FakeUni
         plant_enricher=enricher,
         storage=storage,
         calendar=CALENDAR,
+        training=FakeTrainingRecorder(),
     )
     return use_case, user, uow
 
@@ -101,7 +103,8 @@ async def test_diagnosis_records_anonymous_training_sample_linked_one_way():
 
     result = await use_case.execute(_dto())
 
-    sample = uow.training.add_health_sample.call_args.args[0]
+    assert isinstance(use_case._training, FakeTrainingRecorder)
+    sample = use_case._training.health_samples[0]
     assert result.record.training_sample_id == sample.id
     assert sample.image_key == "training/identifications/health.jpg"
     assert sample.image_key != result.record.image_key

@@ -3,9 +3,9 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from src.domain.entities.health_record import HealthRecord, HealthSeverity
-from src.domain.entities.training import FeedbackVerdict
+from src.domain.entities.health_record import HealthRecord
 from src.domain.use_cases.diagnose_health_use_case import DiagnoseHealthOutput
+from src.modules.training import FeedbackVerdict, HealthSeverity
 
 
 class HealthFeedbackRequest(BaseModel):

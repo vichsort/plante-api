@@ -5,7 +5,6 @@ from uuid import uuid4
 from src.domain.entities.identification import Identification
 from src.domain.entities.plant_reference_image import PlantReferenceImage
 from src.domain.entities.plant_species import PlantSpecies
-from src.domain.entities.training import TrainingIdentificationSample
 from src.domain.events.domain_events import PlantIdentifiedEvent
 from src.domain.exceptions import (
     LowConfidenceError,
@@ -19,7 +18,12 @@ from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.ids import IdentificationId, ReferenceImageId
 from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.subscription_tier import FeatureCost
-from src.domain.value_objects.training_location import TrainingLocation, month_of
+from src.modules.training import (
+    ITrainingRecorder,
+    TrainingIdentificationSample,
+    TrainingLocation,
+    month_of,
+)
 from src.shared.domain import (
     ExternalServiceError,
     IDomainPublisher,
@@ -73,7 +77,9 @@ class IdentifyPlantUseCase:
         storage: IImageStorage,
         publisher: IDomainPublisher,
         calendar: LocalCalendar,
+        training: ITrainingRecorder,
     ) -> None:
+        self.training = training
         self.uow = uow
         self.sanitizer = sanitizer
         self.plant_identifier = plant_identifier
@@ -158,13 +164,13 @@ class IdentifyPlantUseCase:
                 low_confidence=result.low_confidence,
                 signals=result.signals,
                 period=month_of(now),
-                location=TrainingLocation.coarse(user.location, dto.latitude, dto.longitude),
+                location=TrainingLocation.coarse(user.location.country, user.location.state, dto.latitude, dto.longitude),
                 family=result.family,
                 genus=result.genus,
                 gbif_id=result.gbif_id,
                 provider_entity_id=result.provider_entity_id,
             )
-            await uow.training.add_identification_sample(training_sample)
+            await self.training.record_identification_sample(training_sample)
 
             identification = await uow.identifications.save(Identification.create(
                 user_id=user.id,

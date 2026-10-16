@@ -25,7 +25,7 @@ from src.domain.ports.plant_identifier import (
     SimilarImage,
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.provider_signals import DiseaseSuggestion, HealthSignals
+from src.modules.training import DiseaseSuggestion, HealthSignals
 from src.shared.domain import IImageStorage, UserId
 from tests.factories import make_identification_signals
 

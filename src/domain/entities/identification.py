@@ -2,12 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import uuid4
 
-from src.domain.value_objects.ids import (
-    IdentificationId,
-    PlantSpeciesId,
-    TrainingIdentificationSampleId,
-)
-from src.domain.value_objects.sources import IdentificationOrigin
+from src.domain.value_objects.ids import IdentificationId, PlantSpeciesId
+from src.modules.training import IdentificationOrigin, TrainingIdentificationSampleId
 from src.shared.domain import UserId
 
 

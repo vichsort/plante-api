@@ -8,10 +8,7 @@ from src.domain.ports.plant_identifier import (
     SimilarImage,
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.provider_signals import (
-    IdentificationSignals,
-    SpeciesSuggestion,
-)
+from src.modules.training import IdentificationSignals, SpeciesSuggestion
 from src.shared.adapters import (
     parse_contract,
     parse_json_object,

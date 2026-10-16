@@ -4,6 +4,7 @@ from src.bootstrap.containers.adapters import AdaptersContainer
 from src.bootstrap.containers.infra import InfraContainer
 from src.bootstrap.containers.use_cases import UseCasesContainer
 from src.bootstrap.settings import Settings
+from src.modules.training.container import TrainingContainer
 
 
 class Container(containers.DeclarativeContainer):
@@ -18,6 +19,11 @@ class Container(containers.DeclarativeContainer):
     adapters = providers.Container(
         AdaptersContainer,
         settings=settings,
+    )
+
+    training = providers.Container(
+        TrainingContainer,
+        session_factory=infra.session_factory,
     )
 
     use_cases = providers.Container(
@@ -35,4 +41,5 @@ class Container(containers.DeclarativeContainer):
         image_storage=adapters.image_storage,
         image_sanitizer=adapters.image_sanitizer,
         token_service=adapters.token_service,
+        training_recorder=training.recorder,
     )

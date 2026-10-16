@@ -18,7 +18,6 @@ from src.adapters.persistence.repositories.plant_reference_image_repository impo
 from src.adapters.persistence.repositories.plant_species_repository import (
     PlantSpeciesRepository,
 )
-from src.adapters.persistence.repositories.training_repository import TrainingRepository
 from src.adapters.persistence.repositories.user_plant_repository import (
     UserPlantRepository,
 )
@@ -38,5 +37,4 @@ class SqlAlchemyUnitOfWork(BaseUnitOfWork, IUnitOfWork):
         self.reference_images = PlantReferenceImageRepository(session)
         self.identifications = IdentificationRepository(session)
         self.health_records = HealthRecordRepository(session)
-        self.training = TrainingRepository(session)
         self.achievements = AchievementRepository(session)

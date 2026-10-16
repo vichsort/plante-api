@@ -5,7 +5,7 @@ requisição (coordenadas, URL da foto, `access_token` do Kindwise, horários).
 """
 from dataclasses import dataclass
 
-from src.domain.value_objects.sources import IdentificationProvider
+from src.modules.training.domain.value_objects.provenance import IdentificationProvider
 
 
 @dataclass(frozen=True)

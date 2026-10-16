@@ -13,24 +13,28 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.adapters.persistence.models import Base
 from src.adapters.persistence.repositories.health_record_repository import (
     HealthRecordRepository,
 )
 from src.adapters.persistence.repositories.plant_species_repository import (
     PlantSpeciesRepository,
 )
-from src.adapters.persistence.repositories.training_repository import TrainingRepository
 from src.adapters.persistence.repositories.user_plant_repository import (
     UserPlantRepository,
 )
 from src.adapters.persistence.repositories.user_repository import UserRepository
-from src.domain.entities.training import (
+from src.bootstrap.models import metadata
+from src.domain.value_objects.streak import Streak
+from src.modules.training import (
     FeedbackOrigin,
     FeedbackVerdict,
+    HealthLabel,
+    IdentificationLabel,
     TrainingFeedback,
 )
-from src.domain.value_objects.streak import Streak
+from src.modules.training.adapters.persistence.repositories.training import (
+    TrainingRepository,
+)
 from tests.factories import (
     MONTH,
     make_care_schedule,
@@ -115,7 +119,7 @@ async def test_streak_query_selects_by_local_due_day(db_session: AsyncSession) -
 
 def _model_enums() -> dict[str, list[str]]:
     enums: dict[str, list[str]] = {}
-    for table in Base.metadata.tables.values():
+    for table in metadata.tables.values():
         for column in table.columns:
             if isinstance(column.type, SAEnum) and column.type.name:
                 enums[column.type.name] = list(column.type.enums)
@@ -262,10 +266,12 @@ async def _user_with_everything(session: AsyncSession, email: str) -> dict[str, 
         make_health_record(user_id=user.id, user_plant_id=plant.id, training_sample_id=health_training.id)
     )
     training = TrainingRepository(session)
-    await training.add_feedback(TrainingFeedback.on_identification(
-        identification.training_sample_id, FeedbackVerdict.CORRECT, FeedbackOrigin.EXPLICIT, MONTH,
+    await training.add_feedback(TrainingFeedback.create(
+        IdentificationLabel(identification.training_sample_id), FeedbackVerdict.CORRECT, FeedbackOrigin.EXPLICIT, MONTH,
     ))
-    await training.add_feedback(TrainingFeedback.on_health(health_training.id, FeedbackVerdict.WRONG, MONTH))
+    await training.add_feedback(TrainingFeedback.create(
+        HealthLabel(health_training.id), FeedbackVerdict.WRONG, FeedbackOrigin.EXPLICIT, MONTH,
+    ))
     await session.commit()
     return {
         "user": user.id,

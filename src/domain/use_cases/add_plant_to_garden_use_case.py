@@ -3,11 +3,6 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from src.domain.entities.care_schedule import CareSchedule, CareType
-from src.domain.entities.training import (
-    FeedbackOrigin,
-    FeedbackVerdict,
-    TrainingFeedback,
-)
 from src.domain.entities.user_plant import (
     GardenPlant,
     IdentificationSource,
@@ -25,7 +20,13 @@ from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.care_interval import CareInterval
 from src.domain.value_objects.ids import IdentificationId, UserPlantId
 from src.domain.value_objects.local_calendar import LocalCalendar
-from src.domain.value_objects.sources import IdentificationOrigin
+from src.modules.training import (
+    FeedbackOrigin,
+    FeedbackVerdict,
+    IdentificationLabel,
+    IdentificationOrigin,
+    ITrainingRecorder,
+)
 from src.shared.domain import IDomainPublisher, UserId
 
 
@@ -59,10 +60,12 @@ class AddPlantToGardenUseCase:
         uow: IUnitOfWork,
         publisher: IDomainPublisher,
         calendar: LocalCalendar,
+        training: ITrainingRecorder,
     ) -> None:
         self.uow = uow
         self.publisher = publisher
         self.calendar = calendar
+        self.training = training
 
     async def execute(self, dto: AddPlantToGardenInputDTO) -> GardenPlant:
         now = datetime.now(UTC)
@@ -103,12 +106,12 @@ class AddPlantToGardenUseCase:
                 primary_image_url=identification.image_key,
             ))
 
-            await uow.training.add_feedback(TrainingFeedback.on_identification(
-                sample_id=identification.training_sample_id,
-                verdict=FeedbackVerdict.CORRECT,
-                origin=FeedbackOrigin.ADDED_TO_GARDEN,
+            await self.training.record_feedback(
+                IdentificationLabel(identification.training_sample_id),
+                FeedbackVerdict.CORRECT,
+                FeedbackOrigin.ADDED_TO_GARDEN,
                 given_on=now.date(),
-            ))
+            )
             await uow.commit()
 
         await self.publisher.publish(PlantAddedToGardenEvent.create(

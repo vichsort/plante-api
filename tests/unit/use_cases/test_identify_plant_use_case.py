@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock
 import pytest
 
 from src.domain.entities.identification import Identification
-from src.domain.entities.training import TrainingIdentificationSample
 from src.domain.exceptions import LowConfidenceError
 from src.domain.ports.plant_identifier import IdentificationResult
 from src.domain.use_cases.identify_plant_use_case import (
@@ -11,6 +10,8 @@ from src.domain.use_cases.identify_plant_use_case import (
     IdentifyPlantUseCase,
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
+from src.modules.training import TrainingIdentificationSample
+from src.modules.training.tests.fakes import FakeTrainingRecorder
 from tests.factories import (
     CALENDAR,
     make_identification_signals,
@@ -18,6 +19,11 @@ from tests.factories import (
     make_user,
 )
 from tests.fakes import FakeUnitOfWork, MarkingSanitizer
+
+
+def _recorder(use_case: IdentifyPlantUseCase) -> FakeTrainingRecorder:
+    assert isinstance(use_case.training, FakeTrainingRecorder)
+    return use_case.training
 
 
 def _use_case(confidence: float = 0.9):
@@ -49,6 +55,7 @@ def _use_case(confidence: float = 0.9):
         storage=storage,
         publisher=AsyncMock(),
         calendar=CALENDAR,
+        training=FakeTrainingRecorder(),
     )
     return use_case, uow, user, identifier, storage
 
@@ -59,7 +66,7 @@ async def test_records_identification_and_anonymous_training_sample():
 
     output = await use_case.execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"img", latitude=-23.5617, longitude=-46.6559))
 
-    sample: TrainingIdentificationSample = uow.training.add_identification_sample.call_args.args[0]
+    sample: TrainingIdentificationSample = _recorder(use_case).identification_samples[0]
     identification: Identification = uow.identifications.save.call_args.args[0]
 
     # Lado do usuário: dono, foto do usuário e vínculo de mão única para o treino
@@ -91,7 +98,7 @@ async def test_without_coordinates_training_keeps_only_the_state():
 
     await use_case.execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"img"))
 
-    location = uow.training.add_identification_sample.call_args.args[0].location
+    location = _recorder(use_case).identification_samples[0].location
     assert (location.grid_latitude, location.grid_longitude) == (None, None)
     assert location.state == user.location.state
 
@@ -127,4 +134,4 @@ async def test_rejected_confidence_records_nothing():
         await use_case.execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"img"))
 
     assert uow.commits == 0
-    uow.training.add_identification_sample.assert_not_called()
+    assert _recorder(use_case).is_empty

@@ -1,22 +1,10 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import StrEnum
 
-from src.domain.value_objects.ids import (
-    HealthRecordId,
-    TrainingHealthSampleId,
-    UserPlantId,
-)
-from src.domain.value_objects.sources import HealthSource
+from src.domain.value_objects.ids import HealthRecordId, UserPlantId
+from src.modules.training import HealthSeverity, HealthSource, TrainingHealthSampleId
 from src.shared.domain import UserId
 
-
-class HealthSeverity(StrEnum):
-    HEALTHY = "healthy"
-    LOW = "low"
-    MODERATE = "moderate"
-    HIGH = "high"
-    CRITICAL = "critical"
 
 @dataclass(frozen=True)
 class HealthRecord:
