@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
 
-from src.domain.entities.plant_species import EnrichmentStatus, PlantSpecies
-from src.domain.value_objects.ids import PlantSpeciesId
+from src.modules.catalog.domain.entities.plant_species import (
+    EnrichmentStatus,
+    PlantSpecies,
+)
+from src.modules.catalog.domain.value_objects.ids import PlantSpeciesId
 
 
 class IPlantSpeciesRepository(ABC):

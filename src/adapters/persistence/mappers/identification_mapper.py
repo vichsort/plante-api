@@ -1,6 +1,7 @@
 from src.adapters.persistence.models import IdentificationModel
 from src.domain.entities.identification import Identification
-from src.domain.value_objects.ids import IdentificationId, PlantSpeciesId
+from src.domain.value_objects.ids import IdentificationId
+from src.modules.catalog import PlantSpeciesId
 from src.modules.training import (
     TrainingIdentificationSampleId,
     parse_identification_origin,

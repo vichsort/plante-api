@@ -1,18 +1,18 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from src.domain.entities.plant_species import PlantSpecies
-from src.domain.exceptions import (
-    SpeciesNotFoundError,
-    SubscriptionRequiredError,
-    UserNotFoundError,
-)
+from src.domain.exceptions import SubscriptionRequiredError, UserNotFoundError
 from src.domain.policies.subscription_policy import SubscriptionPolicy
-from src.domain.ports.plant_enricher import IPlantEnricher
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.ids import PlantSpeciesId
 from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.subscription_tier import FeatureCost
+from src.modules.catalog import (
+    ISpeciesEnricher,
+    ISpeciesRegistry,
+    PlantSpecies,
+    PlantSpeciesId,
+    SpeciesNotFoundError,
+)
 from src.shared.domain import ExternalServiceError, UserId
 
 
@@ -22,6 +22,11 @@ class EnrichPlantInputDTO:
     species_id: PlantSpeciesId
 
 class EnrichPlantSpeciesUseCase:
+    """
+    Análise profunda de uma espécie (pela metade: sem rota, e o resultado do Gemini ainda é
+    descartado). Fica no código antigo porque cobra tokens do usuário; o catalog só oferece o
+    enriquecimento. Quando a feature for desenhada, mora no módulo da tela que a oferece.
+    """
     raises = (
         ExternalServiceError,
         SpeciesNotFoundError,
@@ -32,9 +37,11 @@ class EnrichPlantSpeciesUseCase:
     def __init__(
         self,
         uow: IUnitOfWork,
-        enricher: IPlantEnricher,
+        enricher: ISpeciesEnricher,
         calendar: LocalCalendar,
+        catalog: ISpeciesRegistry,
     ) -> None:
+        self.catalog = catalog
         self.uow = uow
         self.enricher = enricher
         self.calendar = calendar
@@ -47,7 +54,7 @@ class EnrichPlantSpeciesUseCase:
             if not user:
                 raise UserNotFoundError(user_id=dto.user_id)
 
-            species = await uow.species.get_by_id(dto.species_id)
+            species = await self.catalog.get(dto.species_id)
             if not species:
                 raise SpeciesNotFoundError(dto.species_id)
 
@@ -65,7 +72,7 @@ class EnrichPlantSpeciesUseCase:
             if not user:
                 raise UserNotFoundError(user_id=dto.user_id)
             if not species.is_enriched:
-                await uow.species.save(species)
+                await self.catalog.save(species)
             user.consume_tokens(FeatureCost.DEEP_ANALYSIS, today)
             await uow.users.save(user)
             await uow.commit()

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from src.domain.entities.plant_species import LightRequirement, SoilType
+from src.modules.catalog.domain.entities.plant_species import LightRequirement, SoilType
 
 
 @dataclass(frozen=True)
@@ -29,25 +29,10 @@ class NutritionalEnrichmentResult:
     medicinal_uses: str | None = None
     seasoning_pairings: str | None = None
 
-@dataclass(frozen=True)
-class DiseaseAnalysisResult:
-    scientific_name: str
-    disease_name: str
-    source: str
-    symptoms: tuple[str, ...] = ()
-    treatment_steps: tuple[str, ...] = ()
-    recovery_estimate_days: int | None = None
 
-@dataclass(frozen=True)
-class HealthDiagnosisEnrichment:
-    """Análise complementar do Gemini para uma planta com problemas de saúde."""
-    vitality_score: float
-    treatment_plan: tuple[str, ...] = ()
-    recovery_estimate_days: int | None = None
-    notes: str | None = None
+class ISpeciesEnricher(ABC):
+    """Dados de cuidado e nutricionais de uma espécie, vindos de um modelo de linguagem (Gemini)."""
 
-
-class IPlantEnricher(ABC):
     @abstractmethod
     async def enrich_species(self, scientific_name: str) -> EnrichmentResult:
         """Enriquece dados de cuidado de uma espécie pelo nome científico."""
@@ -56,18 +41,4 @@ class IPlantEnricher(ABC):
     @abstractmethod
     async def enrich_nutritional(self, scientific_name: str) -> NutritionalEnrichmentResult:
         """Enriquece dados nutricionais e medicinais de uma espécie."""
-        ...
-
-    @abstractmethod
-    async def analyze_disease(
-        self, scientific_name: str, disease_name: str
-    ) -> DiseaseAnalysisResult:
-        """Analisa uma doença específica diagnosticada numa planta."""
-        ...
-
-    @abstractmethod
-    async def diagnose_health(
-        self, scientific_name: str, issues: list[str]
-    ) -> HealthDiagnosisEnrichment:
-        """Enriquece o diagnóstico de saúde de uma planta."""
         ...

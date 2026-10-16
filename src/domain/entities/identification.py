@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from uuid import uuid4
 
-from src.domain.value_objects.ids import IdentificationId, PlantSpeciesId
+from src.domain.value_objects.ids import IdentificationId
+from src.modules.catalog import PlantSpeciesId
 from src.modules.training import IdentificationOrigin, TrainingIdentificationSampleId
 from src.shared.domain import UserId
 

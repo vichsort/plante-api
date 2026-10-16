@@ -7,7 +7,7 @@ import pytest
 from src.domain.entities.user import User
 from src.domain.exceptions import SubscriptionRequiredError
 from src.domain.ports.health_analyzer import DiseaseHint, HealthAssessmentResult
-from src.domain.ports.plant_enricher import HealthDiagnosisEnrichment
+from src.domain.ports.health_enricher import HealthDiagnosisEnrichment
 from src.domain.use_cases.diagnose_health_use_case import (
     DiagnoseHealthInputDTO,
     DiagnoseHealthUseCase,

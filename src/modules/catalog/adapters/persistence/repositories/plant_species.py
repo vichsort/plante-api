@@ -3,11 +3,18 @@ from datetime import UTC, datetime
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.adapters.persistence.mappers.plant_species_mapper import PlantSpeciesMapper
-from src.adapters.persistence.models.plant_species_model import PlantSpeciesModel
-from src.domain.entities.plant_species import EnrichmentStatus, PlantSpecies
-from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
-from src.domain.value_objects.ids import PlantSpeciesId
+from src.modules.catalog.adapters.persistence.mappers.plant_species import (
+    PlantSpeciesMapper,
+)
+from src.modules.catalog.adapters.persistence.models.plant_species import (
+    PlantSpeciesModel,
+)
+from src.modules.catalog.domain.entities.plant_species import (
+    EnrichmentStatus,
+    PlantSpecies,
+)
+from src.modules.catalog.domain.ports.species_repository import IPlantSpeciesRepository
+from src.modules.catalog.domain.value_objects.ids import PlantSpeciesId
 
 
 class PlantSpeciesRepository(IPlantSpeciesRepository):

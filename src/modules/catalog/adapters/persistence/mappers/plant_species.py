@@ -1,6 +1,8 @@
-from src.adapters.persistence.models import PlantSpeciesModel
-from src.domain.entities.plant_species import PlantSpecies
-from src.domain.value_objects.ids import PlantSpeciesId
+from src.modules.catalog.adapters.persistence.models.plant_species import (
+    PlantSpeciesModel,
+)
+from src.modules.catalog.domain.entities.plant_species import PlantSpecies
+from src.modules.catalog.domain.value_objects.ids import PlantSpeciesId
 
 
 class PlantSpeciesMapper:

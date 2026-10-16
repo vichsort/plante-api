@@ -3,9 +3,9 @@ from dependency_injector import containers, providers
 from src.bootstrap.settings import Settings
 from src.domain.ports.email_sender import IEmailSender
 from src.domain.ports.health_analyzer import IHealthAnalyzer
+from src.domain.ports.health_enricher import IHealthEnricher
 from src.domain.ports.otp_repository import IOtpRepository
 from src.domain.ports.password_hasher import IPasswordHasher
-from src.domain.ports.plant_enricher import IPlantEnricher
 from src.domain.ports.plant_identifier import IPlantIdentifier
 from src.domain.ports.token_repository import ITokenRepository
 from src.domain.ports.token_service import ITokenService
@@ -41,6 +41,7 @@ from src.domain.use_cases.upgrade_subscription_use_case import (
 from src.domain.use_cases.verify_email_use_case import VerifyEmailUseCase
 from src.domain.use_cases.water_plant_use_case import WaterPlantUseCase
 from src.domain.value_objects.local_calendar import LocalCalendar
+from src.modules.catalog import ISpeciesEnricher, ISpeciesRegistry
 from src.modules.training import ITrainingRecorder
 from src.shared.domain import IDomainPublisher, IImageSanitizer, IImageStorage
 
@@ -57,7 +58,9 @@ class UseCasesContainer(containers.DeclarativeContainer):
     domain_publisher: providers.Dependency[IDomainPublisher] = providers.Dependency()
     plant_identifier: providers.Dependency[IPlantIdentifier] = providers.Dependency()
     health_analyzer: providers.Dependency[IHealthAnalyzer] = providers.Dependency()
-    plant_enricher: providers.Dependency[IPlantEnricher] = providers.Dependency()
+    health_enricher: providers.Dependency[IHealthEnricher] = providers.Dependency()
+    species_enricher: providers.Dependency[ISpeciesEnricher] = providers.Dependency()
+    species_registry: providers.Dependency[ISpeciesRegistry] = providers.Dependency()
 
     image_storage: providers.Dependency[IImageStorage] = providers.Dependency()
     image_sanitizer: providers.Dependency[IImageSanitizer] = providers.Dependency()
@@ -162,6 +165,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
         GetPlantDetailsUseCase,
         uow=unit_of_work,
         calendar=local_calendar,
+        catalog=species_registry,
     )
 
     identify_plant_use_case = providers.Factory(
@@ -173,13 +177,15 @@ class UseCasesContainer(containers.DeclarativeContainer):
         publisher=domain_publisher,
         calendar=local_calendar,
         training=training_recorder,
+        catalog=species_registry,
     )
 
     enrich_plant_species_use_case = providers.Factory(
         EnrichPlantSpeciesUseCase,
         uow=unit_of_work,
-        enricher=plant_enricher,
+        enricher=species_enricher,
         calendar=local_calendar,
+        catalog=species_registry,
     )
 
     water_plant_use_case = providers.Factory(
@@ -206,7 +212,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
         uow=unit_of_work,
         sanitizer=image_sanitizer,
         health_analyzer=health_analyzer,
-        plant_enricher=plant_enricher,
+        plant_enricher=health_enricher,
         storage=image_storage,
         calendar=local_calendar,
         training=training_recorder,

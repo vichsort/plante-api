@@ -5,7 +5,7 @@ Regras de negócio de cada subdomínio enquanto o código ainda está nas camada
 migrado**: a seção do subdomínio vai para o `README.md` do módulo (Propósito, Decisões, Erros) e
 sai daqui. Quando o último módulo migrar, o arquivo é apagado.
 
-Já migrados: `training` (`src/modules/training/README.md`).
+Já migrados: `training` e `catalog` (README de cada um em `src/modules/`).
 
 As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/shared/README.md`.
 
@@ -116,7 +116,6 @@ Os erros comuns (`PLANTE_4000`, `4013`, `4029`, `5001`, `4220`, `5000`, `5003`) 
 | `PLANTE_4010_IDENTIFICATION_FAILED` | `PlantIdentificationError` | A IA não identificou a planta com confiança suficiente. | 422 |
 | `PLANTE_4011_LOW_CONFIDENCE` | `LowConfidenceError` | Confiança da identificação abaixo de 60% (`ConfidenceScore.is_rejected`). | 422 |
 | `PLANTE_4012_IDENTIFICATION_NOT_FOUND` | `IdentificationNotFoundError` | Identificação não existe ou não pertence ao usuário (feedback, adicionar ao jardim). | 404 |
-| `PLANTE_4014_SPECIES_NOT_FOUND` | `SpeciesNotFoundError` | Espécie não existe. | 404 |
 | `PLANTE_4016_NOT_READY_FOR_WATERING` | `PlantNotReadyForWateringError` | Rega antes da janela (vencimento − 1 dia) ou segunda rega no mesmo dia (`UserPlant.water()`). | 400 |
 | `PLANTE_4017_HEALTH_RECORD_NOT_FOUND` | `HealthRecordNotFoundError` | Diagnóstico não existe ou não pertence ao usuário. | 404 |
 | `PLANTE_4019_SUBSCRIPTION_REQUIRED` | `SubscriptionRequiredError` | Recurso exclusivo do plano Pro ou tokens diários esgotados (`SubscriptionPolicy`). | 403 |

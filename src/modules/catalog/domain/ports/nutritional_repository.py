@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.domain.entities.plant_nutritional import PlantNutritional
+from src.modules.catalog.domain.entities.nutritional import PlantNutritional
 
 
 class IPlantNutritionalRepository(ABC):

@@ -12,7 +12,7 @@ from src.domain.exceptions import (
 )
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.health_analyzer import IHealthAnalyzer
-from src.domain.ports.plant_enricher import HealthDiagnosisEnrichment, IPlantEnricher
+from src.domain.ports.health_enricher import HealthDiagnosisEnrichment, IHealthEnricher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import HealthRecordId, UserPlantId
 from src.domain.value_objects.local_calendar import LocalCalendar
@@ -76,7 +76,7 @@ class DiagnoseHealthUseCase:
         uow: IUnitOfWork,
         sanitizer: IImageSanitizer,
         health_analyzer: IHealthAnalyzer,
-        plant_enricher: IPlantEnricher,
+        plant_enricher: IHealthEnricher,
         storage: IImageStorage,
         calendar: LocalCalendar,
         training: ITrainingRecorder,

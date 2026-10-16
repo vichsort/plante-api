@@ -14,6 +14,10 @@ from src.domain.use_cases.register_user_use_case import (
     RegisterUserInputDTO,
     RegisterUserUseCase,
 )
+from src.modules.catalog.adapters.persistence.unit_of_work import (
+    SqlAlchemyCatalogUnitOfWork,
+)
+from src.modules.catalog.domain.services.species_registry import SpeciesRegistry
 from src.modules.training.adapters.persistence.unit_of_work import (
     SqlAlchemyTrainingUnitOfWork,
 )
@@ -63,7 +67,7 @@ async def test_repositories_share_one_transaction(session_factory: async_session
         # satisfeita se todos os repositórios usam a mesma transação, inclusive o do módulo
         # training, que entra pelo service e se junta à transação aberta aqui
         user = await uow.users.save(make_user(email="shared@plante.org"))
-        species = await uow.species.save(make_species("Pilea peperomioides"))
+        species = await SpeciesRegistry(SqlAlchemyCatalogUnitOfWork(session_factory)).save(make_species("Pilea peperomioides"))
         training = make_training_identification_sample("Pilea peperomioides")
         await TrainingRecorder(SqlAlchemyTrainingUnitOfWork(session_factory)).record_identification_sample(training)
         identification = await uow.identifications.save(make_identification(

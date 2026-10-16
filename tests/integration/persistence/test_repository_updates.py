@@ -6,17 +6,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.adapters.persistence.repositories.health_record_repository import (
     HealthRecordRepository,
 )
-from src.adapters.persistence.repositories.plant_species_repository import (
-    PlantSpeciesRepository,
-)
 from src.adapters.persistence.repositories.user_plant_repository import (
     UserPlantRepository,
 )
 from src.adapters.persistence.repositories.user_repository import UserRepository
-from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.user import User
 from src.domain.value_objects.subscription_tier import FeatureCost
 from src.domain.value_objects.user_location import UserLocation
+from src.modules.catalog import PlantSpecies
+from src.modules.catalog.adapters.persistence.repositories.plant_species import (
+    PlantSpeciesRepository,
+)
 from src.modules.training.adapters.persistence.repositories.training import (
     TrainingRepository,
 )

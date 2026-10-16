@@ -1,13 +1,15 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.adapters.persistence.mappers.plant_nutritional_mapper import (
+from src.modules.catalog.adapters.persistence.mappers.nutritional import (
     PlantNutritionalMapper,
 )
-from src.adapters.persistence.models.plant_nutritional_model import (
+from src.modules.catalog.adapters.persistence.models.nutritional import (
     PlantNutritionalModel,
 )
-from src.domain.entities.plant_nutritional import PlantNutritional
-from src.domain.ports.plant_nutritional_repository import IPlantNutritionalRepository
+from src.modules.catalog.domain.entities.nutritional import PlantNutritional
+from src.modules.catalog.domain.ports.nutritional_repository import (
+    IPlantNutritionalRepository,
+)
 
 
 class PlantNutritionalRepository(IPlantNutritionalRepository):

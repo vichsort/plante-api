@@ -1,10 +1,7 @@
 from fastapi.testclient import TestClient
 
-from src.domain.exceptions import (
-    PlantLimitExceededError,
-    PlantNotFoundError,
-    SpeciesNotFoundError,
-)
+from src.domain.exceptions import PlantLimitExceededError, PlantNotFoundError
+from src.modules.catalog import SpeciesNotFoundError
 from src.shared.api import error_responses
 
 

@@ -1,7 +1,7 @@
 from dependency_injector import containers, providers
 
 from src.adapters.ai.consensus.consensus_adapter import ConsensusIdentifier
-from src.adapters.ai.gemini.gemini_adapter import GeminiAdapter
+from src.adapters.ai.gemini.gemini_adapter import GeminiHealthEnricher
 from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
 from src.adapters.cache.redis_otp_repository import RedisOtpRepository
@@ -124,7 +124,7 @@ class AdaptersContainer(containers.DeclarativeContainer):
         breaker=kindwise_breaker,
     )
 
-    plant_enricher = providers.Singleton(
-        GeminiAdapter,
+    health_enricher = providers.Singleton(
+        GeminiHealthEnricher,
         api_key=settings.provided.gemini_api_key,
     )

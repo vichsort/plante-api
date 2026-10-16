@@ -1,5 +1,7 @@
-from src.adapters.persistence.models import PlantNutritionalModel
-from src.domain.entities.plant_nutritional import PlantNutritional
+from src.modules.catalog.adapters.persistence.models.nutritional import (
+    PlantNutritionalModel,
+)
+from src.modules.catalog.domain.entities.nutritional import PlantNutritional
 
 
 class PlantNutritionalMapper:

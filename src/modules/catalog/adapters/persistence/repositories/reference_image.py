@@ -1,14 +1,14 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.adapters.persistence.mappers.plant_reference_image_mapper import (
+from src.modules.catalog.adapters.persistence.mappers.reference_image import (
     PlantReferenceImageMapper,
 )
-from src.adapters.persistence.models.plant_reference_image_model import (
+from src.modules.catalog.adapters.persistence.models.reference_image import (
     PlantReferenceImageModel,
 )
-from src.domain.entities.plant_reference_image import PlantReferenceImage
-from src.domain.ports.plant_reference_image_repository import (
+from src.modules.catalog.domain.entities.reference_image import PlantReferenceImage
+from src.modules.catalog.domain.ports.reference_image_repository import (
     IPlantReferenceImageRepository,
 )
 

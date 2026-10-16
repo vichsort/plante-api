@@ -29,8 +29,9 @@ from src.domain.use_cases.water_plant_use_case import (
     WaterPlantInputDTO,
     WaterPlantUseCase,
 )
-from src.domain.value_objects.ids import IdentificationId, PlantSpeciesId, UserPlantId
+from src.domain.value_objects.ids import IdentificationId, UserPlantId
 from src.domain.value_objects.streak import Streak
+from src.modules.catalog import PlantSpeciesId
 from src.modules.training import (
     FeedbackOrigin,
     FeedbackVerdict,

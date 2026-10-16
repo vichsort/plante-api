@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 
-from src.domain.value_objects.ids import ReferenceImageId
+from src.modules.catalog.domain.value_objects.ids import ReferenceImageId
 from src.shared.domain import UserId
 
 

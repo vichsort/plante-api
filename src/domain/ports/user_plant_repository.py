@@ -1,18 +1,9 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from datetime import date
 
-from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.user_plant import UserPlant
 from src.domain.value_objects.ids import IdentificationId, UserPlantId
 from src.shared.domain import UserId
-
-
-@dataclass(frozen=True)
-class PlantDetails:
-    """Planta do jardim com a espécie correspondente (None enquanto a espécie não foi cadastrada)."""
-    plant: UserPlant
-    species: PlantSpecies | None
 
 
 class IUserPlantRepository(ABC):
@@ -40,10 +31,6 @@ class IUserPlantRepository(ABC):
     @abstractmethod
     async def get_by_identification(self, identification_id: IdentificationId, user_id: UserId) -> UserPlant | None:
         """Planta ativa criada a partir da identificação, se houver."""
-        ...
-
-    @abstractmethod
-    async def get_details(self, user_plant_id: UserPlantId, user_id: UserId) -> PlantDetails | None:
         ...
 
     @abstractmethod

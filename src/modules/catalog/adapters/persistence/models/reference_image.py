@@ -4,7 +4,7 @@ from sqlalchemy import UUID, ForeignKey, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.domain.entities.plant_reference_image import ImageSource
+from src.modules.catalog.domain.entities.reference_image import ImageSource
 from src.shared.adapters import AuditMixin, Base, enum_values
 
 

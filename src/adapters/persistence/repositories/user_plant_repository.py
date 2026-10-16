@@ -3,12 +3,10 @@ from datetime import UTC, date, datetime
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.adapters.persistence.mappers.plant_species_mapper import PlantSpeciesMapper
 from src.adapters.persistence.mappers.user_plant_mapper import UserPlantMapper
-from src.adapters.persistence.models.plant_species_model import PlantSpeciesModel
 from src.adapters.persistence.models.user_plant_model import UserPlantModel
 from src.domain.entities.user_plant import UserPlant
-from src.domain.ports.user_plant_repository import IUserPlantRepository, PlantDetails
+from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.value_objects.ids import IdentificationId, UserPlantId
 from src.shared.domain import UserId
 
@@ -78,24 +76,6 @@ class UserPlantRepository(IUserPlantRepository):
         )
         result = await self._session.execute(stmt)
         return result.scalar_one()
-
-    async def get_details(self, user_plant_id: UserPlantId, user_id: UserId) -> PlantDetails | None:
-        stmt = (
-            select(UserPlantModel, PlantSpeciesModel)
-            .outerjoin(PlantSpeciesModel, UserPlantModel.scientific_name == PlantSpeciesModel.scientific_name)
-            .where(UserPlantModel.id == user_plant_id)
-            .where(UserPlantModel.user_id == user_id)
-            .where(UserPlantModel.deleted_at.is_(None))
-        )
-        row = (await self._session.execute(stmt)).tuples().first()
-        if row is None:
-            return None
-
-        user_plant_model, species_model = row
-        return PlantDetails(
-            plant=UserPlantMapper.to_domain(user_plant_model),
-            species=PlantSpeciesMapper.to_domain(species_model) if species_model else None,
-        )
 
     async def list_with_streak_due_before(self, due_before: date) -> list[UserPlant]:
         stmt = (

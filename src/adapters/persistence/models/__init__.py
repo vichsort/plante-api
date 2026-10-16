@@ -3,9 +3,6 @@ from src.shared.adapters import Base
 from .achievement_model import AchievementModel
 from .health_record_model import HealthRecordModel
 from .identification_model import IdentificationModel
-from .plant_nutritional_model import PlantNutritionalModel
-from .plant_reference_image_model import PlantReferenceImageModel
-from .plant_species_model import PlantSpeciesModel
 from .user_model import UserModel
 from .user_plant_model import UserPlantModel
 
@@ -17,9 +14,6 @@ from .user_plant_model import UserPlantModel
 __all__ = [
     "Base",
     "UserModel",
-    "PlantSpeciesModel",
-    "PlantNutritionalModel",
-    "PlantReferenceImageModel",
     "UserPlantModel",
     "IdentificationModel",
     "HealthRecordModel",

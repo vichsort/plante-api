@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import uuid4
 
-from src.domain.value_objects.ids import PlantSpeciesId
+from src.modules.catalog.domain.value_objects.ids import PlantSpeciesId
 
 
 class EnrichmentStatus(StrEnum):

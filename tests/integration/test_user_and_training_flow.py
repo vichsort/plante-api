@@ -41,6 +41,10 @@ from src.domain.use_cases.water_plant_use_case import (
     WaterPlantUseCase,
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
+from src.modules.catalog.adapters.persistence.unit_of_work import (
+    SqlAlchemyCatalogUnitOfWork,
+)
+from src.modules.catalog.domain.services.species_registry import SpeciesRegistry
 from src.modules.training import (
     DiseaseSuggestion,
     FeedbackOrigin,
@@ -113,7 +117,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     # 1. Identificar (com GPS) e dar feedback
     identified = await IdentifyPlantUseCase(
         uow=uow(), sanitizer=MarkingSanitizer(), plant_identifier=_identifier(), storage=storage, publisher=AsyncMock(),
-        calendar=CALENDAR, training=training(),
+        calendar=CALENDAR, training=training(), catalog=SpeciesRegistry(SqlAlchemyCatalogUnitOfWork(session_factory)),
     ).execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"photo", latitude=-23.5617, longitude=-46.6559))
 
     await GiveIdentificationFeedbackUseCase(uow=uow(), training=training()).execute(GiveIdentificationFeedbackInputDTO(

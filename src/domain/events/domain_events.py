@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from src.domain.value_objects.ids import PlantSpeciesId, UserPlantId
+from src.domain.value_objects.ids import UserPlantId
+from src.modules.catalog import PlantSpeciesId
 from src.shared.domain import DomainEvent, UserId
 
 

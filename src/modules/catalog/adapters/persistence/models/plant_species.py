@@ -4,7 +4,7 @@ from sqlalchemy import JSON, Boolean, DateTime, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.domain.entities.plant_species import (
+from src.modules.catalog.domain.entities.plant_species import (
     EnrichmentSource,
     EnrichmentStatus,
     LightRequirement,

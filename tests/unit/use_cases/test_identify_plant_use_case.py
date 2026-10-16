@@ -10,6 +10,7 @@ from src.domain.use_cases.identify_plant_use_case import (
     IdentifyPlantUseCase,
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
+from src.modules.catalog.tests.fakes import FakeSpeciesRegistry
 from src.modules.training import TrainingIdentificationSample
 from src.modules.training.tests.fakes import FakeTrainingRecorder
 from tests.factories import (
@@ -30,11 +31,9 @@ def _use_case(confidence: float = 0.9):
     user = make_user()
     users = AsyncMock()
     users.get_by_id.return_value = user
-    species = AsyncMock()
-    species.get_by_scientific_name.return_value = make_species()
     identifications = AsyncMock()
     identifications.save.side_effect = lambda identification: identification
-    uow = FakeUnitOfWork(users=users, species=species, identifications=identifications)
+    uow = FakeUnitOfWork(users=users, identifications=identifications)
 
     identifier = AsyncMock()
     identifier.identify.return_value = IdentificationResult(
@@ -56,6 +55,7 @@ def _use_case(confidence: float = 0.9):
         publisher=AsyncMock(),
         calendar=CALENDAR,
         training=FakeTrainingRecorder(),
+        catalog=FakeSpeciesRegistry({"Monstera deliciosa": make_species()}),
     )
     return use_case, uow, user, identifier, storage
 
