@@ -50,6 +50,38 @@ async def test_enriched_diagnosis_costs_two_tokens(api: Api) -> None:
     assert response.json()["error"]["code"] == "PLANTE_4019_SUBSCRIPTION_REQUIRED"
 
 
+async def test_diagnosis_without_tokens_never_reaches_the_providers(api: Api) -> None:
+    # Arrange: identificar 3 vezes esgota a cota do FREE
+    headers = await api.signed_up()
+    plant_id = await api.plant_in_garden(headers)
+    for _ in range(2):
+        await api.identify(headers)
+    uploads_before = len(api.fakes.storage.uploads)
+
+    # Act
+    response = await _diagnose(api, headers, plant_id)
+
+    # Assert: antes o /diagnose não conferia o saldo e gastava créditos dos provedores
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "PLANTE_4019_SUBSCRIPTION_REQUIRED"
+    assert len(api.fakes.storage.uploads) == uploads_before
+
+
+async def test_last_token_diagnoses_without_gemini(api: Api) -> None:
+    # Arrange: sobra 1 token; o complemento do Gemini custaria mais 1
+    headers = await api.signed_up()
+    plant_id = await api.plant_in_garden(headers)
+    await api.identify(headers)
+
+    # Act
+    response = await _diagnose(api, headers, plant_id)
+
+    # Assert: sai só com o Kindwise (vitalidade = probabilidade de saúde, sem plano de tratamento)
+    assert response.status_code == 200
+    assert response.json()["data"]["vitality_score"] == 0.3
+    assert response.json()["data"]["treatment_plan"] == []
+
+
 async def test_history_and_feedback(api: Api) -> None:
     # Arrange
     headers = await api.signed_up()

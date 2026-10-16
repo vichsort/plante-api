@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from uuid import uuid4
 
 import httpx
+import jwt
 import pytest
 import pytest_asyncio
 from dependency_injector import providers
@@ -107,6 +108,12 @@ class Api:
             task = self.fakes.queue.tasks.pop(0)
             assert task.name == SEND_VERIFICATION_EMAIL_TASK, f"unexpected task {task.name}"
             await send_verification_email_task(**task.kwargs, container=container)
+
+    @staticmethod
+    def user_id_of(headers: dict[str, str]) -> str:
+        """O `sub` do access token (o app recebe o ID no cadastro; aqui é mais curto ler do token)."""
+        token = headers["Authorization"].removeprefix("Bearer ")
+        return str(jwt.decode(token, options={"verify_signature": False})["sub"])
 
     async def register(self, email: str, password: str = PASSWORD) -> httpx.Response:
         return await self.http.post(

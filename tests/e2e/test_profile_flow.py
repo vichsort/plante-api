@@ -42,7 +42,7 @@ async def test_password_change_rejects_weak_or_wrong_current_password(api: Api) 
     assert wrong_current.json()["error"]["code"] == "PLANTE_4007_WRONG_CREDENTIALS"
 
 
-async def test_email_change_switches_immediately_and_requires_verification(api: Api) -> None:
+async def test_email_change_takes_effect_only_after_the_code(api: Api) -> None:
     # Arrange
     headers = await api.signed_up("joao@plante.org")
 
@@ -50,17 +50,22 @@ async def test_email_change_switches_immediately_and_requires_verification(api: 
     changed = await api.http.patch(
         "/profile/email", headers=headers, json={"current_password": PASSWORD, "new_email": "joao.novo@plante.org"},
     )
-    old_email_login = await api.login("joao@plante.org")
-    new_email_login = await api.login("joao.novo@plante.org")
+    old_email_before = await api.login("joao@plante.org")
+    new_email_before = await api.login("joao.novo@plante.org")
+    confirmed = await api.http.post("/auth/verify-email", json={
+        "user_id": api.user_id_of(headers),
+        "raw_code": api.fakes.email.last_code_to("joao.novo@plante.org"),
+    })
+    old_email_after = await api.login("joao@plante.org")
+    new_email_after = await api.login("joao.novo@plante.org")
 
-    # Assert
+    # Assert: até o código, nada muda (um endereço digitado errado não tranca a conta)
     assert changed.status_code == 200
-    assert api.fakes.email.last_code_to("joao.novo@plante.org")
-    # Hoje: o e-mail troca na hora e a conta volta a "não verificada"; até confirmar o código,
-    # nenhum dos dois e-mails entra (um endereço digitado errado tranca a conta)
-    assert old_email_login.status_code == 401
-    assert new_email_login.status_code == 401
-    assert new_email_login.json()["error"]["message"] == "Email not verified."
+    assert old_email_before.status_code == 200
+    assert new_email_before.status_code == 401
+    assert confirmed.status_code == 200
+    assert old_email_after.status_code == 401
+    assert new_email_after.status_code == 200
 
 
 async def test_location_update(api: Api) -> None:

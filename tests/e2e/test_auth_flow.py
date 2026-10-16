@@ -69,35 +69,49 @@ async def test_wrong_verification_code_is_rejected(api: Api) -> None:
     assert response.json()["error"]["code"] == "PLANTE_4003_INVALID_VERIFICATION_CODE"
 
 
-async def test_signup_accepts_a_weak_password(api: Api) -> None:
+async def test_signup_rejects_a_weak_password(api: Api) -> None:
     # Act
     response = await api.register("eva@plante.org", password="123")
 
     # Assert
-    # Hoje: só a troca de senha valida a força (8+ caracteres, maiúscula, número); o cadastro não
-    assert response.status_code == 201
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "PLANTE_4008_WEAK_PASSWORD"
 
 
-async def test_refresh_reuses_the_same_refresh_token_until_logout(api: Api) -> None:
+async def test_refresh_rotates_and_reuse_revokes_the_session(api: Api) -> None:
     # Arrange
     await api.signed_up("fabi@plante.org")
     tokens = (await api.login("fabi@plante.org")).json()["data"]
+
+    # Act
+    rotated = await api.http.post("/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
+    reused = await api.http.post("/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
+    newest_after_reuse = await api.http.post(
+        "/auth/refresh", json={"refresh_token": rotated.json()["data"]["refresh_token"]},
+    )
+
+    # Assert
+    assert rotated.status_code == 200
+    assert rotated.json()["data"]["refresh_token"] != tokens["refresh_token"]
+    assert reused.status_code == 401
+    assert newest_after_reuse.status_code == 401  # reuso = sinal de roubo: a sessão inteira cai
+
+
+async def test_logout_revokes_the_refresh_token_only(api: Api) -> None:
+    # Arrange
+    await api.signed_up("gabi@plante.org")
+    tokens = (await api.login("gabi@plante.org")).json()["data"]
     access = {"Authorization": f"Bearer {tokens['access_token']}"}
 
     # Act
-    first = await api.http.post("/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
-    second = await api.http.post("/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
     logout = await api.http.post("/auth/logout", headers=access)
-    after_logout = await api.http.post("/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
+    refresh_after_logout = await api.http.post("/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
     access_after_logout = await api.http.get("/garden", headers=access)
 
     # Assert
-    # Hoje: o refresh não rotaciona (devolve o mesmo refresh token, que segue válido)
-    assert first.status_code == second.status_code == 200
-    assert first.json()["data"]["refresh_token"] == tokens["refresh_token"]
     assert logout.status_code == 200
-    assert after_logout.status_code == 401
-    # Hoje: o logout só revoga o refresh; o access token vale até expirar
+    assert refresh_after_logout.status_code == 401
+    # Decisão: o access token (JWT sem estado, 15 minutos) vale até expirar
     assert access_after_logout.status_code == 200
 
 
