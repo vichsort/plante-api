@@ -10,6 +10,7 @@ class UserMapper:
         return User(
             id=UserId(model.id),
             email=model.email,
+            pending_email=model.pending_email,
             hashed_password=model.hashed_password,
             location=UserLocation(
                 country=model.location_country,
@@ -18,6 +19,7 @@ class UserMapper:
             is_verified=model.is_verified,
             subscription=model.subscription,
             tokens_used_today=model.tokens_used_today,
+            tokens_day=model.tokens_day,
             subscription_expires_at=model.subscription_expires_at,
             bio=model.bio,
             profile_picture_url=model.profile_picture_url,
@@ -29,12 +31,14 @@ class UserMapper:
         return UserModel(
             id=entity.id,
             email=entity.email,
+            pending_email=entity.pending_email,
             hashed_password=entity.hashed_password,
             location_country=entity.location.country,
             location_state=entity.location.state,
             is_verified=entity.is_verified,
             subscription=entity.subscription,
             tokens_used_today=entity.tokens_used_today,
+            tokens_day=entity.tokens_day,
             subscription_expires_at=entity.subscription_expires_at,
             bio=entity.bio,
             profile_picture_url=entity.profile_picture_url,

@@ -10,8 +10,8 @@ from src.domain.exceptions import (
 )
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.garden_calendar import GardenCalendar
 from src.domain.value_objects.ids import UserId, UserPlantId
+from src.domain.value_objects.local_calendar import LocalCalendar
 
 
 @dataclass(frozen=True)
@@ -26,7 +26,7 @@ class WaterPlantUseCase:
         self,
         uow: IUnitOfWork,
         publisher: IDomainPublisher,
-        calendar: GardenCalendar,
+        calendar: LocalCalendar,
     ) -> None:
         self.uow = uow
         self.publisher = publisher

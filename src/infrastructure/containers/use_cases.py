@@ -42,7 +42,7 @@ from src.domain.use_cases.upgrade_subscription_use_case import (
 )
 from src.domain.use_cases.verify_email_use_case import VerifyEmailUseCase
 from src.domain.use_cases.water_plant_use_case import WaterPlantUseCase
-from src.domain.value_objects.garden_calendar import GardenCalendar
+from src.domain.value_objects.local_calendar import LocalCalendar
 from src.infrastructure.settings import Settings
 
 
@@ -64,9 +64,9 @@ class UseCasesContainer(containers.DeclarativeContainer):
     image_sanitizer: providers.Dependency[IImageSanitizer] = providers.Dependency()
     token_service: providers.Dependency[ITokenService] = providers.Dependency()
 
-    garden_calendar = providers.Singleton(
-        GardenCalendar.from_name,
-        settings.provided.garden_timezone,
+    local_calendar = providers.Singleton(
+        LocalCalendar.from_name,
+        settings.provided.local_timezone,
     )
 
     login_use_case = providers.Factory(
@@ -131,7 +131,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
         AddPlantToGardenUseCase,
         uow=unit_of_work,
         publisher=domain_publisher,
-        calendar=garden_calendar,
+        calendar=local_calendar,
     )
 
     give_identification_feedback_use_case = providers.Factory(
@@ -152,13 +152,13 @@ class UseCasesContainer(containers.DeclarativeContainer):
     get_user_garden_use_case = providers.Factory(
         GetUserGardenUseCase,
         uow=unit_of_work,
-        calendar=garden_calendar,
+        calendar=local_calendar,
     )
 
     get_plant_details_use_case = providers.Factory(
         GetPlantDetailsUseCase,
         uow=unit_of_work,
-        calendar=garden_calendar,
+        calendar=local_calendar,
     )
 
     identify_plant_use_case = providers.Factory(
@@ -168,26 +168,28 @@ class UseCasesContainer(containers.DeclarativeContainer):
         plant_identifier=plant_identifier,
         storage=image_storage,
         publisher=domain_publisher,
+        calendar=local_calendar,
     )
 
     enrich_plant_species_use_case = providers.Factory(
         EnrichPlantSpeciesUseCase,
         uow=unit_of_work,
         enricher=plant_enricher,
+        calendar=local_calendar,
     )
 
     water_plant_use_case = providers.Factory(
         WaterPlantUseCase,
         uow=unit_of_work,
         publisher=domain_publisher,
-        calendar=garden_calendar,
+        calendar=local_calendar,
     )
 
     break_streak_cron_use_case = providers.Factory(
         BreakStreakCronUseCase,
         uow=unit_of_work,
         publisher=domain_publisher,
-        calendar=garden_calendar,
+        calendar=local_calendar,
     )
 
     list_user_achievements_use_case = providers.Factory(
@@ -202,6 +204,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
         health_analyzer=health_analyzer,
         plant_enricher=plant_enricher,
         storage=image_storage,
+        calendar=local_calendar,
     )
 
     get_health_history_use_case = providers.Factory(

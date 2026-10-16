@@ -11,7 +11,12 @@ from src.domain.use_cases.identify_plant_use_case import (
     IdentifyPlantUseCase,
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from tests.factories import make_identification_signals, make_species, make_user
+from tests.factories import (
+    CALENDAR,
+    make_identification_signals,
+    make_species,
+    make_user,
+)
 from tests.fakes import FakeUnitOfWork, MarkingSanitizer
 
 
@@ -43,6 +48,7 @@ def _use_case(confidence: float = 0.9):
         plant_identifier=identifier,
         storage=storage,
         publisher=AsyncMock(),
+        calendar=CALENDAR,
     )
     return use_case, uow, user, identifier, storage
 

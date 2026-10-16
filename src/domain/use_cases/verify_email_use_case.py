@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 
-from src.domain.exceptions import InvalidVerificationCodeError, UserNotFoundError
+from src.domain.exceptions import (
+    EmailAlreadyInUseError,
+    InvalidVerificationCodeError,
+    UserNotFoundError,
+)
 from src.domain.ports.otp_repository import IOtpRepository
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import UserId
@@ -13,7 +17,12 @@ class VerifyEmailInputDTO:
     raw_code: str
 
 class VerifyEmailUseCase:
-    raises = (InvalidVerificationCodeError, UserNotFoundError)
+    """
+    Confirma o código enviado por e-mail. Serve ao cadastro (verifica a conta) e à troca de e-mail
+    (o endereço pendente vira o e-mail da conta).
+    """
+
+    raises = (EmailAlreadyInUseError, InvalidVerificationCodeError, UserNotFoundError)
 
     def __init__(
         self,
@@ -29,7 +38,7 @@ class VerifyEmailUseCase:
             if not user:
                 raise UserNotFoundError(user_id=dto.user_id)
 
-            if user.is_verified:
+            if user.is_verified and user.pending_email is None:
                 return
 
             try:
@@ -41,7 +50,13 @@ class VerifyEmailUseCase:
             if not expected_code_str or submitted_code.raw_code != expected_code_str:
                 raise InvalidVerificationCodeError()
 
-            user.verify_email()
+            if user.pending_email is not None:
+                # Outra conta pode ter ficado com o endereço desde o pedido de troca
+                if await uow.users.get_by_email(user.pending_email):
+                    raise EmailAlreadyInUseError()
+                user.confirm_email_change()
+            else:
+                user.verify_email()
             await uow.users.save(user)
             await uow.commit()
 

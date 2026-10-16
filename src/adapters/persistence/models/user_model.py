@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,6 +21,8 @@ class UserModel(Base, AuditMixin):
     __table_args__ = (CheckConstraint("email = lower(btrim(email))", name="ck_users_email_normalized"),)
 
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    # Troca de e-mail aguardando o código (a unicidade é conferida de novo na confirmação)
+    pending_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # UserLocation achatado — VO não tem identidade própria no banco
@@ -34,6 +36,7 @@ class UserModel(Base, AuditMixin):
         default=SubscriptionTier.FREE,
     )
     tokens_used_today: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    tokens_day: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     subscription_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)

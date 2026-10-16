@@ -5,8 +5,8 @@ from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.user_plant import UserPlant
 from src.domain.exceptions import PlantNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.garden_calendar import GardenCalendar
 from src.domain.value_objects.ids import UserId, UserPlantId
+from src.domain.value_objects.local_calendar import LocalCalendar
 
 
 @dataclass(frozen=True)
@@ -25,7 +25,7 @@ class PlantDetailsOutput:
 class GetPlantDetailsUseCase:
     raises = (PlantNotFoundError,)
 
-    def __init__(self, uow: IUnitOfWork, calendar: GardenCalendar) -> None:
+    def __init__(self, uow: IUnitOfWork, calendar: LocalCalendar) -> None:
         self.uow = uow
         self.calendar = calendar
 

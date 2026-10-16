@@ -21,7 +21,7 @@ class CareSchedule:
     """
     Rotina de cuidado de uma planta. Não tem identidade própria: pertence ao `UserPlant`.
 
-    O vencimento é um dia do calendário local (`GardenCalendar`), não um instante. A janela do
+    O vencimento é um dia do calendário local (`LocalCalendar`), não um instante. A janela do
     cuidado vai de `WINDOW_DAYS` antes a `WINDOW_DAYS` depois do vencimento: antes dela é cedo
     demais; depois dela o cuidado foi perdido. Sem vencimento (nunca feito), vale a qualquer dia.
     """

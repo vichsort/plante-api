@@ -10,6 +10,7 @@ from src.domain.exceptions import (
     ExternalServiceError,
     InvalidImageError,
     PlantNotFoundError,
+    SubscriptionRequiredError,
     UserNotFoundError,
 )
 from src.domain.policies.subscription_policy import SubscriptionPolicy
@@ -19,7 +20,9 @@ from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.plant_enricher import HealthDiagnosisEnrichment, IPlantEnricher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import HealthRecordId, UserId, UserPlantId
+from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.sources import HealthSource
+from src.domain.value_objects.subscription_tier import FeatureCost
 from src.domain.value_objects.training_location import TrainingLocation, month_of
 
 log = structlog.stdlib.get_logger()
@@ -58,7 +61,7 @@ class DiagnoseHealthUseCase:
     momento (`GiveHealthFeedbackUseCase`).
     """
 
-    raises = (ExternalServiceError, InvalidImageError, PlantNotFoundError, UserNotFoundError)
+    raises = (ExternalServiceError, InvalidImageError, PlantNotFoundError, SubscriptionRequiredError, UserNotFoundError)
 
     def __init__(
         self,
@@ -67,15 +70,18 @@ class DiagnoseHealthUseCase:
         health_analyzer: IHealthAnalyzer,
         plant_enricher: IPlantEnricher,
         storage: IImageStorage,
+        calendar: LocalCalendar,
     ) -> None:
         self._uow = uow
         self._sanitizer = sanitizer
         self._health_analyzer = health_analyzer
         self._plant_enricher = plant_enricher
         self._storage = storage
+        self._calendar = calendar
 
     async def execute(self, dto: DiagnoseHealthInputDTO) -> DiagnoseHealthOutput:
         now = datetime.now(UTC)
+        today = self._calendar.date_of(now)
 
         # 1. Leitura curta: a transação não fica aberta durante as chamadas à IA e ao S3
         async with self._uow as uow:
@@ -87,13 +93,16 @@ class DiagnoseHealthUseCase:
             if not user_plant:
                 raise PlantNotFoundError(dto.user_plant_id)
 
+            SubscriptionPolicy.enforce_can_diagnose(user, now, today)
+            can_enrich = SubscriptionPolicy.can_enrich_diagnosis(user, now, today)
+
         # 2. Serviços externos, só com a foto já sem metadados (GPS, aparelho, data)
         image_bytes = self._sanitizer.sanitize(dto.image_bytes)
         assessment = await self._health_analyzer.assess_health(image_bytes)
 
         issues = [d.name for d in assessment.diseases]
         enrichment: HealthDiagnosisEnrichment | None = None
-        if assessment.health_probability < SubscriptionPolicy.health_unhealthy_threshold():
+        if can_enrich and assessment.health_probability < SubscriptionPolicy.health_unhealthy_threshold():
             # Gemini é complementar: se falhar, o diagnóstico segue só com o Kindwise
             try:
                 enrichment = await self._plant_enricher.diagnose_health(
@@ -135,10 +144,10 @@ class DiagnoseHealthUseCase:
             if not user:
                 raise UserNotFoundError(user_id=dto.user_id)
 
-            user.consume_identify_token()
+            user.consume_tokens(FeatureCost.DIAGNOSIS, today)
             if enrichment:
                 # Token extra só é cobrado quando a análise complementar foi entregue
-                user.consume_identify_token()
+                user.consume_tokens(FeatureCost.DIAGNOSIS_ENRICHMENT, today)
 
             training_sample = TrainingHealthSample(
                 id=TrainingHealthSample.new_id(),

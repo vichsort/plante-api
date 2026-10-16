@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from uuid import uuid4
 
 from src.domain.value_objects.email import normalize_email
 from src.domain.value_objects.ids import UserId
-from src.domain.value_objects.subscription_tier import SubscriptionTier
+from src.domain.value_objects.subscription_tier import FeatureCost, SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -27,6 +27,10 @@ class User:
     subscription: SubscriptionTier
     created_at: datetime | None = None
     tokens_used_today: int = 0
+    # Dia local a que `tokens_used_today` se refere: em outro dia o contador vale zero
+    tokens_day: date | None = None
+    # Novo e-mail aguardando o código: o atual continua valendo até a confirmação
+    pending_email: str | None = None
     subscription_expires_at: datetime | None = None
     bio: str | None = None
     profile_picture_url: str | None = None
@@ -62,26 +66,29 @@ class User:
     def verify_email(self) -> None:
         self.is_verified = True
 
-    def consume_identify_token(self) -> None:
-        """1 token por identificação simples."""
-        self.tokens_used_today += 1
+    def tokens_used_on(self, today: date) -> int:
+        """A cota é diária: o contador gravado só vale no dia a que se refere."""
+        return self.tokens_used_today if self.tokens_day == today else 0
 
-    def consume_deep_analysis_token(self) -> None:
-        """2 tokens por análise profunda de saúde."""
-        self.tokens_used_today += 2
-
-    def reset_daily_tokens(self) -> None:
-        """Chamado pelo worker diário (Celery Beat). Idempotente."""
-        self.tokens_used_today = 0
+    def consume_tokens(self, cost: FeatureCost, today: date) -> None:
+        """Zera ao virar o dia na primeira cobrança, sem cron (quem decide se pode é a política)."""
+        self.tokens_used_today = self.tokens_used_on(today) + cost.value
+        self.tokens_day = today
 
     def update_location(self, new_location: UserLocation) -> None:
         self.location = new_location
 
-    def change_email(self, new_email: str) -> None:
+    def request_email_change(self, new_email: str) -> None:
         new_email = normalize_email(new_email)
         self._assert_valid_email(new_email)
-        self.email = new_email
-        self.is_verified = False
+        self.pending_email = new_email
+
+    def confirm_email_change(self) -> None:
+        """O código chegou ao endereço novo: ele passa a ser o e-mail da conta, já verificado."""
+        if self.pending_email is None:
+            raise ValueError("There is no pending email change.")
+        self.email = self.pending_email
+        self.pending_email = None
 
     def change_password(self, new_hashed_password: str) -> None:
         if not new_hashed_password:
@@ -93,7 +100,7 @@ class User:
             raise ValueError("expires_at must be a future datetime.")
         self.subscription = SubscriptionTier.PRO
         self.subscription_expires_at = expires_at
-        self.tokens_used_today = 0
+        self.tokens_used_today = 0  # o upgrade começa com a cota do PRO cheia
 
     def is_pro(self, current_time: datetime) -> bool:
         return (

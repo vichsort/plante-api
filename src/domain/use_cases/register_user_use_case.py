@@ -3,7 +3,8 @@ from datetime import UTC, datetime
 
 from src.domain.entities.user import User
 from src.domain.events.domain_events import UserRegisteredEvent
-from src.domain.exceptions import EmailAlreadyInUseError
+from src.domain.exceptions import EmailAlreadyInUseError, WeakPasswordError
+from src.domain.policies.password_policy import PasswordPolicy
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.unit_of_work import IUnitOfWork
@@ -19,7 +20,7 @@ class RegisterUserInputDTO:
     state: str
 
 class RegisterUserUseCase:
-    raises = (EmailAlreadyInUseError,)
+    raises = (EmailAlreadyInUseError, WeakPasswordError)
 
     def __init__(
         self,
@@ -33,6 +34,7 @@ class RegisterUserUseCase:
 
     async def execute(self, dto: RegisterUserInputDTO) -> User:
         email = normalize_email(dto.email)
+        PasswordPolicy.enforce_strong(dto.password)
         hashed_pw = self.hasher.hash(dto.password)
 
         async with self.uow as uow:

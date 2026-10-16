@@ -24,8 +24,8 @@ from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.care_interval import CareInterval
-from src.domain.value_objects.garden_calendar import GardenCalendar
 from src.domain.value_objects.ids import IdentificationId, UserId, UserPlantId
+from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.sources import IdentificationOrigin
 
 
@@ -58,7 +58,7 @@ class AddPlantToGardenUseCase:
         self,
         uow: IUnitOfWork,
         publisher: IDomainPublisher,
-        calendar: GardenCalendar,
+        calendar: LocalCalendar,
     ) -> None:
         self.uow = uow
         self.publisher = publisher
@@ -82,7 +82,7 @@ class AddPlantToGardenUseCase:
                 return GardenPlant.of(existing, today)
 
             plants_in_garden = await uow.user_plants.count_by_user(dto.user_id)
-            SubscriptionPolicy.enforce_can_add_to_garden(user, plants_in_garden)
+            SubscriptionPolicy.enforce_can_add_to_garden(user, plants_in_garden, now)
 
             plant = await uow.user_plants.save(UserPlant(
                 id=UserPlantId(uuid4()),

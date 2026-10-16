@@ -50,7 +50,7 @@ class ChangeEmailUseCase:
             if existing is not None:
                 raise EmailAlreadyInUseError()
 
-            user.change_email(new_email=new_email)
+            user.request_email_change(new_email=new_email)
             await uow.users.save(user)
             await uow.commit()
 

@@ -4,8 +4,8 @@ from enum import StrEnum
 
 from src.domain.entities.care_schedule import CareSchedule
 from src.domain.exceptions import PlantNotReadyForWateringError
-from src.domain.value_objects.garden_calendar import GardenCalendar
 from src.domain.value_objects.ids import IdentificationId, UserId, UserPlantId
+from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.streak import Streak
 
 
@@ -52,7 +52,7 @@ class UserPlant:
         schedule = self.care_schedule
         return schedule.next_due_on is not None and schedule.is_window_open(today)
 
-    def next_watering_on(self, calendar: GardenCalendar) -> date | None:
+    def next_watering_on(self, calendar: LocalCalendar) -> date | None:
         """Primeiro dia em que a próxima rega é aceita (None: qualquer dia). Uma rega por dia."""
         opens_on = self.care_schedule.window_opens_on
         if self.last_watered_at is None:
@@ -60,7 +60,7 @@ class UserPlant:
         day_after_last = calendar.date_of(self.last_watered_at) + timedelta(days=1)
         return day_after_last if opens_on is None else max(opens_on, day_after_last)
 
-    def water(self, action_time: datetime, calendar: GardenCalendar) -> None:
+    def water(self, action_time: datetime, calendar: LocalCalendar) -> None:
         today = calendar.date_of(action_time)
         earliest = self.next_watering_on(calendar)
         if earliest is not None and today < earliest:

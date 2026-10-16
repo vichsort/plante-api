@@ -37,5 +37,7 @@ def test_user_email_is_normalized_on_creation_and_change():
     )
     assert user.email == "dev@plante.org"
 
-    user.change_email("  Novo@Plante.org")
-    assert user.email == "novo@plante.org"
+    user.request_email_change("  Novo@Plante.org")
+    assert (user.email, user.pending_email) == ("dev@plante.org", "novo@plante.org")
+    user.confirm_email_change()
+    assert (user.email, user.pending_email) == ("novo@plante.org", None)
