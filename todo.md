@@ -227,7 +227,7 @@ Substitui as recomendações anteriores ("só o piloto"). O usuário quer migrar
 ```
 src/
   main.py
-  bootstrap/      # hoje src/infrastructure: settings, container raiz, Celery, app FastAPI (decidido renomear)
+  bootstrap/      # composição (antes src/infrastructure): settings, container raiz, Celery, app FastAPI, probes
   shared/         # mesmo layout de um módulo, sem regra de negócio
   modules/  identity  subscription  catalog  training  identification  garden  health  achievements
 tests/            # testbed + e2e
@@ -334,7 +334,24 @@ shared
    - Fluxos cobertos: auth, perfil, identificação (inclusive EXIF removido de ponta a ponta), jardim, saúde, cota de tokens, rate limit e acesso de outro usuário (404).
    - O que é esquisito e continua assim de propósito está marcado com `# Hoje:` (upgrade sem pagamento, conquistas vazias). Os demais achados foram corrigidos na `v0.1.2`, e os testes passaram a descrever o comportamento novo.
    - Estes testes precisam continuar passando com o código movido. No milestone 1 viram a pasta `tests/e2e/` da raiz, e o testbed sai do `tests/conftest.py`.
-1. **Esqueleto:** `shared/`, `bootstrap/`, contratos do import-linter, testes das regras (README, barrel, layout, AAA, faixas de erro), template de README e novo `ARCHITECTURE.md`.
+1. ~~**Esqueleto**~~ ✅ (2026-10-16, branch `refactor/modules-skeleton`).
+   - **Composição e kernel:**
+     - `src/infrastructure` → `src/bootstrap` (o probe de readiness também foi para lá, porque precisa do container).
+     - `src/shared/` com o kernel e a infra comum, importado pela camada (`src.shared.domain`, `.adapters`, `.api`, `.workers`). Fica em `src/shared/README.md`.
+     - `src/modules/` criado, ainda vazio.
+   - **Verificação:**
+     - Contratos do import-linter com curingas (`src.modules.*`): camadas globais com o código antigo no meio, camadas do shared, camadas de cada módulo e domínio puro.
+     - `tests/architecture/`: layout, README, erros documentados, códigos únicos, barrels e AAA. Cada regra é provada com módulos sintéticos (`test_rules.py`).
+   - **Testes e docs:**
+     - Testbed em `tests/testbed` (plugin, carregado pelo `conftest.py` da raiz). Os testes do shared foram para `src/shared/tests` com AAA.
+     - `ARCHITECTURE.md` só com regras. As regras de negócio ainda não migradas ficam em `docs/domain-map.md` (transitório, encolhe a cada módulo).
+   - **Ajustes em relação ao combinado** (com o motivo):
+     - **Faixas de código de erro descartadas:** os códigos atuais são contrato da API e não podem ser renumerados. A regra virou: código único no projeto e todo erro documentado no README do módulo.
+     - **A raiz do módulo exporta só domínio.** Senão, o domínio de quem importa puxaria frameworks pelo barrel. A composição (`main`/`bootstrap`) é a única que importa também `container`, `api` e `workers` de um módulo.
+     - **O shared não tem barrel na raiz,** só por camada, pelo mesmo motivo.
+     - **O rate limit não conhece mais o identity:** o decodificador de token devolve `None` para token inválido (antes capturava o `UnauthorizedError`).
+     - **AAA obrigatório só nos testes dos módulos e nos e2e;** os antigos em `tests/` ganham os marcadores quando o módulo deles migrar.
+     - **Ficaram em `tests/` até o módulo migrar:** o teste dos middlewares (usa JWT e container) e o do wrapper do circuit breaker (identification).
 2. **Piloto: identification + catalog.** Avaliar se o padrão se paga antes de replicar.
 3. training → health → garden → subscription → identity (por último, o mais acoplado) → achievements.
 
