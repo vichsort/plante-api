@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import datetime
 
 
 @dataclass(frozen=True)
 class Streak:
+    """Regas seguidas feitas no prazo. Quem diz se a rega veio no prazo é o `CareSchedule`."""
     current_count: int
     last_action_time: datetime | None = None
 
@@ -13,25 +14,12 @@ class Streak:
         if self.last_action_time is not None and self.last_action_time.tzinfo is None:
             raise ValueError("last_action_time must be timezone-aware.")
 
-    def _get_domain_date(self, dt: datetime) -> date:
-        """Dia vira às 08:00 — 07:59 ainda conta como dia anterior."""
-        return (dt - timedelta(hours=8)).date()
-
-    def register_action(self, action_time: datetime) -> "Streak":
+    def register_action(self, action_time: datetime, on_time: bool) -> "Streak":
         if action_time.tzinfo is None:
             raise ValueError("action_time must be timezone-aware.")
+        # Atrasada recomeça a contagem: ela mesma é a primeira da nova sequência
+        count = self.current_count + 1 if on_time else 1
+        return Streak(current_count=count, last_action_time=action_time)
 
-        if self.last_action_time is None:
-            return Streak(current_count=1, last_action_time=action_time)
-
-        delta_days = (
-            self._get_domain_date(action_time)
-            - self._get_domain_date(self.last_action_time)
-        ).days
-
-        if delta_days == 0:
-            return self
-        elif delta_days == 1:
-            return Streak(current_count=self.current_count + 1, last_action_time=action_time)
-        else:
-            return Streak(current_count=1, last_action_time=action_time)
+    def broken(self) -> "Streak":
+        return Streak(current_count=0, last_action_time=self.last_action_time)

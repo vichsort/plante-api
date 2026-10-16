@@ -89,13 +89,14 @@ Embora o código viva em uma estrutura Hexagonal unificada, o domínio do **Plan
 ### 2.3. Sub-Domínio de Gestão de Jardim & Cuidados (`Garden Management Context`)
 * **Propósito**: Manter a coleção de plantas do usuário (o "jardim"), controlar rotinas de rega, adubação e acompanhar a frequência de cuidados (`Streak`).
 * **Entidades Principais**: `UserPlant`, `CareSchedule`, `Streak`.
-* **Entradas (Use Cases)**: `AddPlantToGardenUseCase`, `WaterPlantUseCase`, `GetUserGardenUseCase`, `GetPlantDetailsUseCase`, `DeleteUserPlantUseCase`.
+* **Entradas (Use Cases)**: `AddPlantToGardenUseCase`, `WaterPlantUseCase`, `GetUserGardenUseCase`, `GetPlantDetailsUseCase`, `DeleteUserPlantUseCase`, `BreakStreakCronUseCase` (worker).
 * **Ports Requeridos**: `IUnitOfWork` (`user_plants`, `identifications`, `training`).
 * **Regras de Negócio**:
   - Uma planta só entra no jardim a partir de uma identificação (`POST /garden` com `identification_id`): é aí que o `UserPlant` é criado. Repetir com a mesma identificação devolve a planta existente.
   - Limite do plano conta as plantas **ativas** no jardim (`count_by_user`; não há contador guardado): FREE até 3, PRO até 50 (`SubscriptionPolicy.enforce_can_add_to_garden`).
   - Adicionar ao jardim registra um sinal implícito positivo (`added_to_garden`) na amostra de treino da identificação.
-  - Cada rega efetuada no prazo incrementa o `Streak` (sequência) do usuário e recalcula o próximo vencimento em `CareSchedule`.
+  - **Rega e sequência** (`CareSchedule`, `Streak`): o vencimento é um **dia do calendário local** (`GardenCalendar`, fuso em `GARDEN_TIMEZONE`, padrão `America/Sao_Paulo`), não um instante. A janela vai de 1 dia antes a 1 dia depois do vencimento. Antes dela a rega é recusada (`PLANTE_4016`); dentro dela soma 1 à sequência; depois dela é aceita, mas a sequência recomeça em 1. Uma rega por dia. A primeira rega (sem vencimento) vale a qualquer dia. Cada rega recalcula o vencimento (dia da rega + intervalo).
+  - O cron diário `garden.break_missed_streaks` (beat, 03:00 no fuso do jardim) zera a sequência das plantas cuja janela passou inteira e publica `StreakBrokenEvent`. Rodar de novo no mesmo dia não quebra nada a mais.
   - Exclusão de plantas utiliza **Soft Delete** (`deleted_at.is_(None)`). **Não é rejeição da identificação** (a planta pode ter morrido): identificação e dado de treino não mudam.
 
 ---
@@ -184,7 +185,7 @@ Cada exceção carrega um **Código Único Máquina-Readable** e um **Status HTT
 | `PLANTE_4012_IDENTIFICATION_NOT_FOUND` | `IdentificationNotFoundError` | Identificação não existe ou não pertence ao usuário (feedback, adicionar ao jardim). | 404 |
 | `PLANTE_4013_INVALID_IMAGE` | `InvalidImageError`, `NotAPlantError` | Imagem ilegível ou sem planta. Regras abaixo. | 400 |
 | `PLANTE_4014_SPECIES_NOT_FOUND` | `SpeciesNotFoundError` | Espécie não existe. | 404 |
-| `PLANTE_4016_NOT_READY_FOR_WATERING` | `PlantNotReadyForWateringError` | Rega antes do intervalo ou no mesmo dia (`UserPlant.water()`). | 400 |
+| `PLANTE_4016_NOT_READY_FOR_WATERING` | `PlantNotReadyForWateringError` | Rega antes da janela (vencimento − 1 dia) ou segunda rega no mesmo dia (`UserPlant.water()`). | 400 |
 | `PLANTE_4017_HEALTH_RECORD_NOT_FOUND` | `HealthRecordNotFoundError` | Diagnóstico não existe ou não pertence ao usuário. | 404 |
 | `PLANTE_4019_SUBSCRIPTION_REQUIRED` | `SubscriptionRequiredError` | Recurso exclusivo do plano Pro ou tokens diários esgotados (`SubscriptionPolicy`). | 403 |
 | `PLANTE_4029_RATE_LIMIT_EXCEEDED` | `RateLimitExceededError` | Limite de requisições por minuto excedido (`RateLimitMiddleware`). | 429 |

@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import UUID, Boolean, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import UUID, Boolean, Date, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -48,7 +48,8 @@ class UserPlantModel(Base, AuditMixin):
     care_type: Mapped[str] = mapped_column(String(50), nullable=False)
     care_interval_days: Mapped[int] = mapped_column(Integer, nullable=False)
     care_is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    care_next_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Dia do calendário local (`GardenCalendar`), não instante
+    care_next_due_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     care_last_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     care_climate_adjusted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     care_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

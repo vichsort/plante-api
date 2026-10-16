@@ -18,6 +18,7 @@ from src.domain.entities.user_plant import (
 from src.domain.value_objects.care_interval import CareInterval
 from src.domain.value_objects.ids import UserPlantId
 from src.domain.value_objects.user_location import UserLocation
+from tests.factories import CALENDAR
 from tests.integration.persistence.seed import seed_identification
 
 
@@ -43,7 +44,7 @@ async def test_user_plant_repository_crud_and_soft_delete(db_session: AsyncSessi
         care_type=CareType.WATER,
         interval=CareInterval(days=2),
         is_active=True,
-        next_due_at=now + timedelta(days=2),
+        next_due_on=(now + timedelta(days=2)).date(),
         created_at=now,
     )
 
@@ -90,7 +91,7 @@ async def test_user_plant_repository_crud_and_soft_delete(db_session: AsyncSessi
     assert details.species is not None
     assert details.species.scientific_name == "Monstera deliciosa"
 
-    saved_plant.water(now + timedelta(days=3))
+    saved_plant.water(now + timedelta(days=3), CALENDAR)
     await plant_repo.save(saved_plant)
     await db_session.commit()
     watered = await plant_repo.get_by_id(saved_plant.id, saved_user.id)

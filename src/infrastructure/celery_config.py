@@ -2,6 +2,7 @@ import uuid
 
 import structlog
 from celery import Celery, Task
+from celery.schedules import crontab
 from celery.signals import before_task_publish, task_postrun, task_prerun
 
 from src.infrastructure.settings import get_settings
@@ -18,15 +19,22 @@ celery_app = Celery(
     # importar: `src.workers` fica acima desta camada)
     include=[
         "src.workers.notification_tasks",
+        "src.workers.garden_tasks",
     ],
 )
 
 # Celery 6 deixa de tentar reconectar ao broker na subida sem isto (hoje só avisa)
 celery_app.conf.broker_connection_retry_on_startup = True
 
-# Tarefas agendadas (`celery -A src.workers beat`). A anonimização diária saiu: dado de treino
-# já nasce anônimo, separado do dado do usuário.
-celery_app.conf.beat_schedule = {}
+# Tarefas agendadas (`celery -A src.workers beat`, uma instância só). O crontab segue o fuso do
+# jardim: "03:00" é de madrugada no Brasil, longe da virada do dia e do horário de uso.
+celery_app.conf.update(timezone=get_settings().garden_timezone)
+celery_app.conf.beat_schedule = {
+    "garden-break-missed-streaks": {
+        "task": "garden.break_missed_streaks",
+        "schedule": crontab(hour=3, minute=0),
+    },
+}
 
 # Correlation ID: a task herda o ID da requisição que a publicou. O nome evita `correlation_id`,
 # que o Celery já usa como ID da própria task.

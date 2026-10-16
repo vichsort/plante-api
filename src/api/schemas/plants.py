@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -6,14 +6,14 @@ from pydantic import BaseModel
 from src.domain.entities.care_schedule import CareType
 from src.domain.entities.plant_species import LightRequirement, PlantSpecies, SoilType
 from src.domain.entities.user_plant import IdentificationSource, IdentificationStatus
-from src.domain.ports.user_plant_repository import PlantDetails
+from src.domain.use_cases.get_plant_details_use_case import PlantDetailsOutput
 
 
 class CareScheduleResponse(BaseModel):
     care_type: CareType
     interval_days: int
     is_active: bool
-    next_due_at: datetime | None
+    next_due_on: date | None
 
 class SpeciesInfoResponse(BaseModel):
     family: str | None
@@ -56,7 +56,7 @@ class PlantDetailsResponse(BaseModel):
     species_info: SpeciesInfoResponse | None
 
     @classmethod
-    def from_domain(cls, details: PlantDetails) -> "PlantDetailsResponse":
+    def from_domain(cls, details: PlantDetailsOutput) -> "PlantDetailsResponse":
         plant = details.plant
         care = plant.care_schedule
         return cls(
@@ -71,13 +71,13 @@ class PlantDetailsResponse(BaseModel):
             status=plant.status,
             added_at=plant.added_at,
             last_watered_at=plant.last_watered_at,
-            needs_watering=plant.needs_watering,
+            needs_watering=details.needs_watering,
             watering_streak=plant.watering_streak.current_count,
             care_schedule=CareScheduleResponse(
                 care_type=care.care_type,
                 interval_days=care.interval.days,
                 is_active=care.is_active,
-                next_due_at=care.next_due_at,
+                next_due_on=care.next_due_on,
             ),
             species_info=SpeciesInfoResponse.from_domain(details.species) if details.species else None,
         )

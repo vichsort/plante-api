@@ -41,6 +41,8 @@ dependencies = [
     "aiofiles==25.1.0",
     # --- Imagens (remoção de EXIF antes de qualquer uso) ---
     "pillow==12.3.0",
+    # --- Fusos (zoneinfo): imagem slim pode não ter o banco de fusos do sistema ---
+    "tzdata==2026.2",
     # --- Logs ---
     "structlog==24.4.0",
     # --- Resiliência ---

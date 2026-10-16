@@ -9,6 +9,7 @@ from src.domain.entities.training import (
     TrainingFeedback,
 )
 from src.domain.entities.user_plant import (
+    GardenPlant,
     IdentificationSource,
     IdentificationStatus,
     UserPlant,
@@ -23,6 +24,7 @@ from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.care_interval import CareInterval
+from src.domain.value_objects.garden_calendar import GardenCalendar
 from src.domain.value_objects.ids import IdentificationId, UserId, UserPlantId
 from src.domain.value_objects.sources import IdentificationOrigin
 
@@ -56,12 +58,15 @@ class AddPlantToGardenUseCase:
         self,
         uow: IUnitOfWork,
         publisher: IDomainPublisher,
+        calendar: GardenCalendar,
     ) -> None:
         self.uow = uow
         self.publisher = publisher
+        self.calendar = calendar
 
-    async def execute(self, dto: AddPlantToGardenInputDTO) -> UserPlant:
+    async def execute(self, dto: AddPlantToGardenInputDTO) -> GardenPlant:
         now = datetime.now(UTC)
+        today = self.calendar.date_of(now)
 
         async with self.uow as uow:
             user = await uow.users.get_by_id(dto.user_id)
@@ -74,7 +79,7 @@ class AddPlantToGardenUseCase:
 
             existing = await uow.user_plants.get_by_identification(identification.id, dto.user_id)
             if existing is not None:
-                return existing
+                return GardenPlant.of(existing, today)
 
             plants_in_garden = await uow.user_plants.count_by_user(dto.user_id)
             SubscriptionPolicy.enforce_can_add_to_garden(user, plants_in_garden)
@@ -113,4 +118,4 @@ class AddPlantToGardenUseCase:
             is_first_plant=plants_in_garden == 0,
         ))
 
-        return plant
+        return GardenPlant.of(plant, today)

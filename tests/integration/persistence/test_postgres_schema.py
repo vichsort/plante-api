@@ -4,7 +4,7 @@ ações das FKs. O schema vem das migrations (fixture `postgres_url`), então os
 banco real, não o metadata dos modelos.
 """
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
 import pytest
@@ -30,6 +30,7 @@ from src.domain.entities.training import (
     FeedbackVerdict,
     TrainingFeedback,
 )
+from src.domain.value_objects.streak import Streak
 from tests.factories import (
     MONTH,
     make_care_schedule,
@@ -67,9 +68,9 @@ async def test_datetime_keeps_instant_regardless_of_session_time_zone(db_session
     user = await UserRepository(db_session).save(make_user(email="tz@plante.org"))
     identification = await seed_identification(db_session, user.id)
     added_at = datetime(2026, 10, 15, 21, 30, tzinfo=_BRT)  # 00:30 UTC do dia seguinte
-    due_at = datetime(2026, 10, 22, 9, 0, tzinfo=_BRT)
+    due_on = date(2026, 10, 22)
     plant = make_user_plant(
-        user_id=user.id, identification_id=identification.id, care_schedule=make_care_schedule(next_due_at=due_at)
+        user_id=user.id, identification_id=identification.id, care_schedule=make_care_schedule(next_due_on=due_on)
     )
     plant = replace(plant, added_at=added_at)
     repo = UserPlantRepository(db_session)
@@ -82,26 +83,32 @@ async def test_datetime_keeps_instant_regardless_of_session_time_zone(db_session
     assert loaded is not None
     assert loaded.added_at == added_at
     assert loaded.added_at.utcoffset() is not None
-    assert loaded.care_schedule.next_due_at == due_at
+    assert loaded.care_schedule.next_due_on == due_on  # dia local: o fuso da sessão não o desloca
 
 
-async def test_overdue_query_compares_instants_across_offsets(db_session: AsyncSession) -> None:
+async def test_streak_query_selects_by_local_due_day(db_session: AsyncSession) -> None:
+    # Arrange
     user = await UserRepository(db_session).save(make_user(email="overdue@plante.org"))
-    identification = await seed_identification(db_session, user.id)
-    due_at = datetime(2026, 10, 15, 9, 0, tzinfo=_BRT)  # 12:00 UTC
-    plant = make_user_plant(
-        user_id=user.id, identification_id=identification.id, care_schedule=make_care_schedule(next_due_at=due_at)
-    )
     repo = UserPlantRepository(db_session)
-    await repo.save(plant)
+    due_on = date(2026, 10, 15)
+    plants = {}
+    for name, streak in (("with_streak", 3), ("without_streak", 0)):
+        identification = await seed_identification(db_session, user.id)
+        plant = make_user_plant(
+            user_id=user.id, identification_id=identification.id, care_schedule=make_care_schedule(next_due_on=due_on)
+        )
+        plant.watering_streak = Streak(current_count=streak)
+        plants[name] = await repo.save(plant)
     await db_session.commit()
 
-    # Mesmo instante em outro fuso: 11:59 UTC ainda não venceu; 12:01 UTC já venceu
-    before = datetime(2026, 10, 15, 20, 59, tzinfo=timezone(timedelta(hours=9)))
-    after = datetime(2026, 10, 15, 21, 1, tzinfo=timezone(timedelta(hours=9)))
+    # Act
+    on_due_day = [p.id for p in await repo.list_with_streak_due_before(due_on)]
+    day_after = [p.id for p in await repo.list_with_streak_due_before(due_on + timedelta(days=1))]
 
-    assert plant.id not in [p.id for p in await repo.get_overdue_plants(before)]
-    assert plant.id in [p.id for p in await repo.get_overdue_plants(after)]
+    # Assert
+    assert plants["with_streak"].id not in on_due_day
+    assert plants["with_streak"].id in day_after
+    assert plants["without_streak"].id not in day_after  # sem sequência não há o que quebrar
 
 
 # --- Enums nativos ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 """Entidades de domínio válidas para os testes, com valores padrão sobrescrevíveis."""
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
 
 from src.domain.entities.care_schedule import CareSchedule, CareType
@@ -17,6 +17,7 @@ from src.domain.entities.user_plant import (
     UserPlant,
 )
 from src.domain.value_objects.care_interval import CareInterval
+from src.domain.value_objects.garden_calendar import GardenCalendar
 from src.domain.value_objects.ids import (
     HealthRecordId,
     IdentificationId,
@@ -37,6 +38,7 @@ from src.domain.value_objects.training_location import TrainingLocation
 from src.domain.value_objects.user_location import UserLocation
 
 NOW = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)
+CALENDAR = GardenCalendar.from_name("America/Sao_Paulo")
 
 
 def make_user(
@@ -61,13 +63,13 @@ def make_user(
     )
 
 
-def make_care_schedule(next_due_at: datetime | None = None) -> CareSchedule:
+def make_care_schedule(next_due_on: date | None = None) -> CareSchedule:
     return CareSchedule(
         care_type=CareType.WATER,
         interval=CareInterval(days=7),
         is_active=True,
         created_at=NOW,
-        next_due_at=next_due_at,
+        next_due_on=next_due_on,
     )
 
 

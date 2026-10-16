@@ -16,7 +16,7 @@ class UserPlantMapper:
             interval=CareInterval(days=model.care_interval_days),
             is_active=model.care_is_active,
             created_at=model.care_created_at,
-            next_due_at=model.care_next_due_at,
+            next_due_on=model.care_next_due_on,
             last_completed_at=model.care_last_completed_at,
             climate_adjusted=model.care_climate_adjusted,
         )
@@ -59,7 +59,7 @@ class UserPlantMapper:
             care_type=cs.care_type.value,
             care_interval_days=cs.interval.days,
             care_is_active=cs.is_active,
-            care_next_due_at=cs.next_due_at,
+            care_next_due_on=cs.next_due_on,
             care_last_completed_at=cs.last_completed_at,
             care_climate_adjusted=cs.climate_adjusted,
             care_created_at=cs.created_at,

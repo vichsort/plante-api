@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from src.domain.entities.user_plant import UserPlant
+from src.domain.entities.user_plant import GardenPlant, UserPlant
 
 
 class AddPlantToGardenRequest(BaseModel):
@@ -15,7 +15,7 @@ class AddPlantToGardenRequest(BaseModel):
 class WaterPlantResponse(BaseModel):
     user_plant_id: UUID
     last_watered_at: datetime | None = None
-    next_due_at: datetime | None = None
+    next_due_on: date | None = None
     current_streak: int
 
     @classmethod
@@ -23,7 +23,7 @@ class WaterPlantResponse(BaseModel):
         return cls(
             user_plant_id=plant.id,
             last_watered_at=plant.last_watered_at,
-            next_due_at=plant.care_schedule.next_due_at,
+            next_due_on=plant.care_schedule.next_due_on,
             current_streak=plant.watering_streak.current_count,
         )
 
@@ -34,12 +34,13 @@ class GardenItemResponse(BaseModel):
     display_name: str
     primary_image_url: str | None = None
     last_watered_at: datetime | None = None
-    next_due_at: datetime | None = None
+    next_due_on: date | None = None
     needs_watering: bool
     streak_count: int
 
     @classmethod
-    def from_domain(cls, plant: UserPlant) -> "GardenItemResponse":
+    def from_domain(cls, item: GardenPlant) -> "GardenItemResponse":
+        plant = item.plant
         return cls(
             id=plant.id,
             scientific_name=plant.scientific_name,
@@ -47,7 +48,7 @@ class GardenItemResponse(BaseModel):
             display_name=plant.display_name,
             primary_image_url=plant.primary_image_url,
             last_watered_at=plant.last_watered_at,
-            next_due_at=plant.care_schedule.next_due_at,
-            needs_watering=plant.needs_watering,
+            next_due_on=plant.care_schedule.next_due_on,
+            needs_watering=item.needs_watering,
             streak_count=plant.watering_streak.current_count,
         )

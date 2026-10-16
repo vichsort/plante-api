@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
-from src.domain.ports.user_plant_repository import PlantDetails
+from src.domain.use_cases.get_plant_details_use_case import PlantDetailsOutput
 from tests.factories import make_species, make_user_plant
 
 
@@ -12,7 +12,7 @@ def test_get_plant_details_route_success(client: TestClient, auth_headers: dict[
     user_plant_id = str(plant.id)
 
     mock_use_case = AsyncMock()
-    mock_use_case.execute.return_value = PlantDetails(plant=plant, species=make_species())
+    mock_use_case.execute.return_value = PlantDetailsOutput(plant=plant, species=make_species(), needs_watering=False)
 
     with client.app.state.container.use_cases.get_plant_details_use_case.override(mock_use_case):
         response = client.get(f"/plants/{user_plant_id}", headers=auth_headers)

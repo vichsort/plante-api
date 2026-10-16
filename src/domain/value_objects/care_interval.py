@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 
 MAX_INTERVAL_DAYS = 365
 
@@ -13,7 +13,5 @@ class CareInterval:
         if self.days > MAX_INTERVAL_DAYS:
             raise ValueError(f"Care interval cannot exceed {MAX_INTERVAL_DAYS} days. Got: {self.days}")
 
-    def calculate_next_due_date(self, actual_action_date: date) -> datetime:
-        """Retorna datetime aware (UTC) para comparação homogênea com is_overdue."""
-        next_date = actual_action_date + timedelta(days=self.days)
-        return datetime(next_date.year, next_date.month, next_date.day, tzinfo=UTC)
+    def calculate_next_due_date(self, actual_action_date: date) -> date:
+        return actual_action_date + timedelta(days=self.days)

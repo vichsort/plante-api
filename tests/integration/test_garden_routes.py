@@ -2,7 +2,8 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
-from tests.factories import NOW, make_user_plant
+from src.domain.entities.user_plant import GardenPlant
+from tests.factories import CALENDAR, NOW, make_user_plant
 
 
 def test_get_garden_route_success(client: TestClient, auth_headers: dict[str, str]):
@@ -10,7 +11,7 @@ def test_get_garden_route_success(client: TestClient, auth_headers: dict[str, st
     plant.nickname = "Clotilde"
     user_plant_id = str(plant.id)
     mock_use_case = AsyncMock()
-    mock_use_case.execute.return_value = [plant]
+    mock_use_case.execute.return_value = [GardenPlant(plant=plant, needs_watering=True)]
 
     with client.app.state.container.use_cases.get_user_garden_use_case.override(mock_use_case):
         response = client.get("/garden", headers=auth_headers)
@@ -22,11 +23,12 @@ def test_get_garden_route_success(client: TestClient, auth_headers: dict[str, st
     assert payload["data"][0]["id"] == user_plant_id
     assert payload["data"][0]["nickname"] == "Clotilde"
     assert payload["data"][0]["display_name"] == "Clotilde"
+    assert payload["data"][0]["needs_watering"] is True
     assert "x-response-time-ms" in response.headers
 
 def test_water_plant_route_success(client: TestClient, auth_headers: dict[str, str]):
     plant = make_user_plant()
-    plant.water(NOW)
+    plant.water(NOW, CALENDAR)
     user_plant_id = str(plant.id)
     mock_use_case = AsyncMock()
     mock_use_case.execute.return_value = plant
@@ -40,12 +42,13 @@ def test_water_plant_route_success(client: TestClient, auth_headers: dict[str, s
     assert payload["data"]["user_plant_id"] == user_plant_id
     assert payload["data"]["current_streak"] == 1
     assert payload["data"]["last_watered_at"] == "2026-10-15T12:00:00Z"
+    assert payload["data"]["next_due_on"] == "2026-10-22"
 
 
 def test_add_plant_to_garden_route_creates_plant_from_identification(client: TestClient, auth_headers: dict[str, str]):
     plant = make_user_plant()
     mock_use_case = AsyncMock()
-    mock_use_case.execute.return_value = plant
+    mock_use_case.execute.return_value = GardenPlant(plant=plant, needs_watering=False)
 
     with client.app.state.container.use_cases.add_plant_to_garden_use_case.override(mock_use_case):
         response = client.post(

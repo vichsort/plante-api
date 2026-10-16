@@ -10,6 +10,7 @@ from src.domain.exceptions import (
 )
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.unit_of_work import IUnitOfWork
+from src.domain.value_objects.garden_calendar import GardenCalendar
 from src.domain.value_objects.ids import UserId, UserPlantId
 
 
@@ -25,9 +26,11 @@ class WaterPlantUseCase:
         self,
         uow: IUnitOfWork,
         publisher: IDomainPublisher,
+        calendar: GardenCalendar,
     ) -> None:
         self.uow = uow
         self.publisher = publisher
+        self.calendar = calendar
 
     async def execute(self, dto: WaterPlantInputDTO) -> UserPlant:
         async with self.uow as uow:
@@ -38,7 +41,7 @@ class WaterPlantUseCase:
             if plant.user_id != dto.user_id:
                 raise ForbiddenError("Você não tem permissão para regar esta planta.")
 
-            plant.water(datetime.now(UTC))
+            plant.water(datetime.now(UTC), self.calendar)
             await uow.user_plants.save(plant)
             await uow.commit()
 

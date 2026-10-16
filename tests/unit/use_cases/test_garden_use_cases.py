@@ -1,5 +1,5 @@
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -17,6 +17,7 @@ from src.domain.use_cases.add_plant_to_garden_use_case import (
     AddPlantToGardenInputDTO,
     AddPlantToGardenUseCase,
 )
+from src.domain.use_cases.break_streak_cron_use_case import BreakStreakCronUseCase
 from src.domain.use_cases.delete_user_plant_use_case import (
     DeleteUserPlantInputDTO,
     DeleteUserPlantUseCase,
@@ -37,7 +38,9 @@ from src.domain.value_objects.ids import (
     UserPlantId,
 )
 from src.domain.value_objects.sources import IdentificationOrigin
+from src.domain.value_objects.streak import Streak
 from tests.factories import (
+    CALENDAR,
     make_care_schedule,
     make_identification,
     make_user,
@@ -58,7 +61,7 @@ def _garden_use_case(identification: Identification | None, existing: UserPlant 
     training = AsyncMock()
     uow = FakeUnitOfWork(users=user_repo, identifications=identifications, user_plants=user_plants, training=training)
     publisher = AsyncMock()
-    return AddPlantToGardenUseCase(uow=uow, publisher=publisher), uow, publisher
+    return AddPlantToGardenUseCase(uow=uow, publisher=publisher, calendar=CALENDAR), uow, publisher
 
 
 def _identification(source: IdentificationOrigin = "consensus") -> Identification:
@@ -75,14 +78,16 @@ async def test_add_plant_to_garden_creates_plant_from_identification():
     identification = _identification()
     use_case, uow, publisher = _garden_use_case(identification)
 
-    plant = await use_case.execute(AddPlantToGardenInputDTO(
+    item = await use_case.execute(AddPlantToGardenInputDTO(
         user_id=identification.user_id, identification_id=identification.id, nickname="Clotilde",
     ))
+    plant = item.plant
 
     assert plant.identification_id == identification.id
     assert plant.scientific_name == identification.scientific_name
     assert plant.primary_image_url == identification.image_key
     assert plant.nickname == "Clotilde"
+    assert item.needs_watering is False  # nunca regada: ainda não tem vencimento
     assert uow.committed
     publisher.publish.assert_called_once()
 
@@ -105,9 +110,9 @@ async def test_adding_same_identification_twice_returns_existing_plant():
     existing = make_user_plant(user_id=identification.user_id, identification_id=identification.id)
     use_case, uow, publisher = _garden_use_case(identification, existing=existing)
 
-    plant = await use_case.execute(AddPlantToGardenInputDTO(user_id=identification.user_id, identification_id=identification.id))
+    item = await use_case.execute(AddPlantToGardenInputDTO(user_id=identification.user_id, identification_id=identification.id))
 
-    assert plant is existing
+    assert item.plant is existing
     uow.user_plants.save.assert_not_called()
     uow.training.add_feedback.assert_not_called()
     publisher.publish.assert_not_called()
@@ -142,9 +147,9 @@ async def test_plant_source_follows_identification_origin(origin: Identification
     identification = _identification(source=origin)
     use_case, _, _ = _garden_use_case(identification)
 
-    plant = await use_case.execute(AddPlantToGardenInputDTO(user_id=identification.user_id, identification_id=identification.id))
+    item = await use_case.execute(AddPlantToGardenInputDTO(user_id=identification.user_id, identification_id=identification.id))
 
-    assert plant.identification_source == expected
+    assert item.plant.identification_source == expected
 
 
 @pytest.mark.asyncio
@@ -173,15 +178,15 @@ async def test_deleting_missing_plant_raises_not_found():
 
 @pytest.mark.asyncio
 async def test_water_plant_use_case_success():
-    now = datetime.now(UTC)
-    user_plant = make_user_plant(care_schedule=make_care_schedule(next_due_at=now - timedelta(days=1)))
+    today = CALENDAR.date_of(datetime.now(UTC))
+    user_plant = make_user_plant(care_schedule=make_care_schedule(next_due_on=today - timedelta(days=1)))
 
     user_plant_repo = AsyncMock()
     user_plant_repo.get_by_id.return_value = user_plant
 
     publisher = AsyncMock()
 
-    use_case = WaterPlantUseCase(uow=FakeUnitOfWork(user_plants=user_plant_repo), publisher=publisher)
+    use_case = WaterPlantUseCase(uow=FakeUnitOfWork(user_plants=user_plant_repo), publisher=publisher, calendar=CALENDAR)
 
     result = await use_case.execute(WaterPlantInputDTO(
         user_id=user_plant.user_id,
@@ -200,8 +205,59 @@ async def test_get_user_garden_use_case():
     user_plant_repo = AsyncMock()
     user_plant_repo.list_by_user.return_value = [plant]
 
-    use_case = GetUserGardenUseCase(uow=FakeUnitOfWork(user_plants=user_plant_repo))
+    use_case = GetUserGardenUseCase(uow=FakeUnitOfWork(user_plants=user_plant_repo), calendar=CALENDAR)
     items = await use_case.execute(GetUserGardenInputDTO(user_id=plant.user_id))
 
-    assert items == [plant]
-    assert items[0].display_name == "Clotilde"
+    assert [item.plant for item in items] == [plant]
+    assert items[0].plant.display_name == "Clotilde"
+
+
+def _cron(plants: list[UserPlant]) -> tuple[BreakStreakCronUseCase, FakeUnitOfWork, AsyncMock]:
+    user_plants = AsyncMock()
+    user_plants.list_with_streak_due_before.return_value = plants
+    uow = FakeUnitOfWork(user_plants=user_plants)
+    publisher = AsyncMock()
+    return BreakStreakCronUseCase(uow=uow, publisher=publisher, calendar=CALENDAR), uow, publisher
+
+
+def _plant_due(due: date, streak: int = 3) -> UserPlant:
+    plant = make_user_plant(care_schedule=make_care_schedule(next_due_on=due))
+    plant.watering_streak = Streak(current_count=streak)
+    return plant
+
+
+@pytest.mark.asyncio
+async def test_cron_breaks_streak_of_plants_that_missed_the_window():
+    # Arrange
+    today = CALENDAR.date_of(datetime.now(UTC))
+    missed = _plant_due(today - timedelta(days=2))
+    use_case, uow, publisher = _cron([missed])
+
+    # Act
+    result = await use_case.execute()
+
+    # Assert
+    assert (result.processed, result.broken) == (1, 1)
+    assert missed.watering_streak.current_count == 0
+    uow.user_plants.list_with_streak_due_before.assert_called_once_with(today - timedelta(days=1))
+    uow.user_plants.save.assert_called_once_with(missed)
+    assert uow.committed
+    event = publisher.publish.call_args.args[0]
+    assert (event.user_plant_id, event.last_streak_count) == (missed.id, 3)
+
+
+@pytest.mark.asyncio
+async def test_cron_keeps_streak_while_the_window_is_open():
+    # Arrange: venceu ontem, ainda pode regar hoje
+    today = CALENDAR.date_of(datetime.now(UTC))
+    still_open = _plant_due(today - timedelta(days=1))
+    use_case, uow, publisher = _cron([still_open])
+
+    # Act
+    result = await use_case.execute()
+
+    # Assert
+    assert result.broken == 0
+    assert still_open.watering_streak.current_count == 3
+    uow.user_plants.save.assert_not_called()
+    publisher.publish.assert_not_called()

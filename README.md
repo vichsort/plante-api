@@ -131,6 +131,13 @@ uv run uvicorn src.main:app --reload
 A API estará disponível em `http://localhost:8000`.  
 Documentação interativa: `http://localhost:8000/docs`
 
+### 7. Inicie os workers
+
+```bash
+uv run celery -A src.workers worker --loglevel=info   # tasks (e-mail de verificação)
+uv run celery -A src.workers beat --loglevel=info     # agendadas (sequência de rega); uma instância só
+```
+
 ---
 
 ## Comandos úteis

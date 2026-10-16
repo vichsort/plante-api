@@ -43,7 +43,7 @@ from src.domain.use_cases.water_plant_use_case import (
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.provider_signals import DiseaseSuggestion, HealthSignals
-from tests.factories import make_identification_signals, make_user
+from tests.factories import CALENDAR, make_identification_signals, make_user
 from tests.fakes import MarkingSanitizer
 
 
@@ -110,10 +110,10 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     ))
 
     # 2. Adicionar ao jardim (sinal implícito) e regar
-    plant = await AddPlantToGardenUseCase(uow=uow(), publisher=AsyncMock()).execute(
+    plant = (await AddPlantToGardenUseCase(uow=uow(), publisher=AsyncMock(), calendar=CALENDAR).execute(
         AddPlantToGardenInputDTO(user_id=user.id, identification_id=identified.identification_id)
-    )
-    await WaterPlantUseCase(uow=uow(), publisher=AsyncMock()).execute(
+    )).plant
+    await WaterPlantUseCase(uow=uow(), publisher=AsyncMock(), calendar=CALENDAR).execute(
         WaterPlantInputDTO(user_id=user.id, user_plant_id=plant.id)
     )
 

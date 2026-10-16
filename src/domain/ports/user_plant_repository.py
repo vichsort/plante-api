@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date
 
 from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.user_plant import UserPlant
@@ -46,5 +46,6 @@ class IUserPlantRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_overdue_plants(self, current_time: datetime) -> list[UserPlant]:
+    async def list_with_streak_due_before(self, due_before: date) -> list[UserPlant]:
+        """Plantas com sequência em andamento e vencimento anterior a `due_before`."""
         ...

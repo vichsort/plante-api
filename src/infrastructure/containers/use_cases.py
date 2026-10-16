@@ -42,6 +42,7 @@ from src.domain.use_cases.upgrade_subscription_use_case import (
 )
 from src.domain.use_cases.verify_email_use_case import VerifyEmailUseCase
 from src.domain.use_cases.water_plant_use_case import WaterPlantUseCase
+from src.domain.value_objects.garden_calendar import GardenCalendar
 from src.infrastructure.settings import Settings
 
 
@@ -62,6 +63,11 @@ class UseCasesContainer(containers.DeclarativeContainer):
     image_storage: providers.Dependency[IImageStorage] = providers.Dependency()
     image_sanitizer: providers.Dependency[IImageSanitizer] = providers.Dependency()
     token_service: providers.Dependency[ITokenService] = providers.Dependency()
+
+    garden_calendar = providers.Singleton(
+        GardenCalendar.from_name,
+        settings.provided.garden_timezone,
+    )
 
     login_use_case = providers.Factory(
         LoginUseCase,
@@ -125,6 +131,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
         AddPlantToGardenUseCase,
         uow=unit_of_work,
         publisher=domain_publisher,
+        calendar=garden_calendar,
     )
 
     give_identification_feedback_use_case = providers.Factory(
@@ -145,11 +152,13 @@ class UseCasesContainer(containers.DeclarativeContainer):
     get_user_garden_use_case = providers.Factory(
         GetUserGardenUseCase,
         uow=unit_of_work,
+        calendar=garden_calendar,
     )
 
     get_plant_details_use_case = providers.Factory(
         GetPlantDetailsUseCase,
         uow=unit_of_work,
+        calendar=garden_calendar,
     )
 
     identify_plant_use_case = providers.Factory(
@@ -171,12 +180,14 @@ class UseCasesContainer(containers.DeclarativeContainer):
         WaterPlantUseCase,
         uow=unit_of_work,
         publisher=domain_publisher,
+        calendar=garden_calendar,
     )
 
     break_streak_cron_use_case = providers.Factory(
         BreakStreakCronUseCase,
         uow=unit_of_work,
         publisher=domain_publisher,
+        calendar=garden_calendar,
     )
 
     list_user_achievements_use_case = providers.Factory(

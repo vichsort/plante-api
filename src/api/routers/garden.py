@@ -49,12 +49,12 @@ async def add_plant_to_garden(
     user_id: CurrentUserId,
 ) -> ApiResponse[GardenItemResponse]:
     """Cria a planta no jardim a partir de uma identificação. Repetir devolve a mesma planta."""
-    plant = await use_case.execute(AddPlantToGardenInputDTO(
+    item = await use_case.execute(AddPlantToGardenInputDTO(
         user_id=user_id,
         identification_id=IdentificationId(body.identification_id),
         nickname=body.nickname,
     ))
-    return ApiResponse.success(GardenItemResponse.from_domain(plant))
+    return ApiResponse.success(GardenItemResponse.from_domain(item))
 
 
 @router.get("", status_code=200, response_model=ApiResponse[list[GardenItemResponse]])
@@ -63,8 +63,8 @@ async def get_user_garden(
     use_case: Annotated[GetUserGardenUseCase, Depends(Provide[Container.use_cases.get_user_garden_use_case])],
     user_id: CurrentUserId,
 ) -> ApiResponse[list[GardenItemResponse]]:
-    plants = await use_case.execute(GetUserGardenInputDTO(user_id=user_id))
-    return ApiResponse.success([GardenItemResponse.from_domain(plant) for plant in plants])
+    items = await use_case.execute(GetUserGardenInputDTO(user_id=user_id))
+    return ApiResponse.success([GardenItemResponse.from_domain(item) for item in items])
 
 
 @router.delete(

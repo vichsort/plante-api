@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -96,10 +96,11 @@ class UserPlantRepository(IUserPlantRepository):
             species=PlantSpeciesMapper.to_domain(species_model) if species_model else None,
         )
 
-    async def get_overdue_plants(self, current_time: datetime) -> list[UserPlant]:
+    async def list_with_streak_due_before(self, due_before: date) -> list[UserPlant]:
         stmt = (
             select(UserPlantModel)
-            .where(UserPlantModel.care_next_due_at < current_time)
+            .where(UserPlantModel.care_next_due_on < due_before)
+            .where(UserPlantModel.streak_count > 0)
             .where(UserPlantModel.deleted_at.is_(None))
         )
         result = await self._session.execute(stmt)
