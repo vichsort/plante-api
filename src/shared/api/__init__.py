@@ -1,4 +1,5 @@
 """Borda HTTP comum: envelope de resposta, tratamento de erros, documentação de erros e middlewares."""
+from src.shared.api.authentication import CurrentUserId, install_authentication
 from src.shared.api.exception_handlers import register_exception_handlers
 from src.shared.api.middleware import (
     AuditMiddleware,
@@ -21,10 +22,12 @@ __all__ = [
     "ApiResponse",
     "AuditMiddleware",
     "CorrelationIdMiddleware",
+    "CurrentUserId",
     "OpenApiResponses",
     "RateLimitMiddleware",
     "SecurityHeadersMiddleware",
     "WindowCounter",
     "error_responses",
+    "install_authentication",
     "register_exception_handlers",
 ]

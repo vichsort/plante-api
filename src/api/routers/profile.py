@@ -3,7 +3,6 @@ from typing import Annotated
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 
-from src.api.deps import CurrentUserId
 from src.api.schemas.auth import MessageResponse
 from src.api.schemas.profile import (
     AchievementItemResponse,
@@ -14,7 +13,6 @@ from src.api.schemas.profile import (
     UpgradeSubscriptionResponse,
 )
 from src.bootstrap.container import Container
-from src.domain.exceptions import UnauthorizedError
 from src.domain.use_cases.change_email_use_case import (
     ChangeEmailInputDTO,
     ChangeEmailUseCase,
@@ -35,7 +33,8 @@ from src.domain.use_cases.upgrade_subscription_use_case import (
     UpgradeSubscriptionInputDTO,
     UpgradeSubscriptionUseCase,
 )
-from src.shared.api import ApiResponse, error_responses
+from src.shared.api import ApiResponse, CurrentUserId, error_responses
+from src.shared.domain import UnauthorizedError
 
 router = APIRouter(prefix="/profile", tags=["profile"], responses=error_responses(UnauthorizedError))
 

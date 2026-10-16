@@ -4,16 +4,15 @@ from uuid import UUID
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 
-from src.api.deps import CurrentUserId
 from src.api.schemas.plants import PlantDetailsResponse
 from src.bootstrap.container import Container
-from src.domain.exceptions import UnauthorizedError
 from src.domain.use_cases.get_plant_details_use_case import (
     GetPlantDetailsInputDTO,
     GetPlantDetailsUseCase,
 )
 from src.domain.value_objects.ids import UserPlantId
-from src.shared.api import ApiResponse, error_responses
+from src.shared.api import ApiResponse, CurrentUserId, error_responses
+from src.shared.domain import UnauthorizedError
 
 router = APIRouter(prefix="/plants", tags=["plants"], responses=error_responses(UnauthorizedError))
 

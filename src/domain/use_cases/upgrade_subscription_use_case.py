@@ -3,9 +3,8 @@ from datetime import UTC, datetime, timedelta
 
 from src.domain.entities.user import User
 from src.domain.events.domain_events import SubscriptionUpgradedEvent
-from src.domain.exceptions import UserNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.shared.domain import IDomainPublisher, UserId
+from src.shared.domain import IDomainPublisher, UserId, UserNotFoundError
 
 
 @dataclass(frozen=True)

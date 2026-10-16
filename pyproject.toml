@@ -116,6 +116,7 @@ module = [
     "src.api.routers.*",
     "src.api.deps",
     "src.shared.api.exception_handlers",
+    "src.shared.api.authentication",  # `app.state` do Starlette é Any (o verificador sai conferido por isinstance)
     "src.shared.api.middleware.audit",
     "src.bootstrap.probes",
     "src.main",

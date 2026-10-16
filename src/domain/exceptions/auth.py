@@ -1,15 +1,4 @@
-from uuid import UUID
-
 from src.shared.domain import PlantEError
-
-
-class UnauthorizedError(PlantEError):
-    """Token inválido, expirado ou ausente."""
-    code = "PLANTE_4006_UNAUTHORIZED"
-    status_code = 401
-
-    def __init__(self, message: str = "Authentication required."):
-        super().__init__(message=message)
 
 
 class InvalidCredentialsError(PlantEError):
@@ -54,15 +43,4 @@ class InvalidVerificationCodeError(PlantEError):
     status_code = 400
 
     def __init__(self, message: str = "Invalid verification code."):
-        super().__init__(message=message)
-
-
-class UserNotFoundError(PlantEError):
-    """Usuário não encontrado."""
-    code = "PLANTE_4002_USER_NOT_FOUND"
-    status_code = 404
-
-    def __init__(self, message: str = "User not found.", user_id: UUID | None = None):
-        if user_id:
-            message = f"User {user_id} not found."
         super().__init__(message=message)

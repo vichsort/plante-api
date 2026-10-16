@@ -5,9 +5,8 @@ from src.domain.entities.user_plant import UserPlant
 from src.domain.exceptions import PlantNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import UserPlantId
-from src.domain.value_objects.local_calendar import LocalCalendar
 from src.modules.catalog import ISpeciesRegistry, PlantSpecies
-from src.shared.domain import UserId
+from src.shared.domain import LocalCalendar, UserId
 
 
 @dataclass(frozen=True)

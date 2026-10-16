@@ -10,8 +10,7 @@ from src.domain.exceptions import (
 )
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import UserPlantId
-from src.domain.value_objects.local_calendar import LocalCalendar
-from src.shared.domain import IDomainPublisher, UserId
+from src.shared.domain import IDomainPublisher, LocalCalendar, UserId
 
 
 @dataclass(frozen=True)

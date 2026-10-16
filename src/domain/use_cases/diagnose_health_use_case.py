@@ -5,17 +5,12 @@ from uuid import uuid4
 import structlog
 
 from src.domain.entities.health_record import HealthRecord
-from src.domain.exceptions import (
-    PlantNotFoundError,
-    SubscriptionRequiredError,
-    UserNotFoundError,
-)
+from src.domain.exceptions import PlantNotFoundError, SubscriptionRequiredError
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.health_analyzer import IHealthAnalyzer
 from src.domain.ports.health_enricher import HealthDiagnosisEnrichment, IHealthEnricher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import HealthRecordId, UserPlantId
-from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.subscription_tier import FeatureCost
 from src.modules.training import (
     HealthSeverity,
@@ -30,7 +25,9 @@ from src.shared.domain import (
     IImageSanitizer,
     IImageStorage,
     InvalidImageError,
+    LocalCalendar,
     UserId,
+    UserNotFoundError,
 )
 
 log = structlog.stdlib.get_logger()

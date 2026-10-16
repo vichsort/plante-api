@@ -4,7 +4,6 @@ from uuid import UUID
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 
-from src.api.deps import CurrentUserId
 from src.api.schemas.auth import MessageResponse
 from src.api.schemas.health import (
     HealthDiagnosisResponse,
@@ -12,7 +11,6 @@ from src.api.schemas.health import (
     HealthRecordItemResponse,
 )
 from src.bootstrap.container import Container
-from src.domain.exceptions import UnauthorizedError
 from src.domain.use_cases.diagnose_health_use_case import (
     DiagnoseHealthInputDTO,
     DiagnoseHealthUseCase,
@@ -26,7 +24,8 @@ from src.domain.use_cases.give_health_feedback_use_case import (
     GiveHealthFeedbackUseCase,
 )
 from src.domain.value_objects.ids import HealthRecordId, UserPlantId
-from src.shared.api import ApiResponse, error_responses
+from src.shared.api import ApiResponse, CurrentUserId, error_responses
+from src.shared.domain import UnauthorizedError
 
 router = APIRouter(prefix="/diagnose", tags=["diagnosis"], responses=error_responses(UnauthorizedError))
 

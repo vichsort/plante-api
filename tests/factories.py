@@ -13,7 +13,6 @@ from src.domain.entities.user_plant import (
 )
 from src.domain.value_objects.care_interval import CareInterval
 from src.domain.value_objects.ids import HealthRecordId, IdentificationId, UserPlantId
-from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
 from src.modules.catalog import EnrichmentStatus, PlantSpecies, PlantSpeciesId
@@ -29,7 +28,7 @@ from src.modules.training import (
     TrainingIdentificationSampleId,
     TrainingLocation,
 )
-from src.shared.domain import UserId
+from src.shared.domain import LocalCalendar, UserId
 
 NOW = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)
 CALENDAR = LocalCalendar.from_name("America/Sao_Paulo")

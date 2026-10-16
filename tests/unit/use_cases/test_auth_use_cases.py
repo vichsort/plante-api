@@ -6,11 +6,7 @@ import pytest
 
 from src.adapters.security.jwt_token_service import JwtTokenService
 from src.domain.entities.user import User
-from src.domain.exceptions import (
-    EmailAlreadyInUseError,
-    UnauthorizedError,
-    WeakPasswordError,
-)
+from src.domain.exceptions import EmailAlreadyInUseError, WeakPasswordError
 from src.domain.ports.token_service import TokenKind
 from src.domain.use_cases.login_use_case import REFRESH_TOKEN_TTL, LoginUseCase
 from src.domain.use_cases.refresh_token_use_case import RefreshTokenUseCase
@@ -20,7 +16,7 @@ from src.domain.use_cases.register_user_use_case import (
 )
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
-from src.shared.domain import UserId
+from src.shared.domain import UnauthorizedError, UserId
 from tests.fakes import FakeUnitOfWork, InMemoryTokenRepository
 
 

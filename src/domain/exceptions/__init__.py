@@ -3,8 +3,6 @@ from src.domain.exceptions.auth import (
     ForbiddenError,
     InvalidCredentialsError,
     InvalidVerificationCodeError,
-    UnauthorizedError,
-    UserNotFoundError,
     WeakPasswordError,
 )
 from src.domain.exceptions.botany import (
@@ -37,7 +35,5 @@ __all__ = [
     "PlantNotFoundError",
     "PlantNotReadyForWateringError",
     "SubscriptionRequiredError",
-    "UnauthorizedError",
-    "UserNotFoundError",
     "WeakPasswordError",
 ]

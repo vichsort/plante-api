@@ -2,10 +2,10 @@ from dataclasses import dataclass
 
 import structlog
 
-from src.domain.exceptions import UnauthorizedError
 from src.domain.ports.token_repository import ITokenRepository
 from src.domain.ports.token_service import ITokenService, TokenKind
 from src.domain.use_cases.login_use_case import ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL
+from src.shared.domain import UnauthorizedError
 
 log = structlog.stdlib.get_logger()
 

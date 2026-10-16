@@ -99,17 +99,15 @@ As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/sh
 
 ## Erros dos subdomínios
 
-Os erros comuns (`PLANTE_4000`, `4013`, `4029`, `5001`, `4220`, `5000`, `5003`) estão em
+Os erros comuns (`PLANTE_4000`, `4002`, `4006`, `4013`, `4029`, `5001`, `4220`, `5000`, `5003`) estão em
 `src/shared/README.md`.
 
 | Código de Erro (`code`) | Exceção | Descrição | HTTP Status |
 | :--- | :--- | :--- | :---: |
 | `PLANTE_4001_PLANT_NOT_FOUND` | `PlantNotFoundError` | Planta não existe ou não pertence ao usuário. | 404 |
-| `PLANTE_4002_USER_NOT_FOUND` | `UserNotFoundError` | Usuário não encontrado. | 404 |
 | `PLANTE_4003_INVALID_VERIFICATION_CODE` | `InvalidVerificationCodeError` | Código OTP inválido ou expirado. | 400 |
 | `PLANTE_4004_EMAIL_ALREADY_IN_USE` | `EmailAlreadyInUseError` | E-mail já usado por outro usuário (cadastro ou troca de e-mail). | 409 |
 | `PLANTE_4005_FREE_TIER_PLANT_LIMIT` | `PlantLimitExceededError` | Plano FREE atingiu o limite de plantas no jardim (`SubscriptionPolicy`). | 403 |
-| `PLANTE_4006_UNAUTHORIZED` | `UnauthorizedError` | Token ausente, inválido ou expirado; login com credenciais erradas. | 401 |
 | `PLANTE_4007_WRONG_CREDENTIALS` | `InvalidCredentialsError` | Senha atual incorreta ao alterar e-mail ou senha. | 400 |
 | `PLANTE_4008_WEAK_PASSWORD` | `WeakPasswordError` | Senha (cadastro ou troca) não atende à `PasswordPolicy`. | 400 |
 | `PLANTE_4009_FORBIDDEN` | `ForbiddenError` | Autenticado, mas sem permissão sobre o recurso (ex.: planta de outro usuário). | 403 |

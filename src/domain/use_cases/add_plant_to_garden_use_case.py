@@ -10,16 +10,11 @@ from src.domain.entities.user_plant import (
     UserPlant,
 )
 from src.domain.events.domain_events import PlantAddedToGardenEvent
-from src.domain.exceptions import (
-    IdentificationNotFoundError,
-    PlantLimitExceededError,
-    UserNotFoundError,
-)
+from src.domain.exceptions import IdentificationNotFoundError, PlantLimitExceededError
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.care_interval import CareInterval
 from src.domain.value_objects.ids import IdentificationId, UserPlantId
-from src.domain.value_objects.local_calendar import LocalCalendar
 from src.modules.training import (
     FeedbackOrigin,
     FeedbackVerdict,
@@ -27,7 +22,7 @@ from src.modules.training import (
     IdentificationOrigin,
     ITrainingRecorder,
 )
-from src.shared.domain import IDomainPublisher, UserId
+from src.shared.domain import IDomainPublisher, LocalCalendar, UserId, UserNotFoundError
 
 
 @dataclass(frozen=True)

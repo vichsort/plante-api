@@ -39,10 +39,14 @@ from src.domain.use_cases.upgrade_subscription_use_case import (
 )
 from src.domain.use_cases.verify_email_use_case import VerifyEmailUseCase
 from src.domain.use_cases.water_plant_use_case import WaterPlantUseCase
-from src.domain.value_objects.local_calendar import LocalCalendar
 from src.modules.catalog import ISpeciesRegistry
 from src.modules.training import ITrainingRecorder
-from src.shared.domain import IDomainPublisher, IImageSanitizer, IImageStorage
+from src.shared.domain import (
+    IDomainPublisher,
+    IImageSanitizer,
+    IImageStorage,
+    LocalCalendar,
+)
 
 
 class UseCasesContainer(containers.DeclarativeContainer):

@@ -1,8 +1,8 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from datetime import timedelta
 from enum import StrEnum
 
-from src.shared.domain import UserId
+from src.shared.domain import IAccessTokenVerifier, UserId
 
 
 class TokenKind(StrEnum):
@@ -10,7 +10,7 @@ class TokenKind(StrEnum):
     REFRESH = "refresh"
 
 
-class ITokenService(ABC):
+class ITokenService(IAccessTokenVerifier):
     """Emite e valida os tokens de autenticação (access de curta duração, refresh de longa)."""
 
     @abstractmethod
@@ -24,3 +24,6 @@ class ITokenService(ABC):
         Lança `UnauthorizedError` se o token for inválido, estiver expirado ou for de outro tipo.
         """
         ...
+
+    def verify_access(self, token: str) -> UserId:
+        return self.verify(token, TokenKind.ACCESS)

@@ -3,17 +3,12 @@ from datetime import UTC, datetime
 
 from src.domain.entities.identification import Identification
 from src.domain.events.domain_events import PlantIdentifiedEvent
-from src.domain.exceptions import (
-    LowConfidenceError,
-    SubscriptionRequiredError,
-    UserNotFoundError,
-)
+from src.domain.exceptions import LowConfidenceError, SubscriptionRequiredError
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.plant_identifier import IPlantIdentifier
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.ids import IdentificationId
-from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.subscription_tier import FeatureCost
 from src.modules.catalog import ISpeciesRegistry
 from src.modules.training import (
@@ -28,7 +23,9 @@ from src.shared.domain import (
     IImageSanitizer,
     IImageStorage,
     InvalidImageError,
+    LocalCalendar,
     UserId,
+    UserNotFoundError,
 )
 
 

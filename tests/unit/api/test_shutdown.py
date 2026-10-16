@@ -35,4 +35,4 @@ def test_lifespan_starts_and_shuts_down():
     finally:
         # Devolve as rotas ao container do `src.main.app`, que os outros testes usam
         app.state.container.unwire()
-        main.app.state.container.wire(modules=main.WIRED_MODULES)
+        main.wire(main.app.state.container)
