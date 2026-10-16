@@ -20,7 +20,7 @@ Leia esta seção primeiro. Ela substitui o "Próximo passo" antigo do fim da or
 - Teste de fumaça com API + worker reais (Postgres/Redis em contêiner) e correção dos achados: broker do Celery com a mesma URL do `Settings`, task de e-mail com `acks_late`/`reject_on_worker_lost` e reaproveitando o código ativo.
 - **Release `v0.1.0`** (tag anotada na `main`, 2026-10-15). Primeiro push com CI no GitHub: verde (288 testes, inclusive Postgres/Redis via testcontainers).
 
-**Feito em 2026-10-16** (commits na `main`, tag `v0.1.1`, ainda sem push):
+**Feito em 2026-10-16** (commits na `main`, tags `v0.1.1` e `v0.1.2`):
 - Removidos Firebase (FCM), OpenMeteo e Nominatim, que estavam ligados no container sem nenhum uso. Também saíram as portas de clima e notificação, `GeoCoordinates`, `GeocodingError` (`PLANTE_5002`, aposentado), `users.fcm_token` (migration `b5e2d8a1c4f6`) e a dependência `firebase-admin`. O registro está na seção "Ideias removidas".
 - **Bug da sequência de rega** (eram dois):
   - O cron nunca rodava (`beat_schedule` vazio).
@@ -34,11 +34,21 @@ Leia esta seção primeiro. Ela substitui o "Próximo passo" antigo do fim da or
   - Dependência `tzdata`, porque a imagem slim pode não ter o banco de fusos.
   - Regras no `ARCHITECTURE.md` 2.3.
 
-Suíte: 304 testes. CI: `ruff`, `mypy`, `lint-imports`, `pytest`.
+- **`v0.1.2`: achados da caracterização corrigidos** (detalhes em "Achados da caracterização", na seção do item 8):
+  - cota diária de tokens que nunca zerava;
+  - `/diagnose` sem conferir saldo;
+  - PRO vencido com limites de PRO;
+  - senha fraca no cadastro;
+  - troca de e-mail que trancava a conta;
+  - refresh sem rotação.
 
-**Falta validar a `v0.1.0`/`v0.1.1` (depende das credenciais do usuário; não deu para testar em 2026-10-16):**
+  O `GardenCalendar` virou `LocalCalendar` (`LOCAL_TIMEZONE`). Migrations `d8b4e6f2a9c1` e `e1a7c3b5d9f2`.
+
+Suíte: 352 testes (com os 33 ponta a ponta da `refactor/characterization-tests`). CI: `ruff`, `mypy`, `lint-imports`, `pytest`.
+
+**Falta validar a `v0.1.0`/`v0.1.1`/`v0.1.2` (depende das credenciais do usuário; não deu para testar em 2026-10-16):**
 - [ ] Testes de contrato contra as APIs reais: `uv run pytest -m contract` no PC de casa (~2 créditos do Kindwise). Os adapters mudaram (sinais tipados) depois da última rodada.
-- [ ] Um `/identify` real com as chaves e o S3 de verdade. Risco: bucket novo bloqueia `ACL="public-read"` por padrão, e o upload (inclusive a cópia de treino) pode falhar. Se falhar, corrigir numa `v0.1.2`.
+- [ ] Um `/identify` real com as chaves e o S3 de verdade. Risco: bucket novo bloqueia `ACL="public-read"` por padrão, e o upload (inclusive a cópia de treino) pode falhar. Se falhar, corrigir numa `v0.1.3`.
 
 **Manutenção do CI (avisos do GitHub no primeiro run):**
 - [ ] `actions/checkout@v4` e `astral-sh/setup-uv@v6` usam Node 20 (descontinuado; hoje forçados para o Node 24). Atualizar as versões no `.github/workflows/ci.yml`.
@@ -319,21 +329,35 @@ shared
 
 ### Milestones
 0. ~~**Testes de caracterização ponta a ponta**~~ ✅ (2026-10-16, branch `refactor/characterization-tests`).
-   - O que existe: `tests/e2e/`, 29 testes. A requisição HTTP passa pelo app real (middlewares, rotas, use cases, UoW) e grava em Postgres e Redis reais.
+   - O que existe: `tests/e2e/`, 33 testes. A requisição HTTP passa pelo app real (middlewares, rotas, use cases, UoW) e grava em Postgres e Redis reais.
    - Só as bordas são dublês tipados (`tests/e2e/doubles.py`): provedores de IA, S3, SES e a fila (o `CeleryPublisher` real grava as tasks numa fila falsa, e o teste faz o papel do worker rodando a task de verdade).
    - Fluxos cobertos: auth, perfil, identificação (inclusive EXIF removido de ponta a ponta), jardim, saúde, cota de tokens, rate limit e acesso de outro usuário (404).
-   - O que é esquisito hoje está marcado com `# Hoje:` (ver "Achados da caracterização"). Quando um desses for corrigido, o teste muda junto, de propósito.
+   - O que é esquisito e continua assim de propósito está marcado com `# Hoje:` (upgrade sem pagamento, conquistas vazias). Os demais achados foram corrigidos na `v0.1.2`, e os testes passaram a descrever o comportamento novo.
    - Estes testes precisam continuar passando com o código movido. No milestone 1 viram a pasta `tests/e2e/` da raiz, e o testbed sai do `tests/conftest.py`.
 1. **Esqueleto:** `shared/`, `bootstrap/`, contratos do import-linter, testes das regras (README, barrel, layout, AAA, faixas de erro), template de README e novo `ARCHITECTURE.md`.
 2. **Piloto: identification + catalog.** Avaliar se o padrão se paga antes de replicar.
 3. training → health → garden → subscription → identity (por último, o mais acoplado) → achievements.
 
-### Achados da caracterização (2026-10-16, decidir)
-- **Tokens do FREE nunca zeram.** `User.reset_daily_tokens` não é chamado em lugar nenhum: depois de 3 ações (identificar = 1, diagnóstico com Gemini = 2), o FREE fica bloqueado para sempre. É bug real, candidato a fix na `main` (`v0.1.2`). Opções: zerar preguiçosamente ao consumir (guardar o dia do último consumo) ou um cron diário. Cruza com o módulo subscription (tabela nova).
-- **Cadastro aceita senha fraca** ("123"). Só a troca de senha valida a força. Mover a regra para o domínio e aplicar nos dois.
-- **Troca de e-mail tranca a conta:** o e-mail troca na hora e a conta volta a "não verificada". Até confirmar o código, nenhum dos dois e-mails entra, e um endereço digitado errado tranca a conta de vez. Alternativa: guardar o e-mail pendente e só trocar ao confirmar.
-- **Refresh sem rotação:** devolve o mesmo refresh token, que continua válido (reuso não é detectado). Há um refresh token por usuário, então um login em outro aparelho desloga o primeiro.
-- **Access token continua valendo depois do logout,** até expirar (JWT sem estado). Aceitável com TTL curto; registrar a decisão.
+### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
+- **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:
+  - **zera ao consumir**, sem cron: `User.tokens_day` guarda o dia local a que o contador se refere; num dia novo, ele vale zero;
+  - o `GardenCalendar` virou `LocalCalendar` (`LOCAL_TIMEZONE`), porque o dia local serve à cota e à rega;
+  - no módulo subscription, isso vai para a tabela `subscriptions`.
+- **`/diagnose` não conferia o saldo** antes de chamar Kindwise/Gemini (achado ao corrigir o anterior). Agora:
+  - confere antes;
+  - o Gemini só é chamado se couberem os 2 tokens (diagnóstico 1 + complemento 1); senão, o diagnóstico sai só com o Kindwise.
+- **PRO vencido seguia com limites de PRO** (a política lia o plano gravado). Agora vale `get_active_tier(now)`.
+- **Senha fraca no cadastro:** `PasswordPolicy` no domínio, usada no cadastro e na troca.
+- **Troca de e-mail trancava a conta.** Agora:
+  - o endereço novo fica pendente (`pending_email`) e o atual continua entrando;
+  - o código, enviado ao novo e confirmado em `POST /auth/verify-email`, efetiva a troca;
+  - se outra conta pegou o endereço nesse meio-tempo, 409.
+- **Refresh sem rotação.** Agora:
+  - cada refresh devolve um refresh novo; reusar um antigo revoga a sessão (sinal de roubo);
+  - todo token tem `jti`; sem ele, dois tokens do mesmo segundo eram idênticos e a rotação não teria efeito;
+  - tokens antigos (sem `jti`) continuam aceitos.
+- **Access token depois do logout:** decidido manter (JWT sem estado, 15 minutos); registrado no `ARCHITECTURE.md` 2.1.
+- Continua igual: um refresh por usuário (login em outro aparelho derruba o primeiro). Sessões por aparelho entram quando houver app.
 
 ### Ideias removidas (2026-10-16, commit `6f2b3e3`; código recuperável do pai, `8107105`)
 - **Firebase (FCM):** push. Tem ganho, mas é futuro distante. Se voltar, vira um módulo `notifications` (tokens por aparelho, opt-in, envio), reagindo a eventos de garden ("hora de regar", "sua sequência vai quebrar"). Não entra em profile.
