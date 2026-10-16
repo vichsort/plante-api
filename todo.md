@@ -385,7 +385,22 @@ shared
      - `FeatureCost.REIDENTIFY` removido (ninguém usava).
      - Contrato novo do import-linter, "Dependências entre módulos" (o `ARCHITECTURE.md` previa; o piloto não tinha criado).
      - Rota de módulo: a composição liga o container aninhado (`container.subscription().wire(...)`), porque a rota não pode importar o container raiz.
-   - **Para a validação do identity:** o `POST /garden` documenta 4002, mas o identity vai deixar de carregar o usuário ali (o limite vem do subscription). A resposta vira inalcançável; tirar do OpenAPI é mudança de contrato (só documentação). Perguntar.
+   - **identity** ✅ (branch `refactor/module-identity`, empilhada na do subscription, sem push). **Aguardando a validação do usuário**; depois dela, o resto segue sozinho.
+     - Conta, sessão (JWT, refresh com rotação), código de verificação (Redis + SES), troca de e-mail/senha e localização. Rotas `/auth/*` e `/profile/email|password|location`; task `notification.send_verification_email`.
+     - Para os outros módulos, `IUserDirectory`: `region_of` (identify e diagnose gravam a região no treino) e `ensure_exists`.
+     - Testes do módulo com AAA e fakes em memória (estado, não chamadas de `AsyncMock`); 46 testes. A regra dos `raises` passou a cobrir os use cases dos módulos.
+     - Teste de fumaça com worker real (Redis em contêiner, `celery -A src.workers worker`, duas tasks seguidas): ok. Virou teste da suíte (`tests/unit/workers/test_worker_composition.py`), que falha sem o reset dos singletons.
+   - **Decidido sem o usuário (vai no PR):**
+     - `IUserDirectory` em vez de só `user_region`: o `ensure_exists` mantém o 404 (4002) que o `POST /garden` documenta. Assim o contrato não muda, e a pergunta que eu ia fazer sumiu.
+     - Tasks de módulo por wiring (`Provide[IdentityContainer.x]`), já que o módulo não pode importar o container raiz. O worker carrega `src/bootstrap/worker.py`, que zera os singletons depois de cada task (cada uma roda num event loop novo; sem isso, a segunda falha com `Event loop is closed`, conferido).
+     - `src/bootstrap/wiring.py`: um `wire` só para o app, o worker e os testes.
+     - `CeleryPublisher` no shared, com uma `EventRoute` por módulo (o plano previa "cada módulo registra o roteamento").
+     - `MessageResponse` no `src.shared.api` (todos os routers usam).
+     - `ForbiddenError` (4009) ficou no código antigo: só a rega usa; vai com o garden.
+     - Nos módulos, os arquivos de use case não têm o sufixo `_use_case` (os nomes das classes não mudaram).
+   - **Achados (comportamento mantido de propósito, corrigir à parte):**
+     - `UserLocation` aplica `title()` ao estado: a sigla "SP" vira "Sp", inclusive na região que vai ao treino. Marcado com `# Hoje:` no teste do diretório.
+     - No worker, o cliente Redis de uma task terminada só é fechado pelo coletor de lixo, depois que o loop dele fechou (aviso "Exception ignored ... Event loop is closed" no log, sem efeito). A task antiga fazia o mesmo. Correção provável: fechar os clientes dentro do loop da task.
 
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:
