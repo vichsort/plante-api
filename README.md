@@ -39,25 +39,9 @@ Este repositório contém o **backend da plataforma**, construído com arquitetu
 
 ## Arquitetura
 
-O projeto segue **Arquitetura Hexagonal (Ports & Adapters)**, garantindo que o domínio de negócio nunca dependa de infraestrutura.
+Monólito modular, hexagonal por dentro de cada módulo: um subdomínio por pasta em `src/modules/`, com o domínio puro e as dependências apontando para dentro. O kernel comum fica em `src/shared/`, e a composição (container, settings, Celery) em `src/bootstrap/`. A migração do código em camadas antigo (`src/domain`, `src/adapters`, `src/api`, `src/workers`) é feita módulo a módulo.
 
-```
-src/
-├── domain/          # Regras de negócio puras — zero dependências externas
-│   ├── entities/    # Plant, HealthRecord, UserPlant...
-│   ├── use_cases/   # IdentifyPlant, DiagnoseHealth, ScheduleCare...
-│   ├── ports/       # Interfaces ABC (IPlantIdentifier, IRepository...)
-│   └── policies/    # SubscriptionPolicy, ConsensusPolicy
-├── adapters/        # Implementações concretas das ports
-│   ├── ai/          # Gemini, PlantNet, Kindwise, Consensus Engine
-│   ├── persistence/ # SQLAlchemy models + repositories
-│   └── storage/     # S3
-├── api/             # Routers FastAPI + schemas Pydantic
-├── workers/         # Tasks Celery por domínio
-└── bootstrap/       # Composição: container DI, settings, Celery
-```
-
-**MUITO IMPORTANTE:** dependências sempre apontam para dentro. Adapters conhecem o domínio. O domínio nunca conhece adapters.
+As regras (layout, imports, erros, testes) estão no [`ARCHITECTURE.md`](ARCHITECTURE.md) e a maioria é conferida no CI. Cada módulo explica o próprio propósito e as decisões no `README.md` dele.
 
 ---
 
