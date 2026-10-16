@@ -2,16 +2,12 @@
 import pytest
 from dependency_injector import providers
 
-from src import main
 from src.bootstrap.container import Container
+from src.main import wire
 
 
 def test_container_wires_without_error():
-    try:
-        main.wire(Container())
-    finally:
-        # A ligação é global: devolve as rotas ao container do `src.main.app`, que os outros testes usam
-        main.wire(main.app.state.container)
+    wire(Container())
 
 def test_every_subcontainer_dependency_is_provided():
     container = Container()

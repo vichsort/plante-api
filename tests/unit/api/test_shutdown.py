@@ -29,10 +29,5 @@ def test_lifespan_starts_and_shuts_down():
     from src import main
 
     app = main.create_app()
-    try:
-        with TestClient(app) as client:
-            assert client.get("/health/liveness").status_code == 200
-    finally:
-        # Devolve as rotas ao container do `src.main.app`, que os outros testes usam
-        app.state.container.unwire()
-        main.wire(main.app.state.container)
+    with TestClient(app) as client:
+        assert client.get("/health/liveness").status_code == 200
