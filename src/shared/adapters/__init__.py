@@ -19,6 +19,7 @@ from src.shared.adapters.resilience.circuit_breaker import (
     CircuitState,
     is_provider_failure,
 )
+from src.shared.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
 from src.shared.adapters.s3.image_storage import S3ImageStorage
 
 __all__ = [
@@ -31,6 +32,7 @@ __all__ = [
     "PillowImageSanitizer",
     "RedisClient",
     "S3ImageStorage",
+    "SqlAlchemyUnitOfWork",
     "build_engine",
     "build_session_factory",
     "enum_values",
