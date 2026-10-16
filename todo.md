@@ -352,7 +352,7 @@ shared
      - **O rate limit não conhece mais o identity:** o decodificador de token devolve `None` para token inválido (antes capturava o `UnauthorizedError`).
      - **AAA obrigatório só nos testes dos módulos e nos e2e;** os antigos em `tests/` ganham os marcadores quando o módulo deles migrar.
      - **Ficaram em `tests/` até o módulo migrar:** o teste dos middlewares (usa JWT e container) e o do wrapper do circuit breaker (identification).
-2. **Piloto** (em andamento, branch `refactor/module-identification`, **sem push**). Feito em 2026-10-16, tudo verde (375 testes):
+2. ~~**Piloto**~~ ✅ (PR #4, na `develop`). Feito em 2026-10-16, tudo verde (375 testes):
    - **UoW compartilhado** (`src.shared`): uma transação física. O primeiro UoW aberto é o dono; o de outro módulo, chamado por um `service`, se junta a ela e não pode dar commit.
    - **Módulo `training`:** amostras, feedback com alvo tipado (`IdentificationLabel | HealthLabel`), vocabulário do dataset e `ITrainingRecorder`.
    - **Módulo `catalog`:** espécies, imagens de referência, `ISpeciesRegistry` e `ISpeciesEnricher`. O Gemini foi dividido; o código antigo ficou com `IHealthEnricher`.
@@ -367,8 +367,25 @@ shared
      - (a) migrar identity e subscription antes do identification, de baixo para cima;
      - (b) portas no identification (`ITokenWallet`, `IUserRegion`) com pontes no código antigo, mas os erros de subscription não teriam dono.
      - Escolhida: (a).
-   - `EnrichPlantSpeciesUseCase` ficou no código antigo: ele cobra tokens, e o catalog é módulo base.
-3. De baixo para cima (decidido em 2026-10-16, opção (a) acima): identity → subscription → identification → garden → health → achievements. Uma branch `refactor/module-<x>` por módulo. Training e catalog já saíram no piloto.
+   - ~~`EnrichPlantSpeciesUseCase` ficou no código antigo~~: removido (2026-10-16, decisão do usuário). Não tinha rota, descartava o resultado do Gemini e cobrava 2 tokens mesmo assim. A porta `ISpeciesEnricher` e o adapter ficam no catalog; o use case nasce no módulo da tela quando a análise profunda for desenhada.
+3. **Restante, de baixo para cima** (decidido em 2026-10-16): **subscription → identity** → identification → garden → health → achievements.
+   - Subscription veio antes do identity (aprovado pelo usuário): o `User` guardava plano e tokens, e o identity não podia nascer com eles.
+   - **Modo de trabalho:** branches empilhadas (`refactor/module-<x>` sai da anterior), sem merge no meio. Pausa para o usuário validar **só depois do identity**; daí em diante, sozinho. No fim, push de todas e um PR por módulo, cada um com base no anterior.
+   - **Mudança de contrato da API: parar e perguntar.** Guarda: o OpenAPI de cada etapa é comparado com o da `develop` (idêntico até aqui).
+   - **subscription** ✅ (branch `refactor/module-subscription`, sem push). Commits:
+     - enrich removido;
+     - kernel: `CurrentUserId`/`install_authentication` e a porta `IAccessTokenVerifier` no `src.shared.api`/`.domain`; `UnauthorizedError`, `UserNotFoundError` e `LocalCalendar` no kernel (aprovado pelo usuário: um módulo não pode importar a borda HTTP de outro);
+     - testes: as fixtures do app religam o container antes de cada teste (a ligação é global; isso substituiu os remendos do `test_shutdown`), e os e2e ligam a `session_factory` dos módulos à conexão do teste;
+     - módulo: tabela `subscriptions` (migration `f4c2a8d6e1b3`, testada nos dois sentidos com dados), `ITokenWallet` e `IGardenQuota`, rota do upgrade; os use cases antigos cobram por eles.
+   - **Decidido sem o usuário (vai no PR):**
+     - A cobrança trava a linha (`INSERT … ON CONFLICT DO NOTHING` + `SELECT … FOR UPDATE`): antes, duas identificações simultâneas podiam cobrar 1 token só.
+     - Conta inexistente: a FK de `subscriptions` vira `UserNotFoundError` (404, como antes), sem o módulo importar o identity.
+     - `UserNotFoundError` e `LocalCalendar` no kernel (vários módulos usam, nenhum é dono natural que os outros possam importar).
+     - O limiar de saúde (0,5) que estava na `SubscriptionPolicy` virou constante do diagnóstico (regra de saúde, não de plano).
+     - `FeatureCost.REIDENTIFY` removido (ninguém usava).
+     - Contrato novo do import-linter, "Dependências entre módulos" (o `ARCHITECTURE.md` previa; o piloto não tinha criado).
+     - Rota de módulo: a composição liga o container aninhado (`container.subscription().wire(...)`), porque a rota não pode importar o container raiz.
+   - **Para a validação do identity:** o `POST /garden` documenta 4002, mas o identity vai deixar de carregar o usuário ali (o limite vem do subscription). A resposta vira inalcançável; tirar do OpenAPI é mudança de contrato (só documentação). Perguntar.
 
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:
