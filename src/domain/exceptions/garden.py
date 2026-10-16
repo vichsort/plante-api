@@ -14,17 +14,6 @@ class PlantNotFoundError(PlantEError):
         )
 
 
-class PlantLimitExceededError(PlantEError):
-    """Usuário free atingiu o limite de plantas no jardim."""
-    code = "PLANTE_4005_FREE_TIER_PLANT_LIMIT"
-    status_code = 403
-
-    def __init__(self, limit: int | float):
-        super().__init__(
-            message=f"Limit of {limit} plants reached. Subscribe to the Pro Plan to add more.",
-            details={"current_count": str(limit), "max_allowed": str(limit)},
-        )
-
 
 class PlantNotReadyForWateringError(PlantEError):
     """Usuário tentou regar a planta antes do tempo ou no mesmo dia."""

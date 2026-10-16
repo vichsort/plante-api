@@ -138,8 +138,8 @@ e por `tests/architecture` (`test_imports_go_through_barrels`).
    - **Dentro de cada módulo:** `tests` → `api` | `workers` → `container` → `adapters` → `domain`.
    - **Dentro do shared:** `tests` → `api` | `workers` → `adapters` → `domain`.
    - As entradas (`api`, `workers`) recebem adapters pelo container, nunca importando-os direto.
-7. **Dependências entre módulos** (sem ciclo; vira contrato do import-linter conforme os módulos
-   migram):
+7. **Dependências entre módulos** (sem ciclo; contrato "Dependências entre módulos" do
+   import-linter, com os módulos que ainda não migraram entre parênteses):
 
    ```
    health · achievements

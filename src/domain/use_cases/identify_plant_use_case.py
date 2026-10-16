@@ -3,14 +3,17 @@ from datetime import UTC, datetime
 
 from src.domain.entities.identification import Identification
 from src.domain.events.domain_events import PlantIdentifiedEvent
-from src.domain.exceptions import LowConfidenceError, SubscriptionRequiredError
-from src.domain.policies.subscription_policy import SubscriptionPolicy
+from src.domain.exceptions import LowConfidenceError
 from src.domain.ports.plant_identifier import IPlantIdentifier
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.ids import IdentificationId
-from src.domain.value_objects.subscription_tier import FeatureCost
 from src.modules.catalog import ISpeciesRegistry
+from src.modules.subscription import (
+    FeatureCost,
+    ITokenWallet,
+    SubscriptionRequiredError,
+)
 from src.modules.training import (
     ITrainingRecorder,
     TrainingIdentificationSample,
@@ -23,7 +26,6 @@ from src.shared.domain import (
     IImageSanitizer,
     IImageStorage,
     InvalidImageError,
-    LocalCalendar,
     UserId,
     UserNotFoundError,
 )
@@ -71,7 +73,7 @@ class IdentifyPlantUseCase:
         plant_identifier: IPlantIdentifier,
         storage: IImageStorage,
         publisher: IDomainPublisher,
-        calendar: LocalCalendar,
+        wallet: ITokenWallet,
         training: ITrainingRecorder,
         catalog: ISpeciesRegistry,
     ) -> None:
@@ -82,18 +84,17 @@ class IdentifyPlantUseCase:
         self.plant_identifier = plant_identifier
         self.storage = storage
         self.publisher = publisher
-        self.calendar = calendar
+        self.wallet = wallet
 
     async def execute(self, dto: IdentifyPlantInputDTO) -> IdentifyPlantOutput:
         now = datetime.now(UTC)
-        today = self.calendar.date_of(now)
 
         # 1. Leitura curta: a transação não fica aberta durante as chamadas à IA e ao S3
         async with self.uow as uow:
             user = await uow.users.get_by_id(dto.user_id)
             if user is None:
                 raise UserNotFoundError(user_id=dto.user_id)
-            SubscriptionPolicy.enforce_can_identify_plant(user, now, today)
+            await self.wallet.ensure_can_identify(user.id, now)
 
         # 2. Serviços externos, só com a foto já sem metadados (GPS, aparelho, data)
         image_bytes = self.sanitizer.sanitize(dto.image_bytes)
@@ -125,7 +126,7 @@ class IdentifyPlantUseCase:
             for similar in result.similar_images
         ]
 
-        # 3. Escrita numa transação só; o usuário é relido para cobrar o token sobre o estado atual
+        # 3. Escrita numa transação só (o token é cobrado sobre o saldo travado nela)
         async with self.uow as uow:
             user = await uow.users.get_by_id(dto.user_id)
             if user is None:
@@ -169,8 +170,7 @@ class IdentifyPlantUseCase:
                 created_at=now,
             ))
 
-            user.consume_tokens(FeatureCost.IDENTIFY, today)
-            await uow.users.save(user)
+            await self.wallet.charge(user.id, FeatureCost.IDENTIFY, now)
             await uow.commit()
 
         await self.publisher.publish(PlantIdentifiedEvent.create(

@@ -5,13 +5,16 @@ from uuid import uuid4
 import structlog
 
 from src.domain.entities.health_record import HealthRecord
-from src.domain.exceptions import PlantNotFoundError, SubscriptionRequiredError
-from src.domain.policies.subscription_policy import SubscriptionPolicy
+from src.domain.exceptions import PlantNotFoundError
 from src.domain.ports.health_analyzer import IHealthAnalyzer
 from src.domain.ports.health_enricher import HealthDiagnosisEnrichment, IHealthEnricher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import HealthRecordId, UserPlantId
-from src.domain.value_objects.subscription_tier import FeatureCost
+from src.modules.subscription import (
+    FeatureCost,
+    ITokenWallet,
+    SubscriptionRequiredError,
+)
 from src.modules.training import (
     HealthSeverity,
     HealthSource,
@@ -25,12 +28,14 @@ from src.shared.domain import (
     IImageSanitizer,
     IImageStorage,
     InvalidImageError,
-    LocalCalendar,
     UserId,
     UserNotFoundError,
 )
 
 log = structlog.stdlib.get_logger()
+
+# Abaixo desta probabilidade de saúde o Gemini complementa o diagnóstico (se couber no saldo)
+_UNHEALTHY_THRESHOLD = 0.5
 
 
 def _map_severity(vitality: float) -> HealthSeverity:
@@ -75,20 +80,19 @@ class DiagnoseHealthUseCase:
         health_analyzer: IHealthAnalyzer,
         plant_enricher: IHealthEnricher,
         storage: IImageStorage,
-        calendar: LocalCalendar,
+        wallet: ITokenWallet,
         training: ITrainingRecorder,
     ) -> None:
         self._training = training
+        self._wallet = wallet
         self._uow = uow
         self._sanitizer = sanitizer
         self._health_analyzer = health_analyzer
         self._plant_enricher = plant_enricher
         self._storage = storage
-        self._calendar = calendar
 
     async def execute(self, dto: DiagnoseHealthInputDTO) -> DiagnoseHealthOutput:
         now = datetime.now(UTC)
-        today = self._calendar.date_of(now)
 
         # 1. Leitura curta: a transação não fica aberta durante as chamadas à IA e ao S3
         async with self._uow as uow:
@@ -100,8 +104,8 @@ class DiagnoseHealthUseCase:
             if not user_plant:
                 raise PlantNotFoundError(dto.user_plant_id)
 
-            SubscriptionPolicy.enforce_can_diagnose(user, now, today)
-            can_enrich = SubscriptionPolicy.can_enrich_diagnosis(user, now, today)
+            await self._wallet.ensure_can_diagnose(user.id, now)
+            can_enrich = await self._wallet.can_enrich_diagnosis(user.id, now)
 
         # 2. Serviços externos, só com a foto já sem metadados (GPS, aparelho, data)
         image_bytes = self._sanitizer.sanitize(dto.image_bytes)
@@ -109,7 +113,7 @@ class DiagnoseHealthUseCase:
 
         issues = [d.name for d in assessment.diseases]
         enrichment: HealthDiagnosisEnrichment | None = None
-        if can_enrich and assessment.health_probability < SubscriptionPolicy.health_unhealthy_threshold():
+        if can_enrich and assessment.health_probability < _UNHEALTHY_THRESHOLD:
             # Gemini é complementar: se falhar, o diagnóstico segue só com o Kindwise
             try:
                 enrichment = await self._plant_enricher.diagnose_health(
@@ -145,16 +149,16 @@ class DiagnoseHealthUseCase:
             for url in assessment.all_similar_images_urls
         ])
 
-        # 3. Escrita; o usuário é relido para cobrar os tokens sobre o estado atual
+        # 3. Escrita (os tokens são cobrados sobre o saldo travado nela)
         async with self._uow as uow:
             user = await uow.users.get_by_id(dto.user_id)
             if not user:
                 raise UserNotFoundError(user_id=dto.user_id)
 
-            user.consume_tokens(FeatureCost.DIAGNOSIS, today)
+            await self._wallet.charge(user.id, FeatureCost.DIAGNOSIS, now)
             if enrichment:
                 # Token extra só é cobrado quando a análise complementar foi entregue
-                user.consume_tokens(FeatureCost.DIAGNOSIS_ENRICHMENT, today)
+                await self._wallet.charge(user.id, FeatureCost.DIAGNOSIS_ENRICHMENT, now)
 
             training_sample = TrainingHealthSample(
                 id=TrainingHealthSample.new_id(),
@@ -191,7 +195,6 @@ class DiagnoseHealthUseCase:
                 notes=notes,
             ))
 
-            await uow.users.save(user)
             await uow.commit()
 
         return DiagnoseHealthOutput(

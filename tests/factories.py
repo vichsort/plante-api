@@ -13,7 +13,6 @@ from src.domain.entities.user_plant import (
 )
 from src.domain.value_objects.care_interval import CareInterval
 from src.domain.value_objects.ids import HealthRecordId, IdentificationId, UserPlantId
-from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
 from src.modules.catalog import EnrichmentStatus, PlantSpecies, PlantSpeciesId
 from src.modules.training import (
@@ -39,9 +38,6 @@ def make_user(
     email: str = "user@plante.org",
     hashed_password: str = "hashed",
     is_verified: bool = True,
-    tokens_used_today: int = 0,
-    subscription: SubscriptionTier = SubscriptionTier.FREE,
-    subscription_expires_at: datetime | None = None,
 ) -> User:
     return User(
         id=user_id or UserId(uuid4()),
@@ -49,10 +45,7 @@ def make_user(
         hashed_password=hashed_password,
         location=UserLocation(country="BR", state="SP"),
         is_verified=is_verified,
-        subscription=subscription,
         created_at=NOW,
-        tokens_used_today=tokens_used_today,
-        subscription_expires_at=subscription_expires_at,
     )
 
 

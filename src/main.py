@@ -65,6 +65,8 @@ WIRED_MODULES = [
 
 def wire(container: Container) -> None:
     container.wire(modules=WIRED_MODULES)
+    # Cada módulo liga as próprias rotas ao container dele (aninhado no raiz)
+    container.subscription().wire(modules=["src.modules.subscription.api.router"])
 
 
 def create_app() -> FastAPI:
@@ -105,7 +107,8 @@ def create_app() -> FastAPI:
         profile,
     )
     from src.bootstrap import probes
-    for domain in (auth, identification, garden, plants, health, profile):
+    from src.modules.subscription import api as subscription
+    for domain in (auth, identification, garden, plants, health, profile, subscription):
         app.include_router(domain.router, responses=COMMON_ERROR_RESPONSES)
     # Probes ficam fora do rate limit, então não documentam os erros comuns (ex.: 429)
     app.include_router(probes.router)

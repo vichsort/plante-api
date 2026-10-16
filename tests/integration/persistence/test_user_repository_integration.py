@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.adapters.persistence.models.user_model import UserModel
 from src.adapters.persistence.repositories.user_repository import UserRepository
 from src.domain.entities.user import User
-from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
 
 
@@ -33,7 +32,6 @@ async def test_user_repository_save_and_get_by_id(db_session: AsyncSession):
     assert fetched_user is not None
     assert fetched_user.id == saved_user.id
     assert fetched_user.email == "real_db@plante.org"
-    assert fetched_user.subscription == SubscriptionTier.FREE
 
 @pytest.mark.asyncio
 async def test_user_repository_get_by_email(db_session: AsyncSession):

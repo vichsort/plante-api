@@ -10,11 +10,11 @@ from src.domain.entities.user_plant import (
     UserPlant,
 )
 from src.domain.events.domain_events import PlantAddedToGardenEvent
-from src.domain.exceptions import IdentificationNotFoundError, PlantLimitExceededError
-from src.domain.policies.subscription_policy import SubscriptionPolicy
+from src.domain.exceptions import IdentificationNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.care_interval import CareInterval
 from src.domain.value_objects.ids import IdentificationId, UserPlantId
+from src.modules.subscription import IGardenQuota, PlantLimitExceededError
 from src.modules.training import (
     FeedbackOrigin,
     FeedbackVerdict,
@@ -55,8 +55,10 @@ class AddPlantToGardenUseCase:
         uow: IUnitOfWork,
         publisher: IDomainPublisher,
         calendar: LocalCalendar,
+        quota: IGardenQuota,
         training: ITrainingRecorder,
     ) -> None:
+        self.quota = quota
         self.uow = uow
         self.publisher = publisher
         self.calendar = calendar
@@ -80,7 +82,7 @@ class AddPlantToGardenUseCase:
                 return GardenPlant.of(existing, today)
 
             plants_in_garden = await uow.user_plants.count_by_user(dto.user_id)
-            SubscriptionPolicy.enforce_can_add_to_garden(user, plants_in_garden, now)
+            await self.quota.ensure_can_add_plant(user.id, plants_in_garden, now)
 
             plant = await uow.user_plants.save(UserPlant(
                 id=UserPlantId(uuid4()),

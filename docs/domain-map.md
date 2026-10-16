@@ -5,7 +5,7 @@ Regras de negócio de cada subdomínio enquanto o código ainda está nas camada
 migrado**: a seção do subdomínio vai para o `README.md` do módulo (Propósito, Decisões, Erros) e
 sai daqui. Quando o último módulo migrar, o arquivo é apagado.
 
-Já migrados: `training` e `catalog` (README de cada um em `src/modules/`).
+Já migrados: `training`, `catalog` e `subscription` (README de cada um em `src/modules/`).
 
 As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/shared/README.md`.
 
@@ -15,7 +15,7 @@ As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/sh
 | Identificação Botânica & Consenso | `identification` (+ `catalog`) |
 | Gestão de Jardim & Cuidados | `garden` |
 | Diagnóstico de Saúde | `health` |
-| Perfil, Gamificação & Assinaturas | `subscription` e `achievements` |
+| Perfil & Gamificação | `identity` (perfil) e `achievements` |
 
 ---
 
@@ -25,7 +25,7 @@ As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/sh
 * **Entradas (Use Cases)**: `RegisterUserUseCase`, `LoginUseCase`, `VerifyEmailUseCase`, `RefreshTokenUseCase`, `LogoutUseCase`.
 * **Saídas/Saúde**: Geração de tokens de acesso JWT, envio de e-mails OTP via `IEmailSender`, persistência de dados de auditoria em `UserRepository`.
 * **Regras de Negócio**:
-  - Todo usuário nasce com status `pending_verification` e plano `FREE`.
+  - Todo usuário nasce com status `pending_verification` (e sem linha em `subscriptions`, ou seja, FREE).
   - E-mail é guardado e buscado na forma canônica (`normalize_email`: sem espaços nas pontas, em minúsculas) — cadastro, login e troca de e-mail não diferenciam maiúsculas. O banco garante com o CHECK `ck_users_email_normalized`.
   - Códigos OTP expiram em 15 minutos e são gerenciados no cache Redis (`RedisOtpRepository`).
   - **Senha forte** (`PasswordPolicy`: 8+ caracteres, uma maiúscula, um número) no cadastro e na troca de senha.
@@ -64,7 +64,7 @@ As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/sh
 * **Ports Requeridos**: `IUnitOfWork` (`user_plants`, `identifications`, `training`).
 * **Regras de Negócio**:
   - Uma planta só entra no jardim a partir de uma identificação (`POST /garden` com `identification_id`): é aí que o `UserPlant` é criado. Repetir com a mesma identificação devolve a planta existente.
-  - Limite do plano conta as plantas **ativas** no jardim (`count_by_user`; não há contador guardado): FREE até 3, PRO até 50 (`SubscriptionPolicy.enforce_can_add_to_garden`).
+  - Limite do plano conta as plantas **ativas** no jardim (`count_by_user`; não há contador guardado), conferido pelo `IGardenQuota` do subscription.
   - Adicionar ao jardim registra um sinal implícito positivo (`added_to_garden`) na amostra de treino da identificação.
   - **Rega e sequência** (`CareSchedule`, `Streak`): o vencimento é um **dia do calendário local** (`LocalCalendar`, fuso em `LOCAL_TIMEZONE`, padrão `America/Sao_Paulo`), não um instante. A janela vai de 1 dia antes a 1 dia depois do vencimento. Antes dela a rega é recusada (`PLANTE_4016`); dentro dela soma 1 à sequência; depois dela é aceita, mas a sequência recomeça em 1. Uma rega por dia. A primeira rega (sem vencimento) vale a qualquer dia. Cada rega recalcula o vencimento (dia da rega + intervalo).
   - O cron diário `garden.break_missed_streaks` (beat, 03:00 no fuso local) zera a sequência das plantas cuja janela passou inteira e publica `StreakBrokenEvent`. Rodar de novo no mesmo dia não quebra nada a mais.
@@ -83,17 +83,11 @@ As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/sh
 
 ---
 
-## Perfil, Gamificação & Assinaturas (`Profile & Gamification Context`)
-* **Propósito**: Gerenciar dados cadastrais do usuário, troca de senha/e-mail, controle de limites de assinatura (`FREE` vs `PRO`) e concessão de conquistas (`Badges`).
-* **Entidades Principais**: `Achievement`, `SubscriptionTier`.
-* **Políticas**: `SubscriptionPolicy`.
-* **Entradas (Use Cases)**: `ChangeEmailUseCase`, `ChangePasswordUseCase`, `UpdateLocationFallbackUseCase`, `UpgradeSubscriptionUseCase`, `ListUserAchievementsUseCase`.
+## Perfil & Gamificação (`Profile & Gamification Context`)
+* **Propósito**: Gerenciar dados cadastrais do usuário, troca de senha/e-mail e concessão de conquistas (`Badges`). Plano e cota de tokens: `src/modules/subscription/README.md`.
+* **Entidades Principais**: `Achievement`.
+* **Entradas (Use Cases)**: `ChangeEmailUseCase`, `ChangePasswordUseCase`, `UpdateLocationFallbackUseCase`, `ListUserAchievementsUseCase`.
 * **Ports Requeridos**: `IAchievementRepository`, `IUserRepository`.
-* **Regras de Negócio**:
-  - O plano `PRO` desbloqueia até 50 plantas no jardim e consultas avançadas de saúde.
-  - Vale o plano **ativo** (`User.get_active_tier`): PRO vencido conta como FREE.
-  - **Cota diária de tokens** (FREE 3, PRO 30), no dia local (`LocalCalendar`). Zera sozinha na primeira cobrança de um dia novo (`User.tokens_day`), sem cron.
-  - Custos: identificar 1; diagnóstico 1, mais 1 pelo complemento do Gemini (só chamado se os 2 couberem no saldo, e só cobrado se entregue); análise profunda 2. O saldo é conferido **antes** de chamar os provedores.
 
 ---
 
@@ -107,7 +101,6 @@ Os erros comuns (`PLANTE_4000`, `4002`, `4006`, `4013`, `4029`, `5001`, `4220`, 
 | `PLANTE_4001_PLANT_NOT_FOUND` | `PlantNotFoundError` | Planta não existe ou não pertence ao usuário. | 404 |
 | `PLANTE_4003_INVALID_VERIFICATION_CODE` | `InvalidVerificationCodeError` | Código OTP inválido ou expirado. | 400 |
 | `PLANTE_4004_EMAIL_ALREADY_IN_USE` | `EmailAlreadyInUseError` | E-mail já usado por outro usuário (cadastro ou troca de e-mail). | 409 |
-| `PLANTE_4005_FREE_TIER_PLANT_LIMIT` | `PlantLimitExceededError` | Plano FREE atingiu o limite de plantas no jardim (`SubscriptionPolicy`). | 403 |
 | `PLANTE_4007_WRONG_CREDENTIALS` | `InvalidCredentialsError` | Senha atual incorreta ao alterar e-mail ou senha. | 400 |
 | `PLANTE_4008_WEAK_PASSWORD` | `WeakPasswordError` | Senha (cadastro ou troca) não atende à `PasswordPolicy`. | 400 |
 | `PLANTE_4009_FORBIDDEN` | `ForbiddenError` | Autenticado, mas sem permissão sobre o recurso (ex.: planta de outro usuário). | 403 |
@@ -116,7 +109,6 @@ Os erros comuns (`PLANTE_4000`, `4002`, `4006`, `4013`, `4029`, `5001`, `4220`, 
 | `PLANTE_4012_IDENTIFICATION_NOT_FOUND` | `IdentificationNotFoundError` | Identificação não existe ou não pertence ao usuário (feedback, adicionar ao jardim). | 404 |
 | `PLANTE_4016_NOT_READY_FOR_WATERING` | `PlantNotReadyForWateringError` | Rega antes da janela (vencimento − 1 dia) ou segunda rega no mesmo dia (`UserPlant.water()`). | 400 |
 | `PLANTE_4017_HEALTH_RECORD_NOT_FOUND` | `HealthRecordNotFoundError` | Diagnóstico não existe ou não pertence ao usuário. | 404 |
-| `PLANTE_4019_SUBSCRIPTION_REQUIRED` | `SubscriptionRequiredError` | Recurso exclusivo do plano Pro ou tokens diários esgotados (`SubscriptionPolicy`). | 403 |
 
 **`PLANTE_4013` — quando um provedor de IA gera imagem inválida:**
 * Kindwise: `is_plant.binary == false` explícito → `NotAPlantError` (campo ausente segue o fluxo normal); lista de sugestões vazia → `InvalidImageError`; HTTP 400 → `InvalidImageError` **só** se o corpo contiver o marcador `Invalid image` (outros 400 são payload nosso malformado → `ExternalServiceError(retryable=False)` + log `provider.request_rejected`).

@@ -1,13 +1,10 @@
-from datetime import datetime
-
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.adapters.persistence.mappers.user_mapper import UserMapper
 from src.adapters.persistence.models.user_model import UserModel
 from src.domain.entities.user import User
 from src.domain.ports.user_repository import IUserRepository
-from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.shared.domain import UserId
 
 
@@ -33,17 +30,3 @@ class UserRepository(IUserRepository):
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return UserMapper.to_domain(model) if model else None
-
-    async def update_subscription(
-        self,
-        user_id: UserId,
-        tier: SubscriptionTier,
-        expires_at: datetime,
-    ) -> None:
-        stmt = (
-            update(UserModel)
-            .where(UserModel.id == user_id)
-            .where(UserModel.deleted_at.is_(None))
-            .values(subscription=tier, subscription_expires_at=expires_at)
-        )
-        await self._session.execute(stmt)

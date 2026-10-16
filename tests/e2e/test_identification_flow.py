@@ -88,7 +88,8 @@ async def test_quota_is_full_again_on_the_next_day(api: Api, db_session: AsyncSe
     for _ in range(3):
         await api.identify(headers)
     await db_session.execute(text(
-        "UPDATE users SET tokens_day = tokens_day - 1 WHERE email = 'ontem@plante.org'"
+        "UPDATE subscriptions SET tokens_day = tokens_day - 1"
+        " WHERE user_id = (SELECT id FROM users WHERE email = 'ontem@plante.org')"
     ))
     await db_session.commit()
 
@@ -97,7 +98,10 @@ async def test_quota_is_full_again_on_the_next_day(api: Api, db_session: AsyncSe
 
     # Assert: antes nada zerava o contador e o FREE ficava sem tokens para sempre
     assert response.status_code == 200
-    used = await db_session.execute(text("SELECT tokens_used_today FROM users WHERE email = 'ontem@plante.org'"))
+    used = await db_session.execute(text(
+        "SELECT tokens_used_today FROM subscriptions"
+        " WHERE user_id = (SELECT id FROM users WHERE email = 'ontem@plante.org')"
+    ))
     assert used.scalar_one() == 1
 
 

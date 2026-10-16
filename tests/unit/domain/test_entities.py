@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 import pytest
 
 from src.domain.entities.user import User
-from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
 
 
@@ -18,7 +17,6 @@ def test_user_creation_and_email_validation():
 
     assert user.email == "dev@plante.org"
     assert user.is_verified is False
-    assert user.subscription == SubscriptionTier.FREE
 
     with pytest.raises(ValueError, match="Invalid email address"):
         User.create_new(

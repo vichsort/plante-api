@@ -114,6 +114,7 @@ module = [
     "src.workers.*",
     # FastAPI / dependency_injector: decorators de rota e @inject, scope ASGI, erros de validação
     "src.api.routers.*",
+    "src.modules.*.api.router",
     "src.api.deps",
     "src.shared.api.exception_handlers",
     "src.shared.api.authentication",  # `app.state` do Starlette é Any (o verificador sai conferido por isinstance)
@@ -226,6 +227,20 @@ layers = [
     "(container)",
     "(adapters)",
     "domain",
+]
+exhaustive = true
+
+# Entre módulos (ARCHITECTURE.md 3.7): uma camada só importa as de baixo; `|` separa módulos
+# independentes (não se importam). Entre parênteses, os que ainda não migraram.
+[[tool.importlinter.contracts]]
+name = "Dependências entre módulos"
+type = "layers"
+containers = ["src.modules"]
+layers = [
+    "(health) | (achievements)",
+    "(garden)",
+    "(identification)",
+    "(identity) | subscription | catalog | training",
 ]
 exhaustive = true
 

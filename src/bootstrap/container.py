@@ -5,12 +5,17 @@ from src.bootstrap.containers.infra import InfraContainer
 from src.bootstrap.containers.use_cases import UseCasesContainer
 from src.bootstrap.settings import Settings
 from src.modules.catalog.container import CatalogContainer
+from src.modules.subscription.container import SubscriptionContainer
 from src.modules.training.container import TrainingContainer
+from src.shared.domain import LocalCalendar
 
 
 class Container(containers.DeclarativeContainer):
 
     settings = providers.Singleton(Settings)
+
+    # Que dia é para o usuário (rega e cota diária)
+    calendar = providers.Singleton(LocalCalendar.from_name, settings.provided.local_timezone)
 
     infra = providers.Container(
         InfraContainer,
@@ -33,6 +38,13 @@ class Container(containers.DeclarativeContainer):
         session_factory=infra.session_factory,
     )
 
+    subscription = providers.Container(
+        SubscriptionContainer,
+        session_factory=infra.session_factory,
+        calendar=calendar,
+        publisher=adapters.domain_publisher,
+    )
+
     use_cases = providers.Container(
         UseCasesContainer,
         settings=settings,
@@ -50,4 +62,7 @@ class Container(containers.DeclarativeContainer):
         image_sanitizer=adapters.image_sanitizer,
         token_service=adapters.token_service,
         training_recorder=training.recorder,
+        token_wallet=subscription.token_wallet,
+        garden_quota=subscription.garden_quota,
+        local_calendar=calendar,
     )

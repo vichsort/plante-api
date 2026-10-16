@@ -12,14 +12,12 @@ from src.domain.exceptions.botany import (
     PlantIdentificationError,
 )
 from src.domain.exceptions.garden import (
-    PlantLimitExceededError,
     PlantNotFoundError,
     PlantNotReadyForWateringError,
 )
 from src.domain.exceptions.health import (
     HealthRecordNotFoundError,
 )
-from src.domain.exceptions.subscription import SubscriptionRequiredError
 
 __all__ = [
     "EmailAlreadyInUseError",
@@ -31,9 +29,7 @@ __all__ = [
     "LowConfidenceError",
     "NotAPlantError",
     "PlantIdentificationError",
-    "PlantLimitExceededError",
     "PlantNotFoundError",
     "PlantNotReadyForWateringError",
-    "SubscriptionRequiredError",
     "WeakPasswordError",
 ]

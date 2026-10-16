@@ -603,3 +603,7 @@ Contexto do deploy (2026-10-14): primeiro num servidor caseiro (PC antigo), API 
 **Resolvido pelo contexto:**
 - [x] Latência do Redis: no mesmo host, timeouts de 0,5s são folgados.
 - [x] Cota do PlantNet: 500/dia sobra para o volume esperado.
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!! Antes do push pra main, todos comentários e docs em inglês !!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
