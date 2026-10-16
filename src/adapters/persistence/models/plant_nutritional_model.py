@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import JSON, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import Base
+from src.shared.adapters import Base
 
 
 class PlantNutritionalModel(Base):

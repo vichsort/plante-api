@@ -7,23 +7,26 @@ import structlog
 from src.domain.entities.health_record import HealthRecord, HealthSeverity
 from src.domain.entities.training import TrainingHealthSample
 from src.domain.exceptions import (
-    ExternalServiceError,
-    InvalidImageError,
     PlantNotFoundError,
     SubscriptionRequiredError,
     UserNotFoundError,
 )
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.health_analyzer import IHealthAnalyzer
-from src.domain.ports.image_sanitizer import IImageSanitizer
-from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.plant_enricher import HealthDiagnosisEnrichment, IPlantEnricher
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.ids import HealthRecordId, UserId, UserPlantId
+from src.domain.value_objects.ids import HealthRecordId, UserPlantId
 from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.sources import HealthSource
 from src.domain.value_objects.subscription_tier import FeatureCost
 from src.domain.value_objects.training_location import TrainingLocation, month_of
+from src.shared.domain import (
+    ExternalServiceError,
+    IImageSanitizer,
+    IImageStorage,
+    InvalidImageError,
+    UserId,
+)
 
 log = structlog.stdlib.get_logger()
 

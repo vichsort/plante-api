@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from src.infrastructure.container import Container
+from src.bootstrap.container import Container
 from src.main import _close_connections
 
 

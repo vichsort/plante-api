@@ -10,8 +10,7 @@ from src.domain.entities.plant_species import (
     LightRequirement,
     SoilType,
 )
-
-from .base import AuditMixin, Base, enum_values
+from src.shared.adapters import AuditMixin, Base, enum_values
 
 
 class PlantSpeciesModel(Base, AuditMixin):

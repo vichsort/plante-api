@@ -3,10 +3,8 @@ import base64
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.adapters.ai.provider_errors import translate_provider_errors
-from src.adapters.ai.provider_json import parse_contract, parse_json_object
 from src.domain.entities.plant_reference_image import ImageSource
-from src.domain.exceptions import InvalidImageError, NotAPlantError
+from src.domain.exceptions import NotAPlantError
 from src.domain.ports.health_analyzer import (
     DiseaseHint,
     HealthAssessmentResult,
@@ -18,13 +16,18 @@ from src.domain.ports.plant_identifier import (
     SimilarImage,
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.json_value import JsonObject
 from src.domain.value_objects.provider_signals import (
     DiseaseSuggestion,
     HealthSignals,
     IdentificationSignals,
     SpeciesSuggestion,
 )
+from src.shared.adapters import (
+    parse_contract,
+    parse_json_object,
+    translate_provider_errors,
+)
+from src.shared.domain import InvalidImageError, JsonObject
 
 _SERVICE = "Kindwise"
 _BASE_URL = "https://plant.id/api/v3/"

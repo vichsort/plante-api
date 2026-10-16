@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.routers.probes import ReadinessCache, readiness_cache
+from src.bootstrap.probes import ReadinessCache, readiness_cache
 
 
 @pytest.fixture(autouse=True)

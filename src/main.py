@@ -6,18 +6,19 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 
-from src.adapters.resilience.circuit_breaker import CircuitBreaker
-from src.api.exception_handlers import register_exception_handlers
-from src.api.middleware import (
+from src.bootstrap.container import Container
+from src.domain.exceptions import UnauthorizedError
+from src.domain.ports.token_service import ITokenService, TokenKind
+from src.shared.adapters import CircuitBreaker
+from src.shared.api import (
+    COMMON_ERROR_RESPONSES,
     AuditMiddleware,
     CorrelationIdMiddleware,
     RateLimitMiddleware,
     SecurityHeadersMiddleware,
+    register_exception_handlers,
 )
-from src.api.openapi import COMMON_ERROR_RESPONSES
-from src.domain.ports.token_service import TokenKind
-from src.domain.value_objects.ids import UserId
-from src.infrastructure.container import Container
+from src.shared.domain import UserId
 
 log = structlog.stdlib.get_logger()
 
@@ -52,10 +53,17 @@ async def _close_connections(container: Container) -> None:
             log.warning("plante.shutdown_failed", resource=name, error=str(exc))
 
 
-def _access_token_owner(container: Container) -> Callable[[str], UserId]:
+def _access_token_owner(container: Container) -> Callable[[str], UserId | None]:
     """Identifica o usuário pelo access token, para o rate limit contar por usuário."""
-    token_service = container.adapters.token_service()
-    return lambda token: token_service.verify(token, TokenKind.ACCESS)
+    token_service: ITokenService = container.adapters.token_service()
+
+    def owner(token: str) -> UserId | None:
+        try:
+            return token_service.verify(token, TokenKind.ACCESS)
+        except UnauthorizedError:
+            return None
+
+    return owner
 
 
 def create_app() -> FastAPI:
@@ -68,7 +76,7 @@ def create_app() -> FastAPI:
         "src.api.routers.plants",
         "src.api.routers.health",
         "src.api.routers.profile",
-        "src.api.routers.probes",
+        "src.bootstrap.probes",
     ])
 
     app = FastAPI(
@@ -101,9 +109,9 @@ def create_app() -> FastAPI:
         health,
         identification,
         plants,
-        probes,
         profile,
     )
+    from src.bootstrap import probes
     for domain in (auth, identification, garden, plants, health, profile):
         app.include_router(domain.router, responses=COMMON_ERROR_RESPONSES)
     # Probes ficam fora do rate limit, então não documentam os erros comuns (ex.: 429)

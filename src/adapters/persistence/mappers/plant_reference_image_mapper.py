@@ -1,6 +1,7 @@
 from src.adapters.persistence.models import PlantReferenceImageModel
 from src.domain.entities.plant_reference_image import PlantReferenceImage
-from src.domain.value_objects.ids import ReferenceImageId, UserId
+from src.domain.value_objects.ids import ReferenceImageId
+from src.shared.domain import UserId
 
 
 class PlantReferenceImageMapper:

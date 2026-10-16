@@ -6,8 +6,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.domain.value_objects.subscription_tier import SubscriptionTier
-
-from .base import AuditMixin, Base
+from src.shared.adapters import AuditMixin, Base
 
 
 def _plan_names(_: type[Enum]) -> list[str]:

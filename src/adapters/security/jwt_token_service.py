@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from src.domain.exceptions import UnauthorizedError
 from src.domain.ports.token_service import ITokenService, TokenKind
-from src.domain.value_objects.ids import UserId
+from src.shared.domain import UserId
 
 
 class _Claims(BaseModel):

@@ -34,11 +34,11 @@ from src.domain.value_objects.ids import (
     IdentificationId,
     PlantSpeciesId,
     TrainingIdentificationSampleId,
-    UserId,
     UserPlantId,
 )
 from src.domain.value_objects.sources import IdentificationOrigin
 from src.domain.value_objects.streak import Streak
+from src.shared.domain import UserId
 from tests.factories import (
     CALENDAR,
     make_care_schedule,

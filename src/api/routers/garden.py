@@ -5,14 +5,13 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 
 from src.api.deps import CurrentUserId
-from src.api.openapi import error_responses
-from src.api.response import ApiResponse
 from src.api.schemas.auth import MessageResponse
 from src.api.schemas.garden import (
     AddPlantToGardenRequest,
     GardenItemResponse,
     WaterPlantResponse,
 )
+from src.bootstrap.container import Container
 from src.domain.exceptions import UnauthorizedError
 from src.domain.use_cases.add_plant_to_garden_use_case import (
     AddPlantToGardenInputDTO,
@@ -31,7 +30,7 @@ from src.domain.use_cases.water_plant_use_case import (
     WaterPlantUseCase,
 )
 from src.domain.value_objects.ids import IdentificationId, UserPlantId
-from src.infrastructure.container import Container
+from src.shared.api import ApiResponse, error_responses
 
 router = APIRouter(prefix="/garden", tags=["garden"], responses=error_responses(UnauthorizedError))
 

@@ -7,8 +7,8 @@ from src.domain.exceptions import (
 )
 from src.domain.ports.otp_repository import IOtpRepository
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.verification_code import VerificationCode
+from src.shared.domain import UserId
 
 
 @dataclass(frozen=True)

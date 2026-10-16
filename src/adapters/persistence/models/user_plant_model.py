@@ -6,8 +6,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.domain.entities.user_plant import IdentificationSource, IdentificationStatus
-
-from .base import AuditMixin, Base, enum_values
+from src.shared.adapters import AuditMixin, Base, enum_values
 
 
 class UserPlantModel(Base, AuditMixin):

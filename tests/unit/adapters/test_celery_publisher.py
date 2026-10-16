@@ -8,9 +8,9 @@ from src.adapters.events.celery_publisher import (
     SEND_VERIFICATION_EMAIL_TASK,
     CeleryPublisher,
 )
+from src.bootstrap.celery_config import celery_app
 from src.domain.events.domain_events import UserRegisteredEvent
-from src.domain.value_objects.ids import UserId
-from src.infrastructure.celery_config import celery_app
+from src.shared.domain import UserId
 
 
 def test_verification_task_name_is_registered() -> None:

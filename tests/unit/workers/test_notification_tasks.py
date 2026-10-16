@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from src.infrastructure.container import Container
+from src.bootstrap.container import Container
 from src.workers.notification_tasks import send_verification_email_task
 
 

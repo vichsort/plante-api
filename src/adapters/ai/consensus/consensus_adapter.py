@@ -2,16 +2,13 @@ import asyncio
 
 import structlog
 
-from src.domain.exceptions import (
-    ExternalServiceError,
-    InvalidImageError,
-    NotAPlantError,
-)
+from src.domain.exceptions import NotAPlantError
 from src.domain.policies.consensus_policy import ConsensusPolicy
 from src.domain.ports.plant_identifier import (
     IdentificationResult,
     IPlantIdentifier,
 )
+from src.shared.domain import ExternalServiceError, InvalidImageError
 
 log = structlog.stdlib.get_logger()
 

@@ -10,8 +10,8 @@ from src.adapters.ai.kindwise import kindwise_adapter
 from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.ai.plantnet import plantnet_adapter
 from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
-from src.adapters.ai.provider_errors import translate_provider_errors
-from src.domain.exceptions import ExternalServiceError, InvalidImageError
+from src.shared.adapters import translate_provider_errors
+from src.shared.domain import ExternalServiceError, InvalidImageError
 
 _REQUEST = httpx.Request("POST", "https://provider.test")
 _RealAsyncClient = httpx.AsyncClient

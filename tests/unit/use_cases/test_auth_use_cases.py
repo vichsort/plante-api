@@ -18,9 +18,9 @@ from src.domain.use_cases.register_user_use_case import (
     RegisterUserInputDTO,
     RegisterUserUseCase,
 )
-from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
+from src.shared.domain import UserId
 from tests.fakes import FakeUnitOfWork, InMemoryTokenRepository
 
 

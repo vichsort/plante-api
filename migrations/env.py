@@ -6,8 +6,8 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from src.adapters.persistence.models.base import Base
-from src.infrastructure.settings import get_settings
+from src.bootstrap.settings import get_settings
+from src.shared.adapters import Base
 
 settings = get_settings()
 

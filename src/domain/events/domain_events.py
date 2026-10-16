@@ -1,18 +1,9 @@
-from abc import ABC
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from src.domain.value_objects.ids import (
-    PlantSpeciesId,
-    UserId,
-    UserPlantId,
-)
+from src.domain.value_objects.ids import PlantSpeciesId, UserPlantId
+from src.shared.domain import DomainEvent, UserId
 
-
-@dataclass(frozen=True)
-class DomainEvent(ABC):
-    """Classe base para todos os eventos do domínio."""
-    occurred_on: datetime
 
 @dataclass(frozen=True)
 class PlantIdentifiedEvent(DomainEvent):

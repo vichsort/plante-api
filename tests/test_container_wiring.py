@@ -2,7 +2,7 @@
 import pytest
 from dependency_injector import providers
 
-from src.infrastructure.container import Container
+from src.bootstrap.container import Container
 
 
 def test_container_wires_without_error():
@@ -15,7 +15,7 @@ def test_container_wires_without_error():
         "src.api.routers.plants",
         "src.api.routers.health",
         "src.api.routers.profile",
-        "src.api.routers.probes",
+        "src.bootstrap.probes",
     ])
 
 def test_every_subcontainer_dependency_is_provided():

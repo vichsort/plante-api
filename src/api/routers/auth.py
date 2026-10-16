@@ -4,8 +4,6 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 
 from src.api.deps import CurrentUserId
-from src.api.openapi import error_responses
-from src.api.response import ApiResponse
 from src.api.schemas.auth import (
     LoginRequest,
     MessageResponse,
@@ -15,6 +13,7 @@ from src.api.schemas.auth import (
     TokenResponse,
     VerifyEmailRequest,
 )
+from src.bootstrap.container import Container
 from src.domain.exceptions import UnauthorizedError
 from src.domain.use_cases.login_use_case import LoginUseCase
 from src.domain.use_cases.logout_use_case import LogoutUseCase
@@ -27,8 +26,8 @@ from src.domain.use_cases.verify_email_use_case import (
     VerifyEmailInputDTO,
     VerifyEmailUseCase,
 )
-from src.domain.value_objects.ids import UserId
-from src.infrastructure.container import Container
+from src.shared.api import ApiResponse, error_responses
+from src.shared.domain import UserId
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

@@ -1,4 +1,4 @@
-from src.domain.exceptions.base import PlantEError
+from src.shared.domain import PlantEError
 
 
 class SubscriptionRequiredError(PlantEError):

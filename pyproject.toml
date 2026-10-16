@@ -70,7 +70,7 @@ packages = ["src"]
 asyncio_mode = "auto"
 # Loop novo por teste: fixtures assíncronas (sessão do banco, cliente Redis) não atravessam testes
 asyncio_default_fixture_loop_scope = "function"
-testpaths = ["tests"]
+testpaths = ["tests", "src"]  # testes dos módulos ficam em `src/**/tests/`
 # Contrato chama as APIs reais (gasta créditos): só com `pytest -m contract`
 addopts = "-m 'not contract'"
 markers = ["contract: chama as APIs reais dos provedores de IA"]
@@ -82,6 +82,7 @@ markers = ["contract: chama as APIs reais dos provedores de IA"]
 python_version = "3.12"
 strict = true
 files = ["src"]
+exclude = ["^src/.*/tests/"]  # testes não passam pelo mypy estrito (o ruff cobre)
 plugins = ["pydantic.mypy"]
 # `Any` é proibido: nem escrito, nem vindo de decorators ou de expressões de bibliotecas
 disallow_any_explicit = true
@@ -101,24 +102,26 @@ warn_required_dynamic_aliases = true
 [[tool.mypy.overrides]]
 module = [
     # Clientes de bibliotecas, isolados num módulo cada
-    "src.adapters.cache.redis_client",  # redis-py: todo comando devolve Any
-    "src.adapters.ai.gemini.client",  # google-genai: config e erros tipados com Any
+    "src.shared.adapters.redis.client",  # redis-py: todo comando devolve Any
+    "src.shared.adapters.providers.gemini_client",  # google-genai: config e erros tipados com Any
     "src.adapters.security.jwt_token_service",  # PyJWT: payload é dict[str, Any] (validado por Pydantic logo depois)
     "src.adapters.persistence.*",  # SQLAlchemy ORM: modelos e consultas carregam genéricos com Any
+    "src.shared.adapters.persistence.*",
     # Celery: tasks e sinais
     "src.adapters.events.celery_publisher",
-    "src.infrastructure.celery_config",
+    "src.bootstrap.celery_config",
     "src.workers.*",
     # FastAPI / dependency_injector: decorators de rota e @inject, scope ASGI, erros de validação
     "src.api.routers.*",
     "src.api.deps",
-    "src.api.exception_handlers",
-    "src.api.middleware.audit",
+    "src.shared.api.exception_handlers",
+    "src.shared.api.middleware.audit",
+    "src.bootstrap.probes",
     "src.main",
     # Composição: containers do dependency_injector e pydantic-settings
-    "src.infrastructure.container",
-    "src.infrastructure.containers.*",
-    "src.infrastructure.settings",
+    "src.bootstrap.container",
+    "src.bootstrap.containers.*",
+    "src.bootstrap.settings",
 ]
 disallow_any_expr = false
 disallow_any_decorated = false
@@ -126,28 +129,32 @@ disallow_any_decorated = false
 # Subclasse de BaseSettings: o mypy sintetiza o __init__ a partir do `**values: Any` do
 # pydantic-settings. Nenhum Any é escrito no módulo; é a única exceção a `disallow_any_explicit`.
 [[tool.mypy.overrides]]
-module = ["src.infrastructure.settings"]
+module = ["src.bootstrap.settings"]
 disallow_any_explicit = false
 
 # ---------------------------------------------------------------------------
-# Import Linter — camadas da arquitetura hexagonal (ARCHITECTURE.md, seção 1)
+# Import Linter — camadas e fronteiras dos módulos (ARCHITECTURE.md, seção 3)
 # ---------------------------------------------------------------------------
 [tool.importlinter]
 root_package = "src"
 include_external_packages = true
 
-# Uma camada só importa as de baixo. `src.main` e `src.infrastructure` são a composição (montam
-# o container); API e workers são as entradas e não se conhecem.
+# Transição para o monólito modular (item 8): o código em camadas antigo (`api`, `workers`,
+# `adapters`, `domain`) convive com `modules` e `shared` até cada módulo migrar. Uma camada só
+# importa as de baixo: o código antigo pode usar módulos e o kernel; módulos e kernel nunca usam
+# o código antigo. `src.main` e `src.bootstrap` são a composição (montam containers e o app).
 [[tool.importlinter.contracts]]
-name = "Camadas: entradas -> composição -> adapters -> domínio"
+name = "Camadas: entradas -> composição -> código antigo -> módulos -> shared"
 type = "layers"
 containers = ["src"]
 layers = [
     "main",
     "api | workers",
-    "infrastructure",
+    "bootstrap",
     "adapters",
     "domain",
+    "modules",
+    "shared",
 ]
 exhaustive = true  # pacote novo em `src` precisa entrar numa camada
 
@@ -156,19 +163,15 @@ exhaustive = true  # pacote novo em `src` precisa entrar numa camada
 name = "Entradas não importam adapters"
 type = "forbidden"
 source_modules = ["src.api", "src.workers"]
-forbidden_modules = ["src.adapters"]
-allow_indirect_imports = true  # via src.infrastructure (o container) é o caminho esperado
-ignore_imports = [
-    # Exceção: o readiness pinga o Redis e só o RedisClient conhece o redis-py. Uma porta no
-    # domínio para isso seria só cerimônia (o probe é infraestrutura, não regra de negócio).
-    "src.api.routers.probes -> src.adapters.cache.redis_client",
-]
+forbidden_modules = ["src.adapters", "src.shared.adapters"]
+allow_indirect_imports = true  # via src.bootstrap (o container) é o caminho esperado
 
-# Domínio puro: só biblioteca padrão, `typing_extensions` e `structlog` (logs).
+# Domínio puro (antigo, kernel e de cada módulo): só biblioteca padrão, `typing_extensions` e
+# `structlog` (logs).
 [[tool.importlinter.contracts]]
 name = "Domínio não importa frameworks"
 type = "forbidden"
-source_modules = ["src.domain"]
+source_modules = ["src.domain", "src.shared.domain", "src.modules.*.domain"]
 forbidden_modules = [
     "aioboto3",
     "aiofiles",
@@ -193,6 +196,35 @@ forbidden_modules = [
     "tenacity",
     "uvicorn",
 ]
+
+# Dentro do kernel: o domínio não conhece adapters nem a borda HTTP.
+[[tool.importlinter.contracts]]
+name = "Camadas do shared"
+type = "layers"
+containers = ["src.shared"]
+layers = [
+    "(tests)",
+    "api | workers",
+    "adapters",
+    "domain",
+]
+exhaustive = true
+
+# Dentro de cada módulo (hexagonal): o domínio não conhece adapters, container nem entradas. As
+# camadas entre parênteses são opcionais (um módulo sem rota não tem `api`). Testes ficam no topo:
+# podem usar tudo do próprio módulo, e nada de dentro os importa.
+[[tool.importlinter.contracts]]
+name = "Camadas de cada módulo"
+type = "layers"
+containers = ["src.modules.*"]
+layers = [
+    "(tests)",
+    "(api) | (workers)",
+    "(container)",
+    "(adapters)",
+    "domain",
+]
+exhaustive = true
 
 # ---------------------------------------------------------------------------
 # Ruff (linter + formatter — substitui flake8/black/isort)

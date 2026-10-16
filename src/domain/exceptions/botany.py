@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from src.domain.exceptions.base import PlantEError
+from src.shared.domain import InvalidImageError, PlantEError
 
 
 class PlantIdentificationError(PlantEError):
@@ -32,15 +32,6 @@ class IdentificationNotFoundError(PlantEError):
         super().__init__(
             message=f"Identification {identification_id} not found.",
         )
-
-
-class InvalidImageError(PlantEError):
-    """A imagem enviada é inválida ou não contém uma planta."""
-    code = "PLANTE_4013_INVALID_IMAGE"
-    status_code = 400
-
-    def __init__(self, message: str = "Invalid image or unindentifiable plant."):
-        super().__init__(message=message)
 
 
 class NotAPlantError(InvalidImageError):

@@ -3,9 +3,9 @@ from unittest.mock import AsyncMock
 import pytest
 from celery.schedules import crontab
 
+from src.bootstrap.celery_config import celery_app
+from src.bootstrap.container import Container
 from src.domain.use_cases.break_streak_cron_use_case import BreakStreakResult
-from src.infrastructure.celery_config import celery_app
-from src.infrastructure.container import Container
 from src.workers.garden_tasks import break_missed_streaks_task
 
 

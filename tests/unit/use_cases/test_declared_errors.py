@@ -16,7 +16,7 @@ import pytest
 
 import src.domain.exceptions as domain_exceptions
 import src.domain.use_cases as use_cases_package
-from src.domain.exceptions import PlantEError
+from src.shared.domain import PlantEError
 
 
 def _use_case_modules() -> list[ModuleType]:

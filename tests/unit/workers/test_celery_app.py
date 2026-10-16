@@ -1,8 +1,8 @@
 from celery.app.utils import find_app
 
 from src.adapters.events.celery_publisher import SEND_VERIFICATION_EMAIL_TASK
-from src.infrastructure.celery_config import celery_app
-from src.infrastructure.settings import get_settings
+from src.bootstrap.celery_config import celery_app
+from src.bootstrap.settings import get_settings
 
 
 def test_worker_command_finds_the_app() -> None:

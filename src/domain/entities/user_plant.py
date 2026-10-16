@@ -4,9 +4,10 @@ from enum import StrEnum
 
 from src.domain.entities.care_schedule import CareSchedule
 from src.domain.exceptions import PlantNotReadyForWateringError
-from src.domain.value_objects.ids import IdentificationId, UserId, UserPlantId
+from src.domain.value_objects.ids import IdentificationId, UserPlantId
 from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.streak import Streak
+from src.shared.domain import UserId
 
 
 class IdentificationStatus(StrEnum):

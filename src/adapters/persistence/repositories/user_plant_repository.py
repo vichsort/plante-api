@@ -9,7 +9,8 @@ from src.adapters.persistence.models.plant_species_model import PlantSpeciesMode
 from src.adapters.persistence.models.user_plant_model import UserPlantModel
 from src.domain.entities.user_plant import UserPlant
 from src.domain.ports.user_plant_repository import IUserPlantRepository, PlantDetails
-from src.domain.value_objects.ids import IdentificationId, UserId, UserPlantId
+from src.domain.value_objects.ids import IdentificationId, UserPlantId
+from src.shared.domain import UserId
 
 
 class UserPlantRepository(IUserPlantRepository):

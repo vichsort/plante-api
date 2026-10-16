@@ -23,9 +23,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from src.domain.entities.health_record import HealthSeverity
 from src.domain.entities.training import FeedbackOrigin, FeedbackVerdict
-from src.domain.value_objects.json_value import JsonValue
-
-from .base import Base, enum_values
+from src.shared.adapters import Base, enum_values
+from src.shared.domain import JsonValue
 
 
 class _TrainingLocationColumns:

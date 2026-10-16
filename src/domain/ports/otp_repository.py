@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from src.domain.value_objects.ids import UserId
+from src.shared.domain import UserId
 
 
 class IOtpRepository(ABC):

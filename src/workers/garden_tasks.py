@@ -1,8 +1,8 @@
 import structlog
 
-from src.infrastructure.celery_config import celery_app
-from src.infrastructure.container import Container
-from src.workers.async_runner import run_async
+from src.bootstrap.celery_config import celery_app
+from src.bootstrap.container import Container
+from src.shared.workers import run_async
 
 log = structlog.stdlib.get_logger()
 

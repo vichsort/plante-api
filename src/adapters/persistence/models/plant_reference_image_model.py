@@ -5,8 +5,7 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.domain.entities.plant_reference_image import ImageSource
-
-from .base import AuditMixin, Base, enum_values
+from src.shared.adapters import AuditMixin, Base, enum_values
 
 
 class PlantReferenceImageModel(Base, AuditMixin):

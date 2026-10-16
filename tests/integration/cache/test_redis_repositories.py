@@ -3,10 +3,10 @@ import uuid
 
 from redis.asyncio import Redis
 
-from src.adapters.cache.redis_client import RedisClient
 from src.adapters.cache.redis_otp_repository import RedisOtpRepository
 from src.adapters.cache.redis_token_repository import RedisTokenRepository
-from src.domain.value_objects.ids import UserId
+from src.shared.adapters import RedisClient
+from src.shared.domain import UserId
 
 
 def _user_id() -> UserId:

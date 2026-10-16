@@ -4,7 +4,8 @@ from datetime import date
 
 from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.user_plant import UserPlant
-from src.domain.value_objects.ids import IdentificationId, UserId, UserPlantId
+from src.domain.value_objects.ids import IdentificationId, UserPlantId
+from src.shared.domain import UserId
 
 
 @dataclass(frozen=True)

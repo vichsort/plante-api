@@ -1,8 +1,8 @@
 import structlog
 
-from src.adapters.cache.redis_client import RedisClient
 from src.domain.ports.token_repository import ITokenRepository
-from src.domain.value_objects.ids import UserId
+from src.shared.adapters import RedisClient
+from src.shared.domain import UserId
 
 log = structlog.stdlib.get_logger()
 
