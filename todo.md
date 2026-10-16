@@ -361,8 +361,8 @@ shared
      - Feedback de saúde confere o dono com `health_records.get_for_user`.
    - **Falta (próxima sessão):**
      - abrir o PR para a `develop`;
-     - decidir a ordem do restante (abaixo);
-     - os testes de rota antigos dependem da ordem da suíte (`test_shutdown` chama `create_app()` e religa o container), por isso falham se rodar só `tests/unit tests/integration`. Corrigir.
+     - decidir a ordem do restante (abaixo).
+   - ~~Testes de rota antigos dependiam da ordem da suíte~~ ✅ (corrigido): o `test_shutdown` devolve a ligação ao container do `src.main.app` (`WIRED_MODULES`), porque o `wire()` é global.
    - **Decisão pendente: ordem.** O `identification` depende de identity (usuário, localização) e subscription (tokens, `SubscriptionRequiredError`), que ainda são código antigo, e um módulo não pode importar código antigo. Opções:
      - (a) migrar identity e subscription antes do identification, de baixo para cima;
      - (b) portas no identification (`ITokenWallet`, `IUserRegion`) com pontes no código antigo, mas os erros de subscription não teriam dono.
