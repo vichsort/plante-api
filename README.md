@@ -32,9 +32,7 @@ Este repositório contém o **backend da plataforma**, construído com arquitetu
 
 - 🌿 **Identificação de espécies** via foto com consensus engine (PlantNet + Kindwise)
 - 🔬 **Diagnóstico de saúde** e detecção de pragas/doenças
-- 💧 **Lembretes inteligentes** de rega e poda por worker assíncrono
-- 🌦️ **Alertas climáticos** integrados via Open-Meteo
-- 🔔 **Notificações push** via Firebase Cloud Messaging
+- 💧 **Rotina de rega** com sequência de regas no prazo
 - 🏆 **Sistema de conquistas** para engajamento do usuário
 
 ---
@@ -53,9 +51,7 @@ src/
 ├── adapters/        # Implementações concretas das ports
 │   ├── ai/          # Gemini, PlantNet, Kindwise, Consensus Engine
 │   ├── persistence/ # SQLAlchemy models + repositories
-│   ├── storage/     # S3
-│   ├── weather/     # Open-Meteo + Nominatim
-│   └── notifications/ # Firebase FCM
+│   └── storage/     # S3
 ├── api/             # Routers FastAPI + schemas Pydantic
 ├── workers/         # Tasks Celery por domínio
 └── infrastructure/  # Container DI, settings, engine async
@@ -75,8 +71,6 @@ src/
 | Workers | Celery 5 + Celery Beat |
 | IA principal | Google Gemini API |
 | IA consensus | PlantNet + Kindwise |
-| Push notifications | Firebase Cloud Messaging |
-| Clima | Open-Meteo (gratuita) |
 | Storage | AWS S3 |
 | E-mail | AWS SES |
 | Logs | structlog (JSON estruturado) |
@@ -188,7 +182,6 @@ Copie `.env.example` para `.env` e preencha:
 | `AWS_ACCESS_KEY_ID` | Credencial AWS (S3 + SES) |
 | `AWS_SECRET_ACCESS_KEY` | Credencial AWS |
 | `SES_SENDER_EMAIL` | E-mail remetente cadastrado no SES |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Caminho para o JSON do Firebase |
 
 ---
 

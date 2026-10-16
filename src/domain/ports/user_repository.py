@@ -20,11 +20,6 @@ class IUserRepository(ABC):
         ...
 
     @abstractmethod
-    async def update_fcm_token(self, user_id: UserId, fcm_token: str) -> None:
-        """Atualizado sempre que o app reinicia e gera novo token."""
-        ...
-
-    @abstractmethod
     async def update_subscription(
         self,
         user_id: UserId,

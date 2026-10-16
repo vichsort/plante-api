@@ -27,8 +27,6 @@ class User:
     subscription: SubscriptionTier
     created_at: datetime | None = None
     tokens_used_today: int = 0
-    fcm_token: str | None = None
-    fcm_token_updated_at: datetime | None = None
     subscription_expires_at: datetime | None = None
     bio: str | None = None
     profile_picture_url: str | None = None

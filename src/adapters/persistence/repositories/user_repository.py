@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,15 +33,6 @@ class UserRepository(IUserRepository):
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return UserMapper.to_domain(model) if model else None
-
-    async def update_fcm_token(self, user_id: UserId, fcm_token: str) -> None:
-        stmt = (
-            update(UserModel)
-            .where(UserModel.id == user_id)
-            .where(UserModel.deleted_at.is_(None))
-            .values(fcm_token=fcm_token, fcm_token_updated_at=datetime.now(UTC))
-        )
-        await self._session.execute(stmt)
 
     async def update_subscription(
         self,

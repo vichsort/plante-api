@@ -16,7 +16,7 @@ from src.domain.exceptions.botany import (
     PlantIdentificationError,
     SpeciesNotFoundError,
 )
-from src.domain.exceptions.external import ExternalServiceError, GeocodingError
+from src.domain.exceptions.external import ExternalServiceError
 from src.domain.exceptions.garden import (
     PlantLimitExceededError,
     PlantNotFoundError,
@@ -33,7 +33,6 @@ __all__ = [
     "EmailAlreadyInUseError",
     "ExternalServiceError",
     "ForbiddenError",
-    "GeocodingError",
     "HealthRecordNotFoundError",
     "IdentificationNotFoundError",
     "InvalidCredentialsError",

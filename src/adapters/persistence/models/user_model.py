@@ -35,8 +35,6 @@ class UserModel(Base, AuditMixin):
     )
     tokens_used_today: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    fcm_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    fcm_token_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     subscription_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
     profile_picture_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

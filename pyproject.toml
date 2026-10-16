@@ -37,8 +37,6 @@ dependencies = [
     # --- IA ---
     "google-genai==2.4.0",
     "httpx==0.28.1",
-    # --- Firebase (FCM) ---
-    "firebase-admin==6.5.0",
     # --- Storage async ---
     "aiofiles==25.1.0",
     # --- Imagens (remoção de EXIF antes de qualquer uso) ---
@@ -82,7 +80,6 @@ markers = ["contract: chama as APIs reais dos provedores de IA"]
 python_version = "3.12"
 strict = true
 files = ["src"]
-mypy_path = "typings"  # stubs locais de bibliotecas sem tipos (ex.: firebase_admin)
 plugins = ["pydantic.mypy"]
 # `Any` é proibido: nem escrito, nem vindo de decorators ou de expressões de bibliotecas
 disallow_any_explicit = true
@@ -181,7 +178,6 @@ forbidden_modules = [
     "dotenv",
     "email_validator",
     "fastapi",
-    "firebase_admin",
     "google",
     "httpx",
     "jwt",

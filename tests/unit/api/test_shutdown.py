@@ -12,18 +12,15 @@ async def test_close_connections_closes_all_even_if_one_fails():
     engine = MagicMock()
     engine.dispose = AsyncMock(side_effect=RuntimeError("boom"))
     redis = AsyncMock()
-    weather_http = AsyncMock()
 
     with (
         container.infra.engine.override(engine),
         container.adapters.redis.override(redis),
-        container.adapters.weather_http.override(weather_http),
     ):
         await _close_connections(container)
 
     engine.dispose.assert_awaited_once()
     redis.close.assert_awaited_once()
-    weather_http.aclose.assert_awaited_once()
 
 
 def test_lifespan_starts_and_shuts_down():

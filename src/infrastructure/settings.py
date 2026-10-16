@@ -59,9 +59,6 @@ class Settings(BaseSettings):
     aws_secret_access_key: str = ""
     ses_sender_email: str = "noreply@plante.app"
 
-    # Firebase
-    google_application_credentials: str = ""
-
     # App
     debug: bool = False
     consensus_enabled: bool = True

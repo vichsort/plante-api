@@ -1,4 +1,3 @@
-import httpx
 from dependency_injector import containers, providers
 
 from src.adapters.ai.consensus.consensus_adapter import ConsensusIdentifier
@@ -11,7 +10,6 @@ from src.adapters.cache.redis_token_repository import RedisTokenRepository
 from src.adapters.email.ses_email_sender import SesEmailSender
 from src.adapters.events.celery_publisher import CeleryPublisher
 from src.adapters.images.pillow_image_sanitizer import PillowImageSanitizer
-from src.adapters.notifications.firebase_adapter import FirebaseAdapter
 from src.adapters.resilience import (
     CircuitBreaker,
     CircuitBreakerHealthAnalyzer,
@@ -20,8 +18,6 @@ from src.adapters.resilience import (
 from src.adapters.security.bcrypt_hasher import BcryptHasher
 from src.adapters.security.jwt_token_service import JwtTokenService
 from src.adapters.storage.s3_image_storage import S3ImageStorage
-from src.adapters.weather.nominatim_geocoder import NominatimGeocoder
-from src.adapters.weather.open_meteo_adapter import OpenMeteoAdapter
 from src.infrastructure.celery_config import celery_app
 from src.infrastructure.settings import Settings
 
@@ -29,7 +25,6 @@ from src.infrastructure.settings import Settings
 class AdaptersContainer(containers.DeclarativeContainer):
     settings: providers.Dependency[Settings] = providers.Dependency()
 
-    weather_http = providers.Singleton(httpx.AsyncClient)
     password_hasher = providers.Singleton(BcryptHasher)
     image_sanitizer = providers.Singleton(PillowImageSanitizer)
     domain_publisher = providers.Singleton(CeleryPublisher, celery_app=celery_app)
@@ -70,11 +65,6 @@ class AdaptersContainer(containers.DeclarativeContainer):
         region=settings.provided.aws_region,
         aws_access_key_id=settings.provided.aws_access_key_id,
         aws_secret_access_key=settings.provided.aws_secret_access_key,
-    )
-
-    notification_sender = providers.Singleton(
-        FirebaseAdapter,
-        credentials_path=settings.provided.google_application_credentials,
     )
 
     # Kindwise atende identificação e saúde: um único breaker por provedor
@@ -135,15 +125,4 @@ class AdaptersContainer(containers.DeclarativeContainer):
     plant_enricher = providers.Singleton(
         GeminiAdapter,
         api_key=settings.provided.gemini_api_key,
-    )
-
-    geocoder = providers.Singleton(
-        NominatimGeocoder,
-        client=weather_http,
-    )
-
-    weather_service = providers.Singleton(
-        OpenMeteoAdapter,
-        client=weather_http,
-        geocoder=geocoder,
     )

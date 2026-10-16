@@ -190,11 +190,10 @@ Cada exceção carrega um **Código Único Máquina-Readable** e um **Status HTT
 | `PLANTE_4029_RATE_LIMIT_EXCEEDED` | `RateLimitExceededError` | Limite de requisições por minuto excedido (`RateLimitMiddleware`). | 429 |
 | `PLANTE_4220_VALIDATION_ERROR` | — (FastAPI) | Corpo, query ou path da requisição inválidos. | 422 |
 | `PLANTE_5000_INTERNAL_ERROR` | — (handler genérico) | Exceção inesperada; detalhes só no log. | 500 |
-| `PLANTE_5001_EXTERNAL_SERVICE_ERROR` | `ExternalServiceError` | Provedor externo falhou (Kindwise, PlantNet, Gemini, Firebase, clima). Regras abaixo. | 502 |
-| `PLANTE_5002_GEOCODING_ERROR` | `GeocodingError` | Serviço de geocodificação falhou. | 502 |
+| `PLANTE_5001_EXTERNAL_SERVICE_ERROR` | `ExternalServiceError` | Provedor externo falhou (Kindwise, PlantNet, Gemini, AWS). Regras abaixo. | 502 |
 | `PLANTE_5003_SERVICE_NOT_READY` | — (probe) | Readiness: Postgres ou Redis indisponível (`/health/readiness`). | 503 |
 
-Códigos aposentados (não reutilizar): `PLANTE_4015_SAMPLE_NOT_FOUND` e `PLANTE_4018_RAW_RESPONSE_EXPIRED`, removidos com a confirmação de identificação/diagnóstico (substituída por feedback, seção 2.6).
+Códigos aposentados (não reutilizar): `PLANTE_4015_SAMPLE_NOT_FOUND` e `PLANTE_4018_RAW_RESPONSE_EXPIRED`, removidos com a confirmação de identificação/diagnóstico (substituída por feedback, seção 2.6); `PLANTE_5002_GEOCODING_ERROR`, removido com o geocodificador (Nominatim).
 
 **`PLANTE_4013` — quando um provedor de IA gera imagem inválida:**
 * Kindwise: `is_plant.binary == false` explícito → `NotAPlantError` (campo ausente segue o fluxo normal); lista de sugestões vazia → `InvalidImageError`; HTTP 400 → `InvalidImageError` **só** se o corpo contiver o marcador `Invalid image` (outros 400 são payload nosso malformado → `ExternalServiceError(retryable=False)` + log `provider.request_rejected`).
@@ -237,8 +236,8 @@ Todas as respostas HTTP do sistema (sucesso ou erro) são embrulhadas na mesma e
 3. Registre a nova classe no container `AdaptersContainer` em `src/infrastructure/containers/adapters.py`.
 4. Adicione os testes unitários correspondentes em `tests/unit/adapters/`.
 
-### 4.2. Como Adicionar um Novo Provedor de Envio de E-mail ou Push Notification
-1. Crie o novo adapter implementando `IEmailSender` ou `INotificationSender`.
+### 4.2. Como Adicionar um Novo Provedor de Envio de E-mail
+1. Crie o novo adapter implementando `IEmailSender`.
 2. Configure o provedor no container e a chave de configuração em `Settings` (`src/infrastructure/settings.py`).
 
 ---
@@ -256,13 +255,13 @@ Para evitar vazamento de conexões de banco de dados e loops de eventos concorre
 
 `Any` é proibido: nem escrito (`disallow_any_explicit` + ruff `ANN401`), nem vindo de expressões ou decorators (`disallow_any_expr`, `disallow_any_decorated`). `cast` e `# type: ignore` não são usados para silenciar o checker.
 
-* **Pydantic nas bordas, dataclasses no domínio.** Dado que vem de fora do processo entra por um modelo Pydantic: respostas de Kindwise/PlantNet/Gemini/Open-Meteo/Nominatim (`src/adapters/**`), claims do JWT, valores lidos do Redis, argumentos de tasks do Celery e corpo das requisições (`src/api/schemas/`). Dado criado dentro do processo é dataclass tipada: entidades, value objects, DTOs dos ports e saídas dos use cases. O domínio não depende do Pydantic.
+* **Pydantic nas bordas, dataclasses no domínio.** Dado que vem de fora do processo entra por um modelo Pydantic: respostas de Kindwise/PlantNet/Gemini (`src/adapters/**`), claims do JWT, valores lidos do Redis, argumentos de tasks do Celery e corpo das requisições (`src/api/schemas/`). Dado criado dentro do processo é dataclass tipada: entidades, value objects, DTOs dos ports e saídas dos use cases. O domínio não depende do Pydantic.
 * **IDs**: `NewType` sobre `UUID` por entidade (`UserId`, `UserPlantId`… em `src/domain/value_objects/ids.py`), gerados pelo domínio na criação (nunca pelo banco). O mypy impede passar o ID de uma entidade no lugar do de outra.
 * **Sinais dos provedores** não são JSON opaco: dataclasses tipadas (`src/domain/value_objects/provider_signals.py`), montadas pelos adapters a partir do contrato validado; na coluna JSON, o mapper as valida com `TypeAdapter`.
 * **JSON opaco** (`details` de erro): `JsonValue` / `JsonObject` (`src/domain/value_objects/json_value.py`), alias recursivo exato de JSON. Quem precisa ler um campo usa um modelo próprio na borda, não navega no JSON.
 * **Origens**: `Literal` (`IdentificationOrigin`, `HealthSource`…), enums de texto são `StrEnum`.
 * **Resposta fora do contrato** de um provedor é falha do provedor: `ExternalServiceError` não retryable + log `provider.unexpected_response`. O Gemini usa saída estruturada (`response_schema` = o modelo Pydantic), então é obrigado a responder no formato validado.
-* **Cola de biblioteca**: alguns módulos falam com bibliotecas que tipam a própria API com `Any` (SQLAlchemy ORM, decorators do FastAPI/dependency_injector/Celery, redis-py, google-genai, PyJWT; o typeshed tipa até toda corrotina como `Coroutine[Any, Any, T]`). Esses módulos estão listados no `pyproject.toml`, com o motivo de cada um; neles só a checagem de expressões/decorators é desligada (`Any` escrito continua proibido) e o dado que sai para o domínio já sai tipado. Cada biblioteca fica isolada no menor módulo possível (ex.: `RedisClient`, `GeminiClient`, `JwtTokenService`). Bibliotecas sem tipos ganham stubs mínimos em `typings/` (ex.: `firebase_admin`).
+* **Cola de biblioteca**: alguns módulos falam com bibliotecas que tipam a própria API com `Any` (SQLAlchemy ORM, decorators do FastAPI/dependency_injector/Celery, redis-py, google-genai, PyJWT; o typeshed tipa até toda corrotina como `Coroutine[Any, Any, T]`). Esses módulos estão listados no `pyproject.toml`, com o motivo de cada um; neles só a checagem de expressões/decorators é desligada (`Any` escrito continua proibido) e o dado que sai para o domínio já sai tipado. Cada biblioteca fica isolada no menor módulo possível (ex.: `RedisClient`, `GeminiClient`, `JwtTokenService`).
 
 ---
 

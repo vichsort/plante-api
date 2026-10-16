@@ -44,7 +44,6 @@ async def _close_connections(container: Container) -> None:
     closers = {
         "database": container.infra.engine().dispose,
         "redis": container.adapters.redis().close,
-        "weather_http": container.adapters.weather_http().aclose,
     }
     for name, close in closers.items():
         try:
