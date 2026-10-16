@@ -5,7 +5,7 @@ from sqlalchemy import JSON, UUID, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.domain.entities.health_record import HealthSeverity
+from src.modules.training import HealthSeverity
 from src.shared.adapters import AuditMixin, Base, enum_values
 
 

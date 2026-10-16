@@ -352,8 +352,23 @@ shared
      - **O rate limit não conhece mais o identity:** o decodificador de token devolve `None` para token inválido (antes capturava o `UnauthorizedError`).
      - **AAA obrigatório só nos testes dos módulos e nos e2e;** os antigos em `tests/` ganham os marcadores quando o módulo deles migrar.
      - **Ficaram em `tests/` até o módulo migrar:** o teste dos middlewares (usa JWT e container) e o do wrapper do circuit breaker (identification).
-2. **Piloto: identification + catalog.** Avaliar se o padrão se paga antes de replicar.
-3. training → health → garden → subscription → identity (por último, o mais acoplado) → achievements.
+2. **Piloto** (em andamento, branch `refactor/module-identification`, **sem push**). Feito em 2026-10-16, tudo verde (375 testes):
+   - **UoW compartilhado** (`src.shared`): uma transação física. O primeiro UoW aberto é o dono; o de outro módulo, chamado por um `service`, se junta a ela e não pode dar commit.
+   - **Módulo `training`:** amostras, feedback com alvo tipado (`IdentificationLabel | HealthLabel`), vocabulário do dataset e `ITrainingRecorder`.
+   - **Módulo `catalog`:** espécies, imagens de referência, `ISpeciesRegistry` e `ISpeciesEnricher`. O Gemini foi dividido; o código antigo ficou com `IHealthEnricher`.
+   - **Correções no caminho:**
+     - `migrations/env.py` perdia os modelos desde o milestone 1 (o autogenerate geraria DROP). Agora usa `src/bootstrap/models.py`.
+     - Feedback de saúde confere o dono com `health_records.get_for_user`.
+   - **Falta (próxima sessão):**
+     - abrir o PR para a `develop`;
+     - ~~decidir a ordem do restante~~ ✅ (2026-10-16): opção (a), abaixo.
+   - ~~Testes de rota antigos dependiam da ordem da suíte~~ ✅ (corrigido): o `test_shutdown` devolve a ligação ao container do `src.main.app` (`WIRED_MODULES`), porque o `wire()` é global.
+   - **Ordem decidida: (a).** O `identification` depende de identity (usuário, localização) e subscription (tokens, `SubscriptionRequiredError`), que ainda são código antigo, e um módulo não pode importar código antigo. Opções:
+     - (a) migrar identity e subscription antes do identification, de baixo para cima;
+     - (b) portas no identification (`ITokenWallet`, `IUserRegion`) com pontes no código antigo, mas os erros de subscription não teriam dono.
+     - Escolhida: (a).
+   - `EnrichPlantSpeciesUseCase` ficou no código antigo: ele cobra tokens, e o catalog é módulo base.
+3. De baixo para cima (decidido em 2026-10-16, opção (a) acima): identity → subscription → identification → garden → health → achievements. Uma branch `refactor/module-<x>` por módulo. Training e catalog já saíram no piloto.
 
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:

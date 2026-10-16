@@ -6,6 +6,7 @@ from src.adapters.persistence.models.health_record_model import HealthRecordMode
 from src.domain.entities.health_record import HealthRecord
 from src.domain.ports.health_record_repository import IHealthRecordRepository
 from src.domain.value_objects.ids import HealthRecordId, UserPlantId
+from src.shared.domain import UserId
 
 
 class HealthRecordRepository(IHealthRecordRepository):
@@ -19,8 +20,12 @@ class HealthRecordRepository(IHealthRecordRepository):
         await self._session.flush()
         return HealthRecordMapper.to_domain(model)
 
-    async def get_by_id(self, record_id: HealthRecordId) -> HealthRecord | None:
-        stmt = select(HealthRecordModel).where(HealthRecordModel.id == record_id)
+    async def get_for_user(self, record_id: HealthRecordId, user_id: UserId) -> HealthRecord | None:
+        stmt = (
+            select(HealthRecordModel)
+            .where(HealthRecordModel.id == record_id)
+            .where(HealthRecordModel.user_id == user_id)
+        )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return HealthRecordMapper.to_domain(model) if model else None

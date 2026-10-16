@@ -5,7 +5,7 @@ import pytest
 from google.genai import errors as genai_errors
 from structlog.testing import capture_logs
 
-from src.adapters.ai.gemini.gemini_adapter import GeminiAdapter
+from src.adapters.ai.gemini.gemini_adapter import GeminiHealthEnricher
 from src.adapters.ai.kindwise import kindwise_adapter
 from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.ai.plantnet import plantnet_adapter
@@ -254,8 +254,8 @@ class _FakeModels:
         return type("Response", (), {"text": self._outcome})()
 
 
-def _gemini(outcome) -> GeminiAdapter:
-    adapter = GeminiAdapter(api_key="test")
+def _gemini(outcome) -> GeminiHealthEnricher:
+    adapter = GeminiHealthEnricher(api_key="test")
     adapter._client._client = type("Client", (), {"models": _FakeModels(outcome)})()
     return adapter
 
@@ -317,7 +317,7 @@ async def test_gemini_response_outside_schema_is_external_error(payload):
 @pytest.mark.asyncio
 async def test_gemini_requests_structured_output():
     models = _FakeModels(json.dumps(_DIAGNOSIS))
-    adapter = GeminiAdapter(api_key="test")
+    adapter = GeminiHealthEnricher(api_key="test")
     adapter._client._client = type("Client", (), {"models": models})()
 
     await adapter.diagnose_health("Monstera deliciosa", [])

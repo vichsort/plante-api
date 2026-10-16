@@ -10,7 +10,6 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
-from src.domain.entities.training import FeedbackOrigin, FeedbackVerdict
 from src.domain.ports.health_analyzer import DiseaseHint, HealthAssessmentResult
 from src.domain.ports.plant_identifier import IdentificationResult
 from src.domain.use_cases.add_plant_to_garden_use_case import (
@@ -42,7 +41,20 @@ from src.domain.use_cases.water_plant_use_case import (
     WaterPlantUseCase,
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.provider_signals import DiseaseSuggestion, HealthSignals
+from src.modules.catalog.adapters.persistence.unit_of_work import (
+    SqlAlchemyCatalogUnitOfWork,
+)
+from src.modules.catalog.domain.services.species_registry import SpeciesRegistry
+from src.modules.training import (
+    DiseaseSuggestion,
+    FeedbackOrigin,
+    FeedbackVerdict,
+    HealthSignals,
+)
+from src.modules.training.adapters.persistence.unit_of_work import (
+    SqlAlchemyTrainingUnitOfWork,
+)
+from src.modules.training.domain.services.recorder import TrainingRecorder
 from tests.factories import CALENDAR, make_identification_signals, make_user
 from tests.fakes import MarkingSanitizer
 
@@ -91,6 +103,9 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     def uow() -> SqlAlchemyUnitOfWork:
         return SqlAlchemyUnitOfWork(session_factory)
 
+    def training() -> TrainingRecorder:
+        return TrainingRecorder(SqlAlchemyTrainingUnitOfWork(session_factory))
+
     async with uow() as setup:
         user = await setup.users.save(make_user(email="flow@plante.org"))
         await setup.commit()
@@ -102,16 +117,16 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     # 1. Identificar (com GPS) e dar feedback
     identified = await IdentifyPlantUseCase(
         uow=uow(), sanitizer=MarkingSanitizer(), plant_identifier=_identifier(), storage=storage, publisher=AsyncMock(),
-        calendar=CALENDAR,
+        calendar=CALENDAR, training=training(), catalog=SpeciesRegistry(SqlAlchemyCatalogUnitOfWork(session_factory)),
     ).execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"photo", latitude=-23.5617, longitude=-46.6559))
 
-    await GiveIdentificationFeedbackUseCase(uow=uow()).execute(GiveIdentificationFeedbackInputDTO(
+    await GiveIdentificationFeedbackUseCase(uow=uow(), training=training()).execute(GiveIdentificationFeedbackInputDTO(
         user_id=user.id, identification_id=identified.identification_id,
         verdict=FeedbackVerdict.WRONG, suggested_name="Monstera adansonii",
     ))
 
     # 2. Adicionar ao jardim (sinal implícito) e regar
-    plant = (await AddPlantToGardenUseCase(uow=uow(), publisher=AsyncMock(), calendar=CALENDAR).execute(
+    plant = (await AddPlantToGardenUseCase(uow=uow(), publisher=AsyncMock(), calendar=CALENDAR, training=training()).execute(
         AddPlantToGardenInputDTO(user_id=user.id, identification_id=identified.identification_id)
     )).plant
     await WaterPlantUseCase(uow=uow(), publisher=AsyncMock(), calendar=CALENDAR).execute(
@@ -121,22 +136,23 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     # 3. Diagnosticar e dar feedback
     diagnosis = await DiagnoseHealthUseCase(
         uow=uow(), sanitizer=MarkingSanitizer(), health_analyzer=_analyzer(), plant_enricher=enricher, storage=storage,
-        calendar=CALENDAR,
+        calendar=CALENDAR, training=training(),
     ).execute(DiagnoseHealthInputDTO(user_id=user.id, user_plant_id=plant.id, image_bytes=b"leaf"))
 
-    await GiveHealthFeedbackUseCase(uow=uow()).execute(GiveHealthFeedbackInputDTO(
+    await GiveHealthFeedbackUseCase(uow=uow(), training=training()).execute(GiveHealthFeedbackInputDTO(
         user_id=user.id, health_record_id=diagnosis.record.id, verdict=FeedbackVerdict.CORRECT,
     ))
 
     async with uow() as check:
         identification = await check.identifications.get_for_user(identified.identification_id, user.id)
         assert identification is not None
-        feedback = await check.training.list_feedback(identification.training_sample_id)
+    async with SqlAlchemyTrainingUnitOfWork(session_factory) as dataset:
+        feedback = await dataset.training.list_feedback(identification.training_sample_id)
         assert {(f.verdict, f.origin) for f in feedback} == {
             (FeedbackVerdict.WRONG, FeedbackOrigin.EXPLICIT),
             (FeedbackVerdict.CORRECT, FeedbackOrigin.ADDED_TO_GARDEN),
         }
-        sample = await check.training.get_identification_sample(identification.training_sample_id)
+        sample = await dataset.training.get_identification_sample(identification.training_sample_id)
         assert sample is not None
         assert (sample.location.grid_latitude, sample.location.grid_longitude) == (-23.6, -46.7)
 

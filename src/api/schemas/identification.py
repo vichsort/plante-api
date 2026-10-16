@@ -2,8 +2,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from src.domain.entities.training import FeedbackVerdict
 from src.domain.use_cases.identify_plant_use_case import IdentifyPlantOutput
+from src.modules.training import FeedbackVerdict
 
 
 class IdentifyPlantResponse(BaseModel):

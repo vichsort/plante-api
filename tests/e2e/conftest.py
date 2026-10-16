@@ -30,8 +30,8 @@ from src.shared.adapters import RedisClient
 from src.workers.notification_tasks import send_verification_email_task
 from tests.e2e.doubles import (
     FakeEmailSender,
-    FakeEnricher,
     FakeHealthAnalyzer,
+    FakeHealthEnricher,
     FakeIdentifier,
     FakeStorage,
     RecordingQueue,
@@ -60,7 +60,7 @@ def jpeg(color: str = "green") -> bytes:
 class Doubles:
     identifier: FakeIdentifier = field(default_factory=FakeIdentifier)
     health_analyzer: FakeHealthAnalyzer = field(default_factory=FakeHealthAnalyzer)
-    enricher: FakeEnricher = field(default_factory=FakeEnricher)
+    health_enricher: FakeHealthEnricher = field(default_factory=FakeHealthEnricher)
     storage: FakeStorage = field(default_factory=FakeStorage)
     email: FakeEmailSender = field(default_factory=FakeEmailSender)
     queue: RecordingQueue = field(default_factory=RecordingQueue)
@@ -79,7 +79,7 @@ def doubles(
         container.adapters.redis: providers.Object(redis_client),
         container.adapters.plant_identifier: providers.Object(fakes.identifier),
         container.adapters.health_analyzer: providers.Object(fakes.health_analyzer),
-        container.adapters.plant_enricher: providers.Object(fakes.enricher),
+        container.adapters.health_enricher: providers.Object(fakes.health_enricher),
         container.adapters.image_storage: providers.Object(fakes.storage),
         container.adapters.email_sender: providers.Object(fakes.email),
         container.adapters.domain_publisher: providers.Object(CeleryPublisher(fakes.queue)),

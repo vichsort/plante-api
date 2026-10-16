@@ -6,8 +6,8 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from src.bootstrap.models import metadata
 from src.bootstrap.settings import get_settings
-from src.shared.adapters import Base
 
 settings = get_settings()
 
@@ -17,7 +17,7 @@ if config.config_file_name is not None:
 
 config.set_main_option("sqlalchemy.url", settings.database_url)
 
-target_metadata = Base.metadata
+target_metadata = metadata
 
 
 

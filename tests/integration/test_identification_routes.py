@@ -4,10 +4,10 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
-from src.domain.entities.training import FeedbackVerdict
 from src.domain.use_cases.identify_plant_use_case import IdentifyPlantOutput
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.ids import IdentificationId
+from src.modules.training import FeedbackVerdict
 
 
 def test_identify_plant_route_success(client: TestClient, auth_headers: dict[str, str]):

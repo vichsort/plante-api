@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.user_plant import UserPlant
 from src.domain.exceptions import PlantNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import UserPlantId
 from src.domain.value_objects.local_calendar import LocalCalendar
+from src.modules.catalog import ISpeciesRegistry, PlantSpecies
 from src.shared.domain import UserId
 
 
@@ -26,20 +26,18 @@ class PlantDetailsOutput:
 class GetPlantDetailsUseCase:
     raises = (PlantNotFoundError,)
 
-    def __init__(self, uow: IUnitOfWork, calendar: LocalCalendar) -> None:
+    def __init__(self, uow: IUnitOfWork, calendar: LocalCalendar, catalog: ISpeciesRegistry) -> None:
         self.uow = uow
         self.calendar = calendar
+        self.catalog = catalog
 
     async def execute(self, dto: GetPlantDetailsInputDTO) -> PlantDetailsOutput:
         async with self.uow as uow:
-            details = await uow.user_plants.get_details(dto.user_plant_id, dto.user_id)
-
-        if details is None:
-            raise PlantNotFoundError(dto.user_plant_id)
+            plant = await uow.user_plants.get_by_id(dto.user_plant_id, dto.user_id)
+            if plant is None:
+                raise PlantNotFoundError(dto.user_plant_id)
+            # A espécie é do catalog: pergunta pelo service, não por JOIN na tabela dele
+            species = await self.catalog.find_by_name(plant.scientific_name)
 
         today = self.calendar.date_of(datetime.now(UTC))
-        return PlantDetailsOutput(
-            plant=details.plant,
-            species=details.species,
-            needs_watering=details.plant.needs_watering(today),
-        )
+        return PlantDetailsOutput(plant=plant, species=species, needs_watering=plant.needs_watering(today))

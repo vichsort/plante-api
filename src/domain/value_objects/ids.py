@@ -10,13 +10,6 @@ from typing import NewType
 from uuid import UUID
 
 UserPlantId = NewType("UserPlantId", UUID)
-PlantSpeciesId = NewType("PlantSpeciesId", UUID)
 IdentificationId = NewType("IdentificationId", UUID)
 HealthRecordId = NewType("HealthRecordId", UUID)
-ReferenceImageId = NewType("ReferenceImageId", UUID)
 AchievementId = NewType("AchievementId", UUID)
-
-# Dados de treino: anônimos, sem ligação de volta com o usuário
-TrainingIdentificationSampleId = NewType("TrainingIdentificationSampleId", UUID)
-TrainingHealthSampleId = NewType("TrainingHealthSampleId", UUID)
-TrainingFeedbackId = NewType("TrainingFeedbackId", UUID)

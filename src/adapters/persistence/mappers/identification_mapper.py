@@ -1,10 +1,10 @@
-from src.adapters.persistence.mappers.sources import to_identification_origin
 from src.adapters.persistence.models import IdentificationModel
 from src.domain.entities.identification import Identification
-from src.domain.value_objects.ids import (
-    IdentificationId,
-    PlantSpeciesId,
+from src.domain.value_objects.ids import IdentificationId
+from src.modules.catalog import PlantSpeciesId
+from src.modules.training import (
     TrainingIdentificationSampleId,
+    parse_identification_origin,
 )
 from src.shared.domain import UserId
 
@@ -19,7 +19,7 @@ class IdentificationMapper:
             species_id=PlantSpeciesId(model.species_id),
             scientific_name=model.scientific_name,
             confidence=model.confidence,
-            source=to_identification_origin(model.source),
+            source=parse_identification_origin(model.source),
             image_key=model.image_key,
             created_at=model.created_at,
         )

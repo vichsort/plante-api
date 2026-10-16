@@ -5,6 +5,8 @@ Regras de negócio de cada subdomínio enquanto o código ainda está nas camada
 migrado**: a seção do subdomínio vai para o `README.md` do módulo (Propósito, Decisões, Erros) e
 sai daqui. Quando o último módulo migrar, o arquivo é apagado.
 
+Já migrados: `training` e `catalog` (README de cada um em `src/modules/`).
+
 As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/shared/README.md`.
 
 | Seção | Vai para o módulo |
@@ -14,7 +16,6 @@ As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/sh
 | Gestão de Jardim & Cuidados | `garden` |
 | Diagnóstico de Saúde | `health` |
 | Perfil, Gamificação & Assinaturas | `subscription` e `achievements` |
-| Dados de Treino & Anonimato | `training` |
 
 ---
 
@@ -42,7 +43,7 @@ As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/sh
 * **Entradas (Use Cases)**: `IdentifyPlantUseCase`, `GiveIdentificationFeedbackUseCase`.
 * **Ports Requeridos**: `IImageSanitizer`, `IPlantIdentifier` (Kindwise, PlantNet, consenso), `IImageStorage`, `IUnitOfWork` (`identifications`, `species`, `reference_images`, `training`).
 * **Regras de Negócio**:
-  - `POST /identify` **não cria planta no jardim**: grava a identificação (lado do usuário) e a amostra de treino anônima (seção "Dados de Treino"). Verifica só os tokens do dia; o limite do jardim vale ao adicionar ao jardim.
+  - `POST /identify` **não cria planta no jardim**: grava a identificação (lado do usuário) e a amostra de treino anônima (`src/modules/training/README.md`). Verifica só os tokens do dia; o limite do jardim vale ao adicionar ao jardim.
   - A foto é limpa antes de qualquer uso (`IImageSanitizer`, adapter Pillow): orientação aplicada, todos os metadados removidos (EXIF, GPS, aparelho, data), regravada em JPEG. Aceita JPEG/PNG/WebP; HEIC, arquivo que não é imagem ou imagem acima de 60 MP → `PLANTE_4013`.
   - Feedback (`POST /identify/{id}/feedback`): `correct | wrong | unsure` + sugestão opcional de espécie. A qualquer momento, quantas vezes o usuário quiser; cada resposta é um evento na amostra de treino.
   - **Consenso (`ConsensusIdentifier`, ativo com `CONSENSUS_ENABLED=true`)**: Kindwise e PlantNet são consultados em paralelo (timeout de 10s cada) e a `ConsensusPolicy` escolhe a espécie:
@@ -96,28 +97,6 @@ As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/sh
 
 ---
 
-## Dados de Treino & Anonimato (`Training Data`, transversal)
-* **Propósito**: Montar o dataset que treina a IA própria do PlantE a partir das identificações e diagnósticos, **sem nenhum dado pessoal**. Requisito inegociável: a IA treinada não pode ser pessoalizada, e apagar planta ou conta nunca remove dado de treino.
-* **Entidades Principais** (`src/domain/entities/training.py`): `TrainingIdentificationSample`, `TrainingHealthSample`, `TrainingFeedback`.
-* **Ports Requeridos**: `ITrainingRepository` (só acrescenta; não há remoção), `IImageStorage.upload_training_image`.
-* **Separação na gravação**: cada `/identify` e `/diagnose` grava duas coisas sem ligação de volta:
-
-  | | Lado do usuário (`identifications`, `user_plants`, `health_records`) | Treino (`training_*`) |
-  | :--- | :--- | :--- |
-  | Dono | `user_id`; tudo sai com o usuário (FKs `CASCADE`) | ninguém; sem `user_id`, sem FK para tabelas do usuário |
-  | Foto | a do usuário (`identifications/…`) | cópia própria, chave aleatória em `training/…`, nunca devolvida ao cliente |
-  | Tempo | horário exato (`created_at`, `diagnosed_at`) | só o mês (`period`); as tabelas não usam o `AuditMixin` |
-  | Local | — | estado do perfil + grade de ~11 km (GPS arredondado a 1 casa decimal), só se o cliente mandou o GPS |
-  | Provedor | — | sinais filtrados (`provider_signals.py`): sugestões e probabilidades por provedor, `is_plant`, consenso, versão do modelo |
-
-  O vínculo é **de mão única**: `identifications.training_sample_id` e `health_records.training_sample_id` apontam para a amostra; a amostra nunca aponta de volta. O vínculo some quando o dado do usuário é apagado.
-* **O que nunca entra no treino**: `user_id` ou qualquer ID do lado do usuário; GPS exato; URL/chave da foto do usuário; EXIF; do Kindwise, `access_token` (dá acesso à identificação, com a foto, na API deles), `input` (ecoa coordenadas, URL da foto e data/hora), `custom_id` e horários; do PlantNet, `query` e `remainingIdentificationRequests`. Os adapters descartam esses campos ao montar os sinais.
-* **Feedback = sinal, não confirmação**: eventos acumulados (`TrainingFeedback`, sem `user_id`), explícitos (`correct | wrong | unsure` + sugestão) ou implícitos (`added_to_garden`; futuro: motivo da exclusão, cuidado continuado). A confiança de cada rótulo **não** é calculada na gravação: a engine de confiança (planejada, ver `todo.md`) pesa os sinais brutos na exportação, com versão, para os pesos poderem mudar sem migrar dados.
-* **Modelo de ameaça**: o alvo é o dataset como artefato (exportado, usado no treino, compartilhado). Quem tem acesso a produção sempre pode cruzar dados; isso não justifica complexidade extra.
-* **Guardas automáticas**: `tests/integration/persistence/test_training_tables.py` (colunas numa lista fechada, FKs só entre tabelas de treino, nenhum horário exato), `tests/unit/adapters/test_provider_fixtures.py` (respostas reais dos provedores com dados ecoados não vazam para os sinais) e `tests/integration/test_user_and_training_flow.py` (fluxo completo; depois de apagar o usuário, o treino fica inteiro e sem nada que aponte para ele).
-
----
-
 ## Erros dos subdomínios
 
 Os erros comuns (`PLANTE_4000`, `4013`, `4029`, `5001`, `4220`, `5000`, `5003`) estão em
@@ -137,7 +116,6 @@ Os erros comuns (`PLANTE_4000`, `4013`, `4029`, `5001`, `4220`, `5000`, `5003`) 
 | `PLANTE_4010_IDENTIFICATION_FAILED` | `PlantIdentificationError` | A IA não identificou a planta com confiança suficiente. | 422 |
 | `PLANTE_4011_LOW_CONFIDENCE` | `LowConfidenceError` | Confiança da identificação abaixo de 60% (`ConfidenceScore.is_rejected`). | 422 |
 | `PLANTE_4012_IDENTIFICATION_NOT_FOUND` | `IdentificationNotFoundError` | Identificação não existe ou não pertence ao usuário (feedback, adicionar ao jardim). | 404 |
-| `PLANTE_4014_SPECIES_NOT_FOUND` | `SpeciesNotFoundError` | Espécie não existe. | 404 |
 | `PLANTE_4016_NOT_READY_FOR_WATERING` | `PlantNotReadyForWateringError` | Rega antes da janela (vencimento − 1 dia) ou segunda rega no mesmo dia (`UserPlant.water()`). | 400 |
 | `PLANTE_4017_HEALTH_RECORD_NOT_FOUND` | `HealthRecordNotFoundError` | Diagnóstico não existe ou não pertence ao usuário. | 404 |
 | `PLANTE_4019_SUBSCRIPTION_REQUIRED` | `SubscriptionRequiredError` | Recurso exclusivo do plano Pro ou tokens diários esgotados (`SubscriptionPolicy`). | 403 |

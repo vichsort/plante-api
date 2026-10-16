@@ -1,10 +1,15 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from src.domain.entities.training import FeedbackVerdict, TrainingFeedback
 from src.domain.exceptions import HealthRecordNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import HealthRecordId
+from src.modules.training import (
+    FeedbackOrigin,
+    FeedbackVerdict,
+    HealthLabel,
+    ITrainingRecorder,
+)
 from src.shared.domain import UserId
 
 
@@ -20,18 +25,20 @@ class GiveHealthFeedbackUseCase:
 
     raises = (HealthRecordNotFoundError,)
 
-    def __init__(self, uow: IUnitOfWork) -> None:
+    def __init__(self, uow: IUnitOfWork, training: ITrainingRecorder) -> None:
         self.uow = uow
+        self.training = training
 
     async def execute(self, dto: GiveHealthFeedbackInputDTO) -> None:
         async with self.uow as uow:
-            record = await uow.health_records.get_by_id(dto.health_record_id)
-            if record is None or record.user_id != dto.user_id:
+            record = await uow.health_records.get_for_user(dto.health_record_id, dto.user_id)
+            if record is None:
                 raise HealthRecordNotFoundError(dto.health_record_id)
 
-            await uow.training.add_feedback(TrainingFeedback.on_health(
-                sample_id=record.training_sample_id,
-                verdict=dto.verdict,
+            await self.training.record_feedback(
+                HealthLabel(record.training_sample_id),
+                dto.verdict,
+                FeedbackOrigin.EXPLICIT,
                 given_on=datetime.now(UTC).date(),
-            ))
+            )
             await uow.commit()

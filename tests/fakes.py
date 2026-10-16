@@ -15,7 +15,7 @@ class FakeUnitOfWork(IUnitOfWork):
     """
 
     def __init__(self, **repositories: AsyncMock) -> None:
-        for name in IUnitOfWork.__annotations__:
+        for name in IUnitOfWork.__annotations__:  # só os repositórios (a base não declara atributos)
             setattr(self, name, repositories.pop(name, AsyncMock()))
         if repositories:
             raise TypeError(f"Unknown repositories: {sorted(repositories)}")
@@ -35,6 +35,10 @@ class FakeUnitOfWork(IUnitOfWork):
         traceback: TracebackType | None,
     ) -> None:
         return None
+
+    @property
+    def joined(self) -> bool:
+        return False
 
     async def commit(self) -> None:
         self.commits += 1

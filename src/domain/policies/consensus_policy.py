@@ -1,7 +1,7 @@
 from src.domain.ports.plant_identifier import IdentificationResult
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.consensus_result import ConsensusReason, ConsensusResult
-from src.domain.value_objects.sources import IdentificationProvider
+from src.modules.training import IdentificationProvider
 
 _KINDWISE_WEIGHT = 0.60
 _PLANTNET_WEIGHT = 0.40

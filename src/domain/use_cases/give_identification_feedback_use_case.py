@@ -1,14 +1,15 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from src.domain.entities.training import (
-    FeedbackOrigin,
-    FeedbackVerdict,
-    TrainingFeedback,
-)
 from src.domain.exceptions import IdentificationNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import IdentificationId
+from src.modules.training import (
+    FeedbackOrigin,
+    FeedbackVerdict,
+    IdentificationLabel,
+    ITrainingRecorder,
+)
 from src.shared.domain import UserId
 
 
@@ -29,8 +30,9 @@ class GiveIdentificationFeedbackUseCase:
 
     raises = (IdentificationNotFoundError,)
 
-    def __init__(self, uow: IUnitOfWork) -> None:
+    def __init__(self, uow: IUnitOfWork, training: ITrainingRecorder) -> None:
         self.uow = uow
+        self.training = training
 
     async def execute(self, dto: GiveIdentificationFeedbackInputDTO) -> None:
         async with self.uow as uow:
@@ -38,11 +40,10 @@ class GiveIdentificationFeedbackUseCase:
             if identification is None:
                 raise IdentificationNotFoundError(dto.identification_id)
 
-            await uow.training.add_feedback(TrainingFeedback.on_identification(
-                sample_id=identification.training_sample_id,
-                verdict=dto.verdict,
-                origin=FeedbackOrigin.EXPLICIT,
+            await self.training.record_feedback(
+                IdentificationLabel(identification.training_sample_id, dto.suggested_name),
+                dto.verdict,
+                FeedbackOrigin.EXPLICIT,
                 given_on=datetime.now(UTC).date(),
-                suggested_name=dto.suggested_name,
-            ))
+            )
             await uow.commit()

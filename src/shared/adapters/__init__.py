@@ -1,6 +1,7 @@
 """Adapters técnicos comuns (banco, Redis, S3, imagens, resiliência, clientes de provedores). Sem regra de negócio."""
 from src.shared.adapters.persistence.base import AuditMixin, Base, enum_values, utcnow
 from src.shared.adapters.persistence.session import build_engine, build_session_factory
+from src.shared.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
 from src.shared.adapters.pillow.image_sanitizer import PillowImageSanitizer
 from src.shared.adapters.providers.errors import (
     provider_status_error,
@@ -31,6 +32,7 @@ __all__ = [
     "PillowImageSanitizer",
     "RedisClient",
     "S3ImageStorage",
+    "SqlAlchemyUnitOfWork",
     "build_engine",
     "build_session_factory",
     "enum_values",

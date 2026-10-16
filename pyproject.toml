@@ -107,6 +107,7 @@ module = [
     "src.adapters.security.jwt_token_service",  # PyJWT: payload é dict[str, Any] (validado por Pydantic logo depois)
     "src.adapters.persistence.*",  # SQLAlchemy ORM: modelos e consultas carregam genéricos com Any
     "src.shared.adapters.persistence.*",
+    "src.modules.*.adapters.persistence.*",
     # Celery: tasks e sinais
     "src.adapters.events.celery_publisher",
     "src.bootstrap.celery_config",
@@ -122,6 +123,7 @@ module = [
     "src.bootstrap.container",
     "src.bootstrap.containers.*",
     "src.bootstrap.settings",
+    "src.bootstrap.models",  # metadata do SQLAlchemy
 ]
 disallow_any_expr = false
 disallow_any_decorated = false

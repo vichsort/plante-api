@@ -1,11 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from uuid import uuid4
 
 from src.domain.entities.identification import Identification
-from src.domain.entities.plant_reference_image import PlantReferenceImage
-from src.domain.entities.plant_species import PlantSpecies
-from src.domain.entities.training import TrainingIdentificationSample
 from src.domain.events.domain_events import PlantIdentifiedEvent
 from src.domain.exceptions import (
     LowConfidenceError,
@@ -16,10 +12,16 @@ from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.plant_identifier import IPlantIdentifier
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.ids import IdentificationId, ReferenceImageId
+from src.domain.value_objects.ids import IdentificationId
 from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.subscription_tier import FeatureCost
-from src.domain.value_objects.training_location import TrainingLocation, month_of
+from src.modules.catalog import ISpeciesRegistry
+from src.modules.training import (
+    ITrainingRecorder,
+    TrainingIdentificationSample,
+    TrainingLocation,
+    month_of,
+)
 from src.shared.domain import (
     ExternalServiceError,
     IDomainPublisher,
@@ -73,7 +75,11 @@ class IdentifyPlantUseCase:
         storage: IImageStorage,
         publisher: IDomainPublisher,
         calendar: LocalCalendar,
+        training: ITrainingRecorder,
+        catalog: ISpeciesRegistry,
     ) -> None:
+        self.training = training
+        self.catalog = catalog
         self.uow = uow
         self.sanitizer = sanitizer
         self.plant_identifier = plant_identifier
@@ -128,26 +134,15 @@ class IdentifyPlantUseCase:
             if user is None:
                 raise UserNotFoundError(user_id=dto.user_id)
 
-            for key, source in rehosted:
-                await uow.reference_images.save(PlantReferenceImage(
-                    id=ReferenceImageId(uuid4()),
-                    scientific_name=result.scientific_name,
-                    storage_key=key,
-                    source=source,
-                    user_id=None,
-                    created_at=now,
-                ))
-
-            species = await uow.species.get_by_scientific_name(result.scientific_name)
-            if species is None:
-                species = await uow.species.save(PlantSpecies.create_skeleton(
-                    scientific_name=result.scientific_name,
-                    family=result.family,
-                    genus=result.genus,
-                    common_names=result.common_names,
-                    provider_entity_id=result.provider_entity_id,
-                    gbif_id=result.gbif_id,
-                ))
+            await self.catalog.add_reference_images(result.scientific_name, rehosted, at=now)
+            species = await self.catalog.register_identified(
+                scientific_name=result.scientific_name,
+                family=result.family,
+                genus=result.genus,
+                common_names=result.common_names,
+                provider_entity_id=result.provider_entity_id,
+                gbif_id=result.gbif_id,
+            )
 
             training_sample = TrainingIdentificationSample(
                 id=TrainingIdentificationSample.new_id(),
@@ -158,13 +153,13 @@ class IdentifyPlantUseCase:
                 low_confidence=result.low_confidence,
                 signals=result.signals,
                 period=month_of(now),
-                location=TrainingLocation.coarse(user.location, dto.latitude, dto.longitude),
+                location=TrainingLocation.coarse(user.location.country, user.location.state, dto.latitude, dto.longitude),
                 family=result.family,
                 genus=result.genus,
                 gbif_id=result.gbif_id,
                 provider_entity_id=result.provider_entity_id,
             )
-            await uow.training.add_identification_sample(training_sample)
+            await self.training.record_identification_sample(training_sample)
 
             identification = await uow.identifications.save(Identification.create(
                 user_id=user.id,

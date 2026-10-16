@@ -3,13 +3,8 @@ from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
 
 from src.domain.entities.care_schedule import CareSchedule, CareType
-from src.domain.entities.health_record import HealthRecord, HealthSeverity
+from src.domain.entities.health_record import HealthRecord
 from src.domain.entities.identification import Identification
-from src.domain.entities.plant_species import EnrichmentStatus, PlantSpecies
-from src.domain.entities.training import (
-    TrainingHealthSample,
-    TrainingIdentificationSample,
-)
 from src.domain.entities.user import User
 from src.domain.entities.user_plant import (
     IdentificationSource,
@@ -17,24 +12,23 @@ from src.domain.entities.user_plant import (
     UserPlant,
 )
 from src.domain.value_objects.care_interval import CareInterval
-from src.domain.value_objects.ids import (
-    HealthRecordId,
-    IdentificationId,
-    PlantSpeciesId,
-    TrainingHealthSampleId,
-    TrainingIdentificationSampleId,
-    UserPlantId,
-)
+from src.domain.value_objects.ids import HealthRecordId, IdentificationId, UserPlantId
 from src.domain.value_objects.local_calendar import LocalCalendar
-from src.domain.value_objects.provider_signals import (
+from src.domain.value_objects.subscription_tier import SubscriptionTier
+from src.domain.value_objects.user_location import UserLocation
+from src.modules.catalog import EnrichmentStatus, PlantSpecies, PlantSpeciesId
+from src.modules.training import (
     DiseaseSuggestion,
+    HealthSeverity,
     HealthSignals,
     IdentificationSignals,
     SpeciesSuggestion,
+    TrainingHealthSample,
+    TrainingHealthSampleId,
+    TrainingIdentificationSample,
+    TrainingIdentificationSampleId,
+    TrainingLocation,
 )
-from src.domain.value_objects.subscription_tier import SubscriptionTier
-from src.domain.value_objects.training_location import TrainingLocation
-from src.domain.value_objects.user_location import UserLocation
 from src.shared.domain import UserId
 
 NOW = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)

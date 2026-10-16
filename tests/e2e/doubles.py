@@ -4,20 +4,16 @@ verdade nos testes ponta a ponta: rotas, middlewares, use cases, Unit of Work, P
 """
 from dataclasses import dataclass, field
 
-from src.domain.entities.plant_reference_image import ImageSource
-from src.domain.entities.plant_species import LightRequirement
 from src.domain.ports.email_sender import IEmailSender
 from src.domain.ports.health_analyzer import (
     DiseaseHint,
     HealthAssessmentResult,
     IHealthAnalyzer,
 )
-from src.domain.ports.plant_enricher import (
+from src.domain.ports.health_enricher import (
     DiseaseAnalysisResult,
-    EnrichmentResult,
     HealthDiagnosisEnrichment,
-    IPlantEnricher,
-    NutritionalEnrichmentResult,
+    IHealthEnricher,
 )
 from src.domain.ports.plant_identifier import (
     IdentificationResult,
@@ -25,7 +21,8 @@ from src.domain.ports.plant_identifier import (
     SimilarImage,
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.provider_signals import DiseaseSuggestion, HealthSignals
+from src.modules.catalog import ImageSource
+from src.modules.training import DiseaseSuggestion, HealthSignals
 from src.shared.domain import IImageStorage, UserId
 from tests.factories import make_identification_signals
 
@@ -72,15 +69,7 @@ class FakeHealthAnalyzer(IHealthAnalyzer):
         )
 
 
-class FakeEnricher(IPlantEnricher):
-    async def enrich_species(self, scientific_name: str) -> EnrichmentResult:
-        return EnrichmentResult(
-            scientific_name=scientific_name, source="gemini", light_requirement=LightRequirement.INDIRECT,
-        )
-
-    async def enrich_nutritional(self, scientific_name: str) -> NutritionalEnrichmentResult:
-        return NutritionalEnrichmentResult(scientific_name=scientific_name, source="gemini")
-
+class FakeHealthEnricher(IHealthEnricher):
     async def analyze_disease(self, scientific_name: str, disease_name: str) -> DiseaseAnalysisResult:
         return DiseaseAnalysisResult(scientific_name=scientific_name, disease_name=disease_name, source="gemini")
 

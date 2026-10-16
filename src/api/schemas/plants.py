@@ -4,9 +4,9 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from src.domain.entities.care_schedule import CareType
-from src.domain.entities.plant_species import LightRequirement, PlantSpecies, SoilType
 from src.domain.entities.user_plant import IdentificationSource, IdentificationStatus
 from src.domain.use_cases.get_plant_details_use_case import PlantDetailsOutput
+from src.modules.catalog import LightRequirement, PlantSpecies, SoilType
 
 
 class CareScheduleResponse(BaseModel):

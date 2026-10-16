@@ -3,7 +3,6 @@ import base64
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.domain.entities.plant_reference_image import ImageSource
 from src.domain.exceptions import NotAPlantError
 from src.domain.ports.health_analyzer import (
     DiseaseHint,
@@ -16,7 +15,8 @@ from src.domain.ports.plant_identifier import (
     SimilarImage,
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.provider_signals import (
+from src.modules.catalog import ImageSource
+from src.modules.training import (
     DiseaseSuggestion,
     HealthSignals,
     IdentificationSignals,

@@ -6,8 +6,8 @@ from pydantic import TypeAdapter
 
 from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
-from src.domain.entities.plant_reference_image import ImageSource
 from src.domain.exceptions import NotAPlantError
+from src.modules.catalog import ImageSource
 
 _FIXTURES = Path(__file__).parents[2] / "fixtures" / "providers"
 

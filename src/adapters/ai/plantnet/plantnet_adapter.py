@@ -1,17 +1,14 @@
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.domain.entities.plant_reference_image import ImageSource
 from src.domain.ports.plant_identifier import (
     IdentificationResult,
     IPlantIdentifier,
     SimilarImage,
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.provider_signals import (
-    IdentificationSignals,
-    SpeciesSuggestion,
-)
+from src.modules.catalog import ImageSource
+from src.modules.training import IdentificationSignals, SpeciesSuggestion
 from src.shared.adapters import (
     parse_contract,
     parse_json_object,

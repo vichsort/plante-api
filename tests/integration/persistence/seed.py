@@ -4,12 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.adapters.persistence.repositories.identification_repository import (
     IdentificationRepository,
 )
-from src.adapters.persistence.repositories.plant_species_repository import (
+from src.domain.entities.identification import Identification
+from src.modules.catalog.adapters.persistence.repositories.plant_species import (
     PlantSpeciesRepository,
 )
-from src.adapters.persistence.repositories.training_repository import TrainingRepository
-from src.domain.entities.identification import Identification
-from src.domain.entities.training import TrainingHealthSample
+from src.modules.training import TrainingHealthSample
+from src.modules.training.adapters.persistence.repositories.training import (
+    TrainingRepository,
+)
 from src.shared.domain import UserId
 from tests.factories import (
     make_identification,

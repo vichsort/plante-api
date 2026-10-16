@@ -12,7 +12,6 @@ from src.domain.exceptions.botany import (
     LowConfidenceError,
     NotAPlantError,
     PlantIdentificationError,
-    SpeciesNotFoundError,
 )
 from src.domain.exceptions.garden import (
     PlantLimitExceededError,
@@ -37,7 +36,6 @@ __all__ = [
     "PlantLimitExceededError",
     "PlantNotFoundError",
     "PlantNotReadyForWateringError",
-    "SpeciesNotFoundError",
     "SubscriptionRequiredError",
     "UnauthorizedError",
     "UserNotFoundError",

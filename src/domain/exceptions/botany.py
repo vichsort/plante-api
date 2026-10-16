@@ -39,14 +39,3 @@ class NotAPlantError(InvalidImageError):
 
     def __init__(self, message: str = "The image does not contain a plant."):
         super().__init__(message=message)
-
-
-class SpeciesNotFoundError(PlantEError):
-    """A espécie solicitada não existe."""
-    code = "PLANTE_4014_SPECIES_NOT_FOUND"
-    status_code = 404
-
-    def __init__(self, species: UUID | str):  # ID ou nome científico
-        super().__init__(
-            message=f"Species {species} not found.",
-        )

@@ -66,18 +66,22 @@ def _access_token_owner(container: Container) -> Callable[[str], UserId | None]:
     return owner
 
 
+# A ligação do container é global (por módulo), não por app: o último `create_app()` vence
+WIRED_MODULES = [
+    "src.api.deps",
+    "src.api.routers.auth",
+    "src.api.routers.identification",
+    "src.api.routers.garden",
+    "src.api.routers.plants",
+    "src.api.routers.health",
+    "src.api.routers.profile",
+    "src.bootstrap.probes",
+]
+
+
 def create_app() -> FastAPI:
     container = Container()
-    container.wire(modules=[
-        "src.api.deps",
-        "src.api.routers.auth",
-        "src.api.routers.identification",
-        "src.api.routers.garden",
-        "src.api.routers.plants",
-        "src.api.routers.health",
-        "src.api.routers.profile",
-        "src.bootstrap.probes",
-    ])
+    container.wire(modules=WIRED_MODULES)
 
     app = FastAPI(
         title="PlantE API",

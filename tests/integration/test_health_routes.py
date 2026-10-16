@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 
 from fastapi.testclient import TestClient
 
-from src.domain.entities.training import FeedbackVerdict
 from src.domain.use_cases.diagnose_health_use_case import DiagnoseHealthOutput
+from src.modules.training import FeedbackVerdict
 from tests.factories import make_health_record
 
 

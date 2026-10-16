@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from src.domain.entities.health_record import HealthRecord
 from src.domain.value_objects.ids import HealthRecordId, UserPlantId
+from src.shared.domain import UserId
 
 
 class IHealthRecordRepository(ABC):
@@ -10,8 +11,8 @@ class IHealthRecordRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_by_id(self, record_id: HealthRecordId) -> HealthRecord | None:
-        """Busca um diagnóstico pelo id — usado no use case de confirmação."""
+    async def get_for_user(self, record_id: HealthRecordId, user_id: UserId) -> HealthRecord | None:
+        """O diagnóstico, se for deste usuário (de outro, ou inexistente: None)."""
         ...
 
     @abstractmethod

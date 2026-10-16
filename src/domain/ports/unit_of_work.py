@@ -1,58 +1,19 @@
-from abc import ABC, abstractmethod
-from types import TracebackType
-from typing import Self
-
 from src.domain.ports.achievement_repository import IAchievementRepository
 from src.domain.ports.health_record_repository import IHealthRecordRepository
 from src.domain.ports.identification_repository import IIdentificationRepository
-from src.domain.ports.plant_nutritional_repository import IPlantNutritionalRepository
-from src.domain.ports.plant_reference_image_repository import (
-    IPlantReferenceImageRepository,
-)
-from src.domain.ports.plant_species_repository import IPlantSpeciesRepository
-from src.domain.ports.training_repository import ITrainingRepository
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.domain.ports.user_repository import IUserRepository
+from src.shared.domain import IUnitOfWork as SharedUnitOfWork
 
 
-class IUnitOfWork(ABC):
+class IUnitOfWork(SharedUnitOfWork):
     """
-    Transação do banco: os repositórios só existem dentro de `async with uow:` e compartilham
-    a mesma transação. Nada é gravado sem `await uow.commit()`; ao sair do bloco, o que não foi
-    confirmado é desfeito (inclusive quando há exceção).
-
-    O use case define a fronteira: lê e grava dentro do bloco, confirma e só então publica
-    eventos ou chama serviços que não podem ser desfeitos. Chamadas externas lentas (IA, S3)
-    ficam fora do bloco para não segurar uma conexão; o mesmo `uow` pode ser aberto de novo
-    depois (cada `async with` é uma transação nova).
-
-    Cache e arquivos (Redis, S3) não fazem parte da transação.
+    UoW do código em camadas antigo (regras em `src.shared.domain.IUnitOfWork`). Perde um
+    repositório a cada módulo migrado; cada módulo tem a própria porta de UoW.
     """
 
     users: IUserRepository
     user_plants: IUserPlantRepository
-    species: IPlantSpeciesRepository
-    nutritional: IPlantNutritionalRepository
-    reference_images: IPlantReferenceImageRepository
     identifications: IIdentificationRepository
     health_records: IHealthRecordRepository
-    training: ITrainingRepository
     achievements: IAchievementRepository
-
-    @abstractmethod
-    async def __aenter__(self) -> Self:
-        ...
-
-    @abstractmethod
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        """Desfaz o que não foi confirmado e libera a conexão."""
-        ...
-
-    @abstractmethod
-    async def commit(self) -> None:
-        ...
