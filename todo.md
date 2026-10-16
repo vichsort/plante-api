@@ -318,10 +318,22 @@ shared
   - Alinhar health a `health_records.get_for_user` (hoje confere o dono à mão).
 
 ### Milestones
-0. **Testes de caracterização ponta a ponta** (HTTP contra Postgres/Redis reais, sem mocar use case). É a rede de segurança: hoje os testes de rota mocam os use cases. Branch `refactor/characterization-tests`.
+0. ~~**Testes de caracterização ponta a ponta**~~ ✅ (2026-10-16, branch `refactor/characterization-tests`).
+   - O que existe: `tests/e2e/`, 29 testes. A requisição HTTP passa pelo app real (middlewares, rotas, use cases, UoW) e grava em Postgres e Redis reais.
+   - Só as bordas são dublês tipados (`tests/e2e/doubles.py`): provedores de IA, S3, SES e a fila (o `CeleryPublisher` real grava as tasks numa fila falsa, e o teste faz o papel do worker rodando a task de verdade).
+   - Fluxos cobertos: auth, perfil, identificação (inclusive EXIF removido de ponta a ponta), jardim, saúde, cota de tokens, rate limit e acesso de outro usuário (404).
+   - O que é esquisito hoje está marcado com `# Hoje:` (ver "Achados da caracterização"). Quando um desses for corrigido, o teste muda junto, de propósito.
+   - Estes testes precisam continuar passando com o código movido. No milestone 1 viram a pasta `tests/e2e/` da raiz, e o testbed sai do `tests/conftest.py`.
 1. **Esqueleto:** `shared/`, `bootstrap/`, contratos do import-linter, testes das regras (README, barrel, layout, AAA, faixas de erro), template de README e novo `ARCHITECTURE.md`.
 2. **Piloto: identification + catalog.** Avaliar se o padrão se paga antes de replicar.
 3. training → health → garden → subscription → identity (por último, o mais acoplado) → achievements.
+
+### Achados da caracterização (2026-10-16, decidir)
+- **Tokens do FREE nunca zeram.** `User.reset_daily_tokens` não é chamado em lugar nenhum: depois de 3 ações (identificar = 1, diagnóstico com Gemini = 2), o FREE fica bloqueado para sempre. É bug real, candidato a fix na `main` (`v0.1.2`). Opções: zerar preguiçosamente ao consumir (guardar o dia do último consumo) ou um cron diário. Cruza com o módulo subscription (tabela nova).
+- **Cadastro aceita senha fraca** ("123"). Só a troca de senha valida a força. Mover a regra para o domínio e aplicar nos dois.
+- **Troca de e-mail tranca a conta:** o e-mail troca na hora e a conta volta a "não verificada". Até confirmar o código, nenhum dos dois e-mails entra, e um endereço digitado errado tranca a conta de vez. Alternativa: guardar o e-mail pendente e só trocar ao confirmar.
+- **Refresh sem rotação:** devolve o mesmo refresh token, que continua válido (reuso não é detectado). Há um refresh token por usuário, então um login em outro aparelho desloga o primeiro.
+- **Access token continua valendo depois do logout,** até expirar (JWT sem estado). Aceitável com TTL curto; registrar a decisão.
 
 ### Ideias removidas (2026-10-16, commit `6f2b3e3`; código recuperável do pai, `8107105`)
 - **Firebase (FCM):** push. Tem ganho, mas é futuro distante. Se voltar, vira um módulo `notifications` (tokens por aparelho, opt-in, envio), reagindo a eventos de garden ("hora de regar", "sua sequência vai quebrar"). Não entra em profile.
