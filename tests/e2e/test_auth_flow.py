@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.api.middleware import rate_limit
+from src.shared.api.middleware import rate_limit
 from tests.e2e.conftest import PASSWORD, Api
 
 

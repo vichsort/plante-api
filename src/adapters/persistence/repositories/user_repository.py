@@ -7,8 +7,8 @@ from src.adapters.persistence.mappers.user_mapper import UserMapper
 from src.adapters.persistence.models.user_model import UserModel
 from src.domain.entities.user import User
 from src.domain.ports.user_repository import IUserRepository
-from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.subscription_tier import SubscriptionTier
+from src.shared.domain import UserId
 
 
 class UserRepository(IUserRepository):

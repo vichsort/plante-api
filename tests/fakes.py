@@ -3,10 +3,9 @@ from types import TracebackType
 from typing import Self
 from unittest.mock import AsyncMock
 
-from src.domain.ports.image_sanitizer import IImageSanitizer
 from src.domain.ports.token_repository import ITokenRepository
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.ids import UserId
+from src.shared.domain import IImageSanitizer, UserId
 
 
 class FakeUnitOfWork(IUnitOfWork):

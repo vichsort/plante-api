@@ -19,14 +19,14 @@ from dependency_injector import providers
 from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.adapters.cache.redis_client import RedisClient
 from src.adapters.events.celery_publisher import (
     SEND_VERIFICATION_EMAIL_TASK,
     CeleryPublisher,
 )
 from src.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
-from src.infrastructure.container import Container
+from src.bootstrap.container import Container
 from src.main import app
+from src.shared.adapters import RedisClient
 from src.workers.notification_tasks import send_verification_email_task
 from tests.e2e.doubles import (
     FakeEmailSender,

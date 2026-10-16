@@ -9,12 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.adapters.persistence.repositories.user_repository import UserRepository
 from src.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
-from src.domain.events.domain_events import DomainEvent, UserRegisteredEvent
-from src.domain.ports.domain_publisher import IDomainPublisher
+from src.domain.events.domain_events import UserRegisteredEvent
 from src.domain.use_cases.register_user_use_case import (
     RegisterUserInputDTO,
     RegisterUserUseCase,
 )
+from src.shared.domain import DomainEvent, IDomainPublisher
 from tests.factories import (
     make_identification,
     make_species,

@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 from src.domain.entities.user import User
-from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.subscription_tier import SubscriptionTier
+from src.shared.domain import UserId
 
 
 class IUserRepository(ABC):

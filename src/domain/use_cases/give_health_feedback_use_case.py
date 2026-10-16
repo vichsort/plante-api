@@ -4,7 +4,8 @@ from datetime import UTC, datetime
 from src.domain.entities.training import FeedbackVerdict, TrainingFeedback
 from src.domain.exceptions import HealthRecordNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.ids import HealthRecordId, UserId
+from src.domain.value_objects.ids import HealthRecordId
+from src.shared.domain import UserId
 
 
 @dataclass(frozen=True)

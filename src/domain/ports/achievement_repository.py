@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 
-from src.domain.value_objects.ids import AchievementId, UserId
+from src.domain.value_objects.ids import AchievementId
+from src.shared.domain import UserId
 
 
 @dataclass(frozen=True)

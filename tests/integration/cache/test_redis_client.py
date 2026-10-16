@@ -4,8 +4,8 @@ import socket
 import pytest
 from redis.asyncio import Redis
 
-from src.adapters.cache.redis_client import RedisClient
-from src.domain.exceptions import ExternalServiceError
+from src.shared.adapters import RedisClient
+from src.shared.domain import ExternalServiceError
 
 
 async def test_get_missing_key_returns_none(redis_client: RedisClient) -> None:

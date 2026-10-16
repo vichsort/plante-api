@@ -3,8 +3,8 @@ import io
 import pytest
 from PIL import Image
 
-from src.adapters.images.pillow_image_sanitizer import PillowImageSanitizer
-from src.domain.exceptions import InvalidImageError
+from src.shared.adapters import PillowImageSanitizer
+from src.shared.domain import InvalidImageError
 
 _GPS_IFD = 0x8825
 _ORIENTATION = 0x0112

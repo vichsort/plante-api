@@ -2,7 +2,8 @@ from dataclasses import dataclass
 
 from src.domain.exceptions import PlantNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.ids import UserId, UserPlantId
+from src.domain.value_objects.ids import UserPlantId
+from src.shared.domain import UserId
 
 
 @dataclass(frozen=True)

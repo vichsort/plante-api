@@ -8,7 +8,8 @@ from src.domain.entities.training import (
 )
 from src.domain.exceptions import IdentificationNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.ids import IdentificationId, UserId
+from src.domain.value_objects.ids import IdentificationId
+from src.shared.domain import UserId
 
 
 @dataclass(frozen=True)

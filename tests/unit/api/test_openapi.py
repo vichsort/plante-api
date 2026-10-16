@@ -1,11 +1,11 @@
 from fastapi.testclient import TestClient
 
-from src.api.openapi import error_responses
 from src.domain.exceptions import (
     PlantLimitExceededError,
     PlantNotFoundError,
     SpeciesNotFoundError,
 )
+from src.shared.api import error_responses
 
 
 def test_error_responses_groups_examples_by_status():

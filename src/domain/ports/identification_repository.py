@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 
 from src.domain.entities.identification import Identification
-from src.domain.value_objects.ids import IdentificationId, UserId
+from src.domain.value_objects.ids import IdentificationId
+from src.shared.domain import UserId
 
 
 class IIdentificationRepository(ABC):

@@ -5,16 +5,15 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 
 from src.api.deps import CurrentUserId
-from src.api.openapi import error_responses
-from src.api.response import ApiResponse
 from src.api.schemas.plants import PlantDetailsResponse
+from src.bootstrap.container import Container
 from src.domain.exceptions import UnauthorizedError
 from src.domain.use_cases.get_plant_details_use_case import (
     GetPlantDetailsInputDTO,
     GetPlantDetailsUseCase,
 )
 from src.domain.value_objects.ids import UserPlantId
-from src.infrastructure.container import Container
+from src.shared.api import ApiResponse, error_responses
 
 router = APIRouter(prefix="/plants", tags=["plants"], responses=error_responses(UnauthorizedError))
 

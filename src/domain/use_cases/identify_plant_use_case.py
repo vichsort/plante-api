@@ -8,23 +8,26 @@ from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.training import TrainingIdentificationSample
 from src.domain.events.domain_events import PlantIdentifiedEvent
 from src.domain.exceptions import (
-    ExternalServiceError,
-    InvalidImageError,
     LowConfidenceError,
     SubscriptionRequiredError,
     UserNotFoundError,
 )
 from src.domain.policies.subscription_policy import SubscriptionPolicy
-from src.domain.ports.domain_publisher import IDomainPublisher
-from src.domain.ports.image_sanitizer import IImageSanitizer
-from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.plant_identifier import IPlantIdentifier
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.ids import IdentificationId, ReferenceImageId, UserId
+from src.domain.value_objects.ids import IdentificationId, ReferenceImageId
 from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.subscription_tier import FeatureCost
 from src.domain.value_objects.training_location import TrainingLocation, month_of
+from src.shared.domain import (
+    ExternalServiceError,
+    IDomainPublisher,
+    IImageSanitizer,
+    IImageStorage,
+    InvalidImageError,
+    UserId,
+)
 
 
 @dataclass(frozen=True)

@@ -1,7 +1,7 @@
 from src.adapters.persistence.models.user_model import UserModel
 from src.domain.entities.user import User
-from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.user_location import UserLocation
+from src.shared.domain import UserId
 
 
 class UserMapper:

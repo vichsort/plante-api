@@ -9,7 +9,7 @@ from src.domain.policies.password_policy import PasswordPolicy
 from src.domain.ports.email_sender import IEmailSender
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.ids import UserId
+from src.shared.domain import UserId
 
 
 @dataclass(frozen=True)

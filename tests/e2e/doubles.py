@@ -12,7 +12,6 @@ from src.domain.ports.health_analyzer import (
     HealthAssessmentResult,
     IHealthAnalyzer,
 )
-from src.domain.ports.image_storage import IImageStorage
 from src.domain.ports.plant_enricher import (
     DiseaseAnalysisResult,
     EnrichmentResult,
@@ -26,8 +25,8 @@ from src.domain.ports.plant_identifier import (
     SimilarImage,
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.provider_signals import DiseaseSuggestion, HealthSignals
+from src.shared.domain import IImageStorage, UserId
 from tests.factories import make_identification_signals
 
 

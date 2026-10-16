@@ -5,7 +5,8 @@ from src.adapters.persistence.mappers.identification_mapper import Identificatio
 from src.adapters.persistence.models import IdentificationModel
 from src.domain.entities.identification import Identification
 from src.domain.ports.identification_repository import IIdentificationRepository
-from src.domain.value_objects.ids import IdentificationId, UserId
+from src.domain.value_objects.ids import IdentificationId
+from src.shared.domain import UserId
 
 
 class IdentificationRepository(IIdentificationRepository):

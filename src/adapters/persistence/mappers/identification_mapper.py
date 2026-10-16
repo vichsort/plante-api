@@ -5,8 +5,8 @@ from src.domain.value_objects.ids import (
     IdentificationId,
     PlantSpeciesId,
     TrainingIdentificationSampleId,
-    UserId,
 )
+from src.shared.domain import UserId
 
 
 class IdentificationMapper:

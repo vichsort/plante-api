@@ -2,12 +2,9 @@ import asyncio
 
 import pytest
 
-from src.adapters.resilience import (
-    CircuitBreaker,
-    CircuitBreakerPlantIdentifier,
-    CircuitState,
-)
-from src.domain.exceptions import ExternalServiceError, InvalidImageError
+from src.adapters.resilience import CircuitBreakerPlantIdentifier
+from src.shared.adapters import CircuitBreaker, CircuitState
+from src.shared.domain import ExternalServiceError, InvalidImageError
 
 
 class _Clock:

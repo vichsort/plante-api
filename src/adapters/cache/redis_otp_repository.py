@@ -1,6 +1,6 @@
-from src.adapters.cache.redis_client import RedisClient
 from src.domain.ports.otp_repository import IOtpRepository
-from src.domain.value_objects.ids import UserId
+from src.shared.adapters import RedisClient
+from src.shared.domain import UserId
 
 
 class RedisOtpRepository(IOtpRepository):

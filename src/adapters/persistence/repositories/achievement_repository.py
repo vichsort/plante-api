@@ -9,7 +9,7 @@ from src.domain.ports.achievement_repository import (
     AchievementView,
     IAchievementRepository,
 )
-from src.domain.value_objects.ids import UserId
+from src.shared.domain import UserId
 
 
 class AchievementRepository(IAchievementRepository):

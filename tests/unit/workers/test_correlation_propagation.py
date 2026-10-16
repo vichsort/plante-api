@@ -5,7 +5,7 @@ import structlog
 from celery import Celery
 from celery.contrib.testing.worker import start_worker
 
-import src.infrastructure.celery_config  # noqa: F401  (registra os sinais de correlation ID)
+import src.bootstrap.celery_config  # noqa: F401  (registra os sinais de correlation ID)
 
 app = Celery("correlation-test", broker="memory://", backend="cache+memory://")
 app.conf.broker_transport_options = {"polling_interval": 0.01}

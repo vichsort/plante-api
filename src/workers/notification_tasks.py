@@ -3,11 +3,11 @@ from uuid import UUID
 import structlog
 from pydantic import BaseModel, EmailStr
 
-from src.domain.value_objects.ids import UserId
+from src.bootstrap.celery_config import celery_app
+from src.bootstrap.container import Container
 from src.domain.value_objects.verification_code import VerificationCode
-from src.infrastructure.celery_config import celery_app
-from src.infrastructure.container import Container
-from src.workers.async_runner import run_async
+from src.shared.domain import UserId
+from src.shared.workers import run_async
 
 log = structlog.stdlib.get_logger()
 _OTP_EXPIRES_MINUTES = 15

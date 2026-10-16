@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 
 from src.domain.entities.plant_species import PlantSpecies
 from src.domain.exceptions import (
-    ExternalServiceError,
     SpeciesNotFoundError,
     SubscriptionRequiredError,
     UserNotFoundError,
@@ -11,9 +10,10 @@ from src.domain.exceptions import (
 from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.plant_enricher import IPlantEnricher
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.ids import PlantSpeciesId, UserId
+from src.domain.value_objects.ids import PlantSpeciesId
 from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.subscription_tier import FeatureCost
+from src.shared.domain import ExternalServiceError, UserId
 
 
 @dataclass(frozen=True)

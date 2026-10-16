@@ -1,7 +1,7 @@
 import structlog
 
 from src.domain.ports.token_repository import ITokenRepository
-from src.domain.value_objects.ids import UserId
+from src.shared.domain import UserId
 
 log = structlog.stdlib.get_logger()
 

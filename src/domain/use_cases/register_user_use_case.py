@@ -5,11 +5,11 @@ from src.domain.entities.user import User
 from src.domain.events.domain_events import UserRegisteredEvent
 from src.domain.exceptions import EmailAlreadyInUseError, WeakPasswordError
 from src.domain.policies.password_policy import PasswordPolicy
-from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.email import normalize_email
 from src.domain.value_objects.user_location import UserLocation
+from src.shared.domain import IDomainPublisher
 
 
 @dataclass(frozen=True)

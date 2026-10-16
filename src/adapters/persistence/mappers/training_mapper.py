@@ -19,12 +19,12 @@ from src.domain.value_objects.ids import (
     TrainingHealthSampleId,
     TrainingIdentificationSampleId,
 )
-from src.domain.value_objects.json_value import JsonValue
 from src.domain.value_objects.provider_signals import (
     HealthSignals,
     IdentificationSignals,
 )
 from src.domain.value_objects.training_location import TrainingLocation
+from src.shared.domain import JsonValue
 
 # Sinais ficam numa coluna JSON; a leitura é validada contra as dataclasses do domínio
 _IDENTIFICATION_SIGNALS = TypeAdapter(tuple[IdentificationSignals, ...])

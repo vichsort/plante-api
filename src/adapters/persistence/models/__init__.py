@@ -1,5 +1,6 @@
+from src.shared.adapters import Base
+
 from .achievement_model import AchievementModel
-from .base import Base
 from .health_record_model import HealthRecordModel
 from .identification_model import IdentificationModel
 from .plant_nutritional_model import PlantNutritionalModel

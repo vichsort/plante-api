@@ -1,11 +1,9 @@
-from src.adapters.ai.gemini.client import SERVICE, GeminiClient
 from src.adapters.ai.gemini.prompt_builder import GeminiPromptBuilder
 from src.adapters.ai.gemini.schemas import (
     HealthDiagnosisSchema,
     NutritionalAnalysisSchema,
     SpeciesEnrichmentSchema,
 )
-from src.domain.exceptions import ExternalServiceError
 from src.domain.ports.plant_enricher import (
     DiseaseAnalysisResult,
     EnrichmentResult,
@@ -13,6 +11,8 @@ from src.domain.ports.plant_enricher import (
     IPlantEnricher,
     NutritionalEnrichmentResult,
 )
+from src.shared.adapters import GEMINI_SERVICE, GeminiClient
+from src.shared.domain import ExternalServiceError
 
 
 class GeminiAdapter(IPlantEnricher):
@@ -78,6 +78,6 @@ class GeminiAdapter(IPlantEnricher):
         )
         if not 0.0 <= parsed.vitality_score <= 1.0:
             raise ExternalServiceError(
-                message=f"vitality_score out of range: {parsed.vitality_score}.", service=SERVICE
+                message=f"vitality_score out of range: {parsed.vitality_score}.", service=GEMINI_SERVICE
             )
         return parsed

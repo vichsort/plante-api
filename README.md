@@ -54,7 +54,7 @@ src/
 │   └── storage/     # S3
 ├── api/             # Routers FastAPI + schemas Pydantic
 ├── workers/         # Tasks Celery por domínio
-└── infrastructure/  # Container DI, settings, engine async
+└── bootstrap/       # Composição: container DI, settings, Celery
 ```
 
 **MUITO IMPORTANTE:** dependências sempre apontam para dentro. Adapters conhecem o domínio. O domínio nunca conhece adapters.

@@ -9,19 +9,18 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from structlog.testing import capture_logs
 
-from src.adapters.cache.redis_client import RedisClient
-from src.adapters.resilience.circuit_breaker import CircuitBreaker
 from src.adapters.security.jwt_token_service import JwtTokenService
-from src.api.middleware import (
+from src.bootstrap.container import Container
+from src.domain.ports.token_service import TokenKind
+from src.main import _access_token_owner
+from src.shared.adapters import CircuitBreaker, RedisClient
+from src.shared.api import (
     CorrelationIdMiddleware,
     RateLimitMiddleware,
     SecurityHeadersMiddleware,
+    WindowCounter,
 )
-from src.api.middleware.rate_limit import WindowCounter
-from src.domain.exceptions import ExternalServiceError, UnauthorizedError
-from src.domain.ports.token_service import TokenKind
-from src.domain.value_objects.ids import UserId
-from src.infrastructure.container import Container
+from src.shared.domain import ExternalServiceError, UserId
 
 
 def test_correlation_id_middleware_generates_and_propagates():
@@ -236,10 +235,8 @@ def test_rate_limit_sensitive_match_is_exact():
     assert response.headers["X-RateLimit-Limit"] == "10"
 
 
-def _fake_decoder(token: str) -> str:
-    if not token.startswith("valid-"):
-        raise UnauthorizedError("Invalid access token.")
-    return token.removeprefix("valid-")
+def _fake_decoder(token: str) -> str | None:
+    return token.removeprefix("valid-") if token.startswith("valid-") else None
 
 
 def _auth(user: str) -> dict[str, str]:
@@ -294,12 +291,15 @@ _TEST_SECRET = "test-secret-key-with-at-least-32-bytes"
 
 
 def test_rate_limit_with_real_token_decoder():
+    # O decodificador do app (`src.main`) com o JwtTokenService de verdade
     tokens = JwtTokenService(secret_key=_TEST_SECRET, algorithm="HS256")
+    container = Container()
     fake = _FakeRedis()
-    client = TestClient(_rate_limited_app(
-        redis_provider=lambda: fake,
-        token_decoder=lambda token: tokens.verify(token, TokenKind.ACCESS),
-    ))
+    with container.adapters.token_service.override(tokens):
+        client = TestClient(_rate_limited_app(
+            redis_provider=lambda: fake,
+            token_decoder=_access_token_owner(container),
+        ))
     user_id = UserId(uuid.uuid4())
     access = tokens.issue(user_id, TokenKind.ACCESS, timedelta(minutes=5))
     refresh = tokens.issue(user_id, TokenKind.REFRESH, timedelta(minutes=5))

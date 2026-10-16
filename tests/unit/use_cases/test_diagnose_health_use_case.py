@@ -5,15 +5,16 @@ from unittest.mock import AsyncMock
 import pytest
 
 from src.domain.entities.user import User
-from src.domain.exceptions import ExternalServiceError, SubscriptionRequiredError
+from src.domain.exceptions import SubscriptionRequiredError
 from src.domain.ports.health_analyzer import DiseaseHint, HealthAssessmentResult
 from src.domain.ports.plant_enricher import HealthDiagnosisEnrichment
 from src.domain.use_cases.diagnose_health_use_case import (
     DiagnoseHealthInputDTO,
     DiagnoseHealthUseCase,
 )
-from src.domain.value_objects.ids import UserId, UserPlantId
+from src.domain.value_objects.ids import UserPlantId
 from src.domain.value_objects.provider_signals import DiseaseSuggestion, HealthSignals
+from src.shared.domain import ExternalServiceError, UserId
 from tests.factories import CALENDAR, make_user, make_user_plant
 from tests.fakes import FakeUnitOfWork, MarkingSanitizer
 

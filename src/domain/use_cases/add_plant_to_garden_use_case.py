@@ -21,12 +21,12 @@ from src.domain.exceptions import (
     UserNotFoundError,
 )
 from src.domain.policies.subscription_policy import SubscriptionPolicy
-from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.care_interval import CareInterval
-from src.domain.value_objects.ids import IdentificationId, UserId, UserPlantId
+from src.domain.value_objects.ids import IdentificationId, UserPlantId
 from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.sources import IdentificationOrigin
+from src.shared.domain import IDomainPublisher, UserId
 
 
 @dataclass(frozen=True)

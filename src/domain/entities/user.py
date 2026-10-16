@@ -6,9 +6,9 @@ from datetime import date, datetime
 from uuid import uuid4
 
 from src.domain.value_objects.email import normalize_email
-from src.domain.value_objects.ids import UserId
 from src.domain.value_objects.subscription_tier import FeatureCost, SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
+from src.shared.domain import UserId
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 

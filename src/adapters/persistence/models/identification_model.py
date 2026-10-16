@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import UUID, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import AuditMixin, Base
+from src.shared.adapters import AuditMixin, Base
 
 
 class IdentificationModel(Base, AuditMixin):

@@ -1,6 +1,6 @@
-from src.adapters.resilience.circuit_breaker import CircuitBreaker
 from src.domain.ports.health_analyzer import HealthAssessmentResult, IHealthAnalyzer
 from src.domain.ports.plant_identifier import IdentificationResult, IPlantIdentifier
+from src.shared.adapters import CircuitBreaker
 
 
 class CircuitBreakerPlantIdentifier(IPlantIdentifier):

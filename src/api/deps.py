@@ -4,10 +4,10 @@ from dependency_injector.wiring import Provide, inject
 from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from src.bootstrap.container import Container
 from src.domain.exceptions import UnauthorizedError
 from src.domain.ports.token_service import ITokenService, TokenKind
-from src.domain.value_objects.ids import UserId
-from src.infrastructure.container import Container
+from src.shared.domain import UserId
 
 _bearer = HTTPBearer(auto_error=False)
 

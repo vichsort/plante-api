@@ -4,9 +4,9 @@ from src.domain.entities.health_record import HealthRecord
 from src.domain.value_objects.ids import (
     HealthRecordId,
     TrainingHealthSampleId,
-    UserId,
     UserPlantId,
 )
+from src.shared.domain import UserId
 
 
 class HealthRecordMapper:

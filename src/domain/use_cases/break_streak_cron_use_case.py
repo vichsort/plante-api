@@ -3,9 +3,9 @@ from datetime import UTC, datetime
 
 from src.domain.entities.care_schedule import CareSchedule
 from src.domain.events.domain_events import StreakBrokenEvent
-from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.local_calendar import LocalCalendar
+from src.shared.domain import IDomainPublisher
 
 
 @dataclass(frozen=True)

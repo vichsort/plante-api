@@ -12,13 +12,13 @@ O PlantE API é projetado sob os seguintes princípios inegociáveis:
    - A regra de negócio (**Domínio**) é pura e totalmente independente de frameworks Web (FastAPI), bancos de dados (SQLAlchemy), corretores de mensagem (Celery/Redis) ou APIs de terceiros (Kindwise, PlantNet, Gemini, AWS SES).
    - As dependências **SEMPRE apontam para dentro**:
      $$\text{API (HTTP/CLI)} \longrightarrow \text{Domain Use Cases} \longrightarrow \text{Domain Entities / Ports} \longleftarrow \text{Adapters}$$
-   - **Verificado no CI pelo `import-linter`** (`[tool.importlinter]` no `pyproject.toml`, `uv run lint-imports`). Camadas, de cima para baixo: `src.main` → `src.api` | `src.workers` (não se conhecem) → `src.infrastructure` (container, settings, Celery) → `src.adapters` → `src.domain`. Uma camada só importa as de baixo; todo pacote novo em `src` precisa entrar numa delas e ter `__init__.py` (o linter não enxerga namespace packages; `tests/test_packages.py` confere).
+   - **Verificado no CI pelo `import-linter`** (`[tool.importlinter]` no `pyproject.toml`, `uv run lint-imports`). Camadas, de cima para baixo: `src.main` → `src.api` | `src.workers` (não se conhecem) → `src.bootstrap` (container, settings, Celery) → `src.adapters` → `src.domain`. Uma camada só importa as de baixo; todo pacote novo em `src` precisa entrar numa delas e ter `__init__.py` (o linter não enxerga namespace packages; `tests/test_packages.py` confere).
    - API e workers não importam adapters: recebem pelo container. **Exceção documentada:** `src.api.routers.probes` importa o `RedisClient` para o readiness (o probe é infraestrutura, uma porta no domínio seria só cerimônia).
    - O domínio não importa frameworks (FastAPI, SQLAlchemy, Pydantic, Celery, redis, httpx, PyJWT…); só a biblioteca padrão, `typing_extensions` e `structlog`.
    - Adapters não leem `Settings`: recebem valores primitivos do container. O `CeleryPublisher` publica tasks pelo nome (`send_task`) em vez de importar `src.workers`.
 
 2. **Injeção de Dependências Desacoplada (`dependency-injector`)**:
-   - Nenhuma classe de Use Case instancia repositórios ou serviços diretamente. Todas as dependências são declaradas via abstrações (`Ports`) e injetadas pelo container central (`src/infrastructure/container.py`).
+   - Nenhuma classe de Use Case instancia repositórios ou serviços diretamente. Todas as dependências são declaradas via abstrações (`Ports`) e injetadas pelo container central (`src/bootstrap/container.py`).
 
 3. **Transações via Unit of Work (`IUnitOfWork`, `src/domain/ports/unit_of_work.py`)**:
    - Use cases não recebem repositórios SQL soltos: recebem um `uow` e acessam `uow.users`, `uow.user_plants`… dentro de `async with self.uow as uow:`. Todos os repositórios do bloco compartilham uma transação; **nada é gravado sem `await uow.commit()`** e o que não foi confirmado é desfeito ao sair do bloco (inclusive com exceção).
@@ -242,12 +242,12 @@ Todas as respostas HTTP do sistema (sucesso ou erro) são embrulhadas na mesma e
 ### 4.1. Como Adicionar um Novo Provedor de IA Botânica (`IPlantIdentifier`)
 1. Crie o novo adapter em `src/adapters/ai/<nome_provedor>/<nome_provedor>_adapter.py`.
 2. Implemente a interface `IPlantIdentifier` definida em `src/domain/ports/plant_identifier.py`.
-3. Registre a nova classe no container `AdaptersContainer` em `src/infrastructure/containers/adapters.py`.
+3. Registre a nova classe no container `AdaptersContainer` em `src/bootstrap/containers/adapters.py`.
 4. Adicione os testes unitários correspondentes em `tests/unit/adapters/`.
 
 ### 4.2. Como Adicionar um Novo Provedor de Envio de E-mail
 1. Crie o novo adapter implementando `IEmailSender`.
-2. Configure o provedor no container e a chave de configuração em `Settings` (`src/infrastructure/settings.py`).
+2. Configure o provedor no container e a chave de configuração em `Settings` (`src/bootstrap/settings.py`).
 
 ---
 
@@ -256,7 +256,7 @@ Todas as respostas HTTP do sistema (sucesso ou erro) são embrulhadas na mesma e
 Para evitar vazamento de conexões de banco de dados e loops de eventos concorrentes:
 - Todas as tarefas do Celery que chamam Use Cases ou Repositórios assíncronos **DEVEM** utilizar o decorator `@run_async` de `src/workers/async_runner.py`.
 - O worker aceita injeção defensiva de `container: Container | None = None` para permitir testes unitários isolados com mocks.
-- Subir: `celery -A src.workers worker` e, para as tarefas agendadas, `celery -A src.workers beat` (uma instância só). Todo módulo com tasks precisa estar no `include` do `celery_app` (`src/infrastructure/celery_config.py`); `tests/unit/workers/test_celery_app.py` confere que as tasks publicadas e agendadas são registradas.
+- Subir: `celery -A src.workers worker` e, para as tarefas agendadas, `celery -A src.workers beat` (uma instância só). Todo módulo com tasks precisa estar no `include` do `celery_app` (`src/bootstrap/celery_config.py`); `tests/unit/workers/test_celery_app.py` confere que as tasks publicadas e agendadas são registradas.
 
 ---
 

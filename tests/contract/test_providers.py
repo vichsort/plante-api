@@ -10,8 +10,9 @@ import pytest
 
 from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
 from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
-from src.domain.exceptions import InvalidImageError, NotAPlantError
-from src.infrastructure.settings import Settings
+from src.bootstrap.settings import Settings
+from src.domain.exceptions import NotAPlantError
+from src.shared.domain import InvalidImageError
 
 pytestmark = pytest.mark.contract
 

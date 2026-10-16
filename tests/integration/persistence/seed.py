@@ -10,7 +10,7 @@ from src.adapters.persistence.repositories.plant_species_repository import (
 from src.adapters.persistence.repositories.training_repository import TrainingRepository
 from src.domain.entities.identification import Identification
 from src.domain.entities.training import TrainingHealthSample
-from src.domain.value_objects.ids import UserId
+from src.shared.domain import UserId
 from tests.factories import (
     make_identification,
     make_species,

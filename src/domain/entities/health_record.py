@@ -5,10 +5,10 @@ from enum import StrEnum
 from src.domain.value_objects.ids import (
     HealthRecordId,
     TrainingHealthSampleId,
-    UserId,
     UserPlantId,
 )
 from src.domain.value_objects.sources import HealthSource
+from src.shared.domain import UserId
 
 
 class HealthSeverity(StrEnum):

@@ -38,8 +38,8 @@ os.environ["AWS_ACCESS_KEY_ID"] = "test_aws_key"
 os.environ["AWS_SECRET_ACCESS_KEY"] = "test_aws_secret"
 os.environ["SES_SENDER_EMAIL"] = "noreply@test.org"
 
-from src.adapters.cache.redis_client import RedisClient
 from src.main import app
+from src.shared.adapters import RedisClient
 
 _ROOT = Path(__file__).parents[1]
 

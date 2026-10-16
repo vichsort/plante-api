@@ -2,8 +2,8 @@ from typing import Protocol
 
 import structlog
 
-from src.domain.events.domain_events import DomainEvent, UserRegisteredEvent
-from src.domain.ports.domain_publisher import IDomainPublisher
+from src.domain.events.domain_events import UserRegisteredEvent
+from src.shared.domain import DomainEvent, IDomainPublisher
 
 log = structlog.stdlib.get_logger()
 

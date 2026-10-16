@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import StrEnum
 
-from src.domain.value_objects.ids import UserId
+from src.shared.domain import UserId
 
 
 class TokenKind(StrEnum):

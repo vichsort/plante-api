@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import UUID, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base import AuditMixin, Base
+from src.shared.adapters import AuditMixin, Base
 
 
 class AchievementModel(Base, AuditMixin):
