@@ -10,6 +10,7 @@ class UserMapper:
         return User(
             id=UserId(model.id),
             email=model.email,
+            pending_email=model.pending_email,
             hashed_password=model.hashed_password,
             location=UserLocation(
                 country=model.location_country,
@@ -30,6 +31,7 @@ class UserMapper:
         return UserModel(
             id=entity.id,
             email=entity.email,
+            pending_email=entity.pending_email,
             hashed_password=entity.hashed_password,
             location_country=entity.location.country,
             location_state=entity.location.state,

@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from typing import Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import jwt
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -17,6 +17,9 @@ class _Claims(BaseModel):
     type: Literal["access", "refresh"]
     iat: int
     exp: int
+    # Único por token: dois tokens emitidos no mesmo segundo seriam idênticos sem ele (a rotação
+    # do refresh compara o token inteiro). Opcional só para aceitar tokens emitidos antes dele.
+    jti: str | None = None
 
 
 class JwtTokenService(ITokenService):
@@ -31,6 +34,7 @@ class JwtTokenService(ITokenService):
             type=kind.value,
             iat=int(now.timestamp()),
             exp=int((now + ttl).timestamp()),
+            jti=uuid4().hex,
         )
         return jwt.encode(claims.model_dump(mode="json"), self._secret, algorithm=self._algorithm)
 

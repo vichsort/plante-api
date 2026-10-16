@@ -21,6 +21,8 @@ class UserModel(Base, AuditMixin):
     __table_args__ = (CheckConstraint("email = lower(btrim(email))", name="ck_users_email_normalized"),)
 
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    # Troca de e-mail aguardando o código (a unicidade é conferida de novo na confirmação)
+    pending_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # UserLocation achatado — VO não tem identidade própria no banco

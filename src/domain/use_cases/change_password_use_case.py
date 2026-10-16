@@ -5,12 +5,12 @@ from src.domain.exceptions import (
     UserNotFoundError,
     WeakPasswordError,
 )
+from src.domain.policies.password_policy import PasswordPolicy
 from src.domain.ports.email_sender import IEmailSender
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import UserId
 
-_MIN_PASSWORD_LENGTH = 8
 
 @dataclass(frozen=True)
 class ChangePasswordInputDTO:
@@ -41,7 +41,7 @@ class ChangePasswordUseCase:
             if not self.hasher.verify(dto.current_password, user.hashed_password):
                 raise InvalidCredentialsError()
 
-            _validate_password_strength(dto.new_password)
+            PasswordPolicy.enforce_strong(dto.new_password)
 
             if self.hasher.verify(dto.new_password, user.hashed_password):
                 raise WeakPasswordError("A nova senha não pode ser igual à atual.")
@@ -54,11 +54,3 @@ class ChangePasswordUseCase:
 
         await self.email_sender.send_password_changed_notice(to_email=user.email)
 
-
-def _validate_password_strength(password: str) -> None:
-    if len(password) < _MIN_PASSWORD_LENGTH:
-        raise WeakPasswordError(f"A senha deve ter no mínimo {_MIN_PASSWORD_LENGTH} caracteres.")
-    if not any(c.isupper() for c in password):
-        raise WeakPasswordError("A senha deve conter ao menos uma letra maiúscula.")
-    if not any(c.isdigit() for c in password):
-        raise WeakPasswordError("A senha deve conter ao menos um número.")

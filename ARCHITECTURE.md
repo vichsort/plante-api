@@ -62,6 +62,11 @@ Embora o código viva em uma estrutura Hexagonal unificada, o domínio do **Plan
   - Todo usuário nasce com status `pending_verification` e plano `FREE`.
   - E-mail é guardado e buscado na forma canônica (`normalize_email`: sem espaços nas pontas, em minúsculas) — cadastro, login e troca de e-mail não diferenciam maiúsculas. O banco garante com o CHECK `ck_users_email_normalized`.
   - Códigos OTP expiram em 15 minutos e são gerenciados no cache Redis (`RedisOtpRepository`).
+  - **Senha forte** (`PasswordPolicy`: 8+ caracteres, uma maiúscula, um número) no cadastro e na troca de senha.
+  - **Tokens:** access de 15 minutos, refresh de 30 dias, um refresh por usuário (login novo derruba a sessão anterior).
+    - O refresh **rotaciona**: cada uso devolve um refresh novo. Reuso de um refresh já trocado revoga a sessão (sinal de roubo; um retry do app também derruba, efeito aceito). Todo token tem `jti`, então dois emitidos no mesmo segundo nunca são iguais.
+    - **Decisão:** o logout revoga só o refresh. O access token é JWT sem estado e vale até expirar (no máximo 15 minutos). Uma lista de bloqueio no Redis custaria uma consulta por requisição, para cobrir uma janela curta.
+  - **Troca de e-mail** (`PATCH /profile/email`): o endereço novo fica pendente (`pending_email`) e recebe um código; o e-mail atual continua entrando. `POST /auth/verify-email` com esse código confirma a troca (se outra conta tiver ficado com o endereço nesse meio-tempo, 409).
 
 ---
 
@@ -181,7 +186,7 @@ Cada exceção carrega um **Código Único Máquina-Readable** e um **Status HTT
 | `PLANTE_4005_FREE_TIER_PLANT_LIMIT` | `PlantLimitExceededError` | Plano FREE atingiu o limite de plantas no jardim (`SubscriptionPolicy`). | 403 |
 | `PLANTE_4006_UNAUTHORIZED` | `UnauthorizedError` | Token ausente, inválido ou expirado; login com credenciais erradas. | 401 |
 | `PLANTE_4007_WRONG_CREDENTIALS` | `InvalidCredentialsError` | Senha atual incorreta ao alterar e-mail ou senha. | 400 |
-| `PLANTE_4008_WEAK_PASSWORD` | `WeakPasswordError` | Nova senha não atende à política de senha. | 400 |
+| `PLANTE_4008_WEAK_PASSWORD` | `WeakPasswordError` | Senha (cadastro ou troca) não atende à `PasswordPolicy`. | 400 |
 | `PLANTE_4009_FORBIDDEN` | `ForbiddenError` | Autenticado, mas sem permissão sobre o recurso (ex.: planta de outro usuário). | 403 |
 | `PLANTE_4010_IDENTIFICATION_FAILED` | `PlantIdentificationError` | A IA não identificou a planta com confiança suficiente. | 422 |
 | `PLANTE_4011_LOW_CONFIDENCE` | `LowConfidenceError` | Confiança da identificação abaixo de 60% (`ConfidenceScore.is_rejected`). | 422 |

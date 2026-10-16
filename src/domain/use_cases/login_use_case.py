@@ -13,7 +13,7 @@ from src.domain.value_objects.email import normalize_email
 log = structlog.stdlib.get_logger()
 
 ACCESS_TOKEN_TTL = timedelta(minutes=15)
-_REFRESH_TTL = timedelta(days=30)
+REFRESH_TOKEN_TTL = timedelta(days=30)
 
 
 @dataclass(frozen=True)
@@ -49,12 +49,12 @@ class LoginUseCase:
             raise UnauthorizedError("Email not verified.")
 
         access_token = self._token_service.issue(user.id, TokenKind.ACCESS, ACCESS_TOKEN_TTL)
-        refresh_token = self._token_service.issue(user.id, TokenKind.REFRESH, _REFRESH_TTL)
+        refresh_token = self._token_service.issue(user.id, TokenKind.REFRESH, REFRESH_TOKEN_TTL)
 
         await self._token_repo.save_refresh_token(
             user_id=user.id,
             token=refresh_token,
-            ttl_seconds=int(_REFRESH_TTL.total_seconds()),
+            ttl_seconds=int(REFRESH_TOKEN_TTL.total_seconds()),
         )
 
         log.info("user.login", user_id=str(user.id))
