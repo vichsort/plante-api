@@ -2,7 +2,7 @@
 
 Pendências levantadas na revisão da Fase 6 (middlewares, probes, circuit breaker, OpenAPI).
 
-## Estado e próximos passos (fim da sessão de 2026-10-15)
+## Estado e próximos passos (fim da sessão de 2026-10-16)
 
 Leia esta seção primeiro. Ela substitui o "Próximo passo" antigo do fim da ordem de execução.
 
@@ -20,11 +20,25 @@ Leia esta seção primeiro. Ela substitui o "Próximo passo" antigo do fim da or
 - Teste de fumaça com API + worker reais (Postgres/Redis em contêiner) e correção dos achados: broker do Celery com a mesma URL do `Settings`, task de e-mail com `acks_late`/`reject_on_worker_lost` e reaproveitando o código ativo.
 - **Release `v0.1.0`** (tag anotada na `main`, 2026-10-15). Primeiro push com CI no GitHub: verde (288 testes, inclusive Postgres/Redis via testcontainers).
 
-Suíte: 288 testes. CI: `ruff`, `mypy`, `lint-imports`, `pytest`.
+**Feito em 2026-10-16** (commits na `main`, tag `v0.1.1`, ainda sem push):
+- Removidos Firebase (FCM), OpenMeteo e Nominatim, que estavam ligados no container sem nenhum uso. Também saíram as portas de clima e notificação, `GeoCoordinates`, `GeocodingError` (`PLANTE_5002`, aposentado), `users.fcm_token` (migration `b5e2d8a1c4f6`) e a dependência `firebase-admin`. O registro está na seção "Ideias removidas".
+- **Bug da sequência de rega** (eram dois):
+  - O cron nunca rodava (`beat_schedule` vazio).
+  - A sequência nunca passava de 1: só somava com regas em dias seguidos, mas o intervalo é de 7 dias e regar antes do vencimento era proibido.
+  - Agora o vencimento é um **dia local** (`GardenCalendar`, `GARDEN_TIMEZONE=America/Sao_Paulo`; migration `c7f3a9e2d1b8`). A janela é de **±1 dia**:
+    - antes dela: erro 4016;
+    - dentro dela: +1;
+    - depois dela: aceita, mas recomeça em 1.
+  - Uma rega por dia. O cron `garden.break_missed_streaks` roda às 03:00 (fuso do jardim) e zera a sequência quando a janela inteira passou.
+  - API: `next_due_at` (instante) virou `next_due_on` (data).
+  - Dependência `tzdata`, porque a imagem slim pode não ter o banco de fusos.
+  - Regras no `ARCHITECTURE.md` 2.3.
 
-**Falta validar a `v0.1.0` (depende das credenciais do usuário):**
+Suíte: 304 testes. CI: `ruff`, `mypy`, `lint-imports`, `pytest`.
+
+**Falta validar a `v0.1.0`/`v0.1.1` (depende das credenciais do usuário; não deu para testar em 2026-10-16):**
 - [ ] Testes de contrato contra as APIs reais: `uv run pytest -m contract` no PC de casa (~2 créditos do Kindwise). Os adapters mudaram (sinais tipados) depois da última rodada.
-- [ ] Um `/identify` real com as chaves e o S3 de verdade. Risco: bucket novo bloqueia `ACL="public-read"` por padrão, e o upload (inclusive a cópia de treino) pode falhar. Se falhar, corrigir numa `v0.1.1`.
+- [ ] Um `/identify` real com as chaves e o S3 de verdade. Risco: bucket novo bloqueia `ACL="public-read"` por padrão, e o upload (inclusive a cópia de treino) pode falhar. Se falhar, corrigir numa `v0.1.2`.
 
 **Manutenção do CI (avisos do GitHub no primeiro run):**
 - [ ] `actions/checkout@v4` e `astral-sh/setup-uv@v6` usam Node 20 (descontinuado; hoje forçados para o Node 24). Atualizar as versões no `.github/workflows/ci.yml`.
@@ -32,11 +46,12 @@ Suíte: 288 testes. CI: `ruff`, `mypy`, `lint-imports`, `pytest`.
 
 **Ordem combinada com o usuário:**
 1. ~~**Plano C: separar dados do usuário e dados de treino + anonimização**~~ ✅ (2026-10-15). Pendências que sobraram, na seção do plano: HEIC, motivo da exclusão como sinal, engine de confiança, geocodificação reversa.
-2. **Item 8: monólito modular** (seção "Item 8 — conceitos" abaixo), num branch próprio (`develop` ou `refactor/*`) a partir da `v0.1.0`, com mais testes garantindo o comportamento de ponta a ponta. **É o próximo passo** (depois das duas validações acima).
+2. **Item 8: monólito modular.** Decidido em 2026-10-16; a seção "Item 8 — decisões" abaixo é a fonte. A `develop` saiu da `v0.1.1`. O milestone 0 (testes de caracterização) roda em `refactor/characterization-tests`. **É o próximo passo.** As validações acima não bloqueiam o item 8: um bug achado nelas vira fix na `main` e desce para a `develop`.
 3. Depois:
    - fotos públicas no S3 (URLs assinadas);
    - engine de confiança do rótulo;
    - análise profunda pela metade (Gemini);
+   - conquistas: regra de concessão (segunda entrega; consome os eventos que hoje ninguém consome);
    - itens de "Antes de publicar";
    - `ANTIGRAVITY.md` (item 11);
    - reuso de e-mail de conta com soft delete.
@@ -115,7 +130,7 @@ Saúde:
   - do Kindwise: `access_token` (permite buscar a identificação com a foto na API deles), `input` (ecoa coordenadas, URL da imagem e data/hora), `custom_id`, `created`/`completed`;
   - do PlantNet: `query` (imagens) e `remainingIdentificationRequests`;
   - horários exatos.
-- **Origem da localização:** GPS do `/identify` quando enviado (o form já aceita `latitude`/`longitude`); se não vier, só o estado do perfil (`UserLocation`), sem grade. O `NominatimGeocoder` só faz estado → coordenadas, não o contrário; para tirar o estado do GPS, seria preciso geocodificação reversa (decidir depois; não bloqueia).
+- **Origem da localização:** GPS do `/identify` quando enviado (o form já aceita `latitude`/`longitude`); se não vier, só o estado do perfil (`UserLocation`), sem grade. O `NominatimGeocoder` (removido em 2026-10-16) só fazia estado → coordenadas; para tirar o estado do GPS seria preciso geocodificação reversa por outro serviço (decidir depois; não bloqueia).
 - O `raw_response` bruto **não** fica do lado do usuário (ele não precisa); o treino guarda os sinais já filtrados.
 - **Teste de guarda:** as colunas das tabelas de treino conferidas contra uma lista permitida (nenhum `user_id`, nenhuma FK para tabelas do usuário), e o filtro do `raw_response` testado com as fixtures reais de `tests/fixtures/providers/`.
 
@@ -153,34 +168,167 @@ Saída: rótulo + peso + motivos (auditável). **Calculada na exportação, a pa
 
 ---
 
-## Item 8 — conceitos e recomendações (para quem for fazer)
+## Item 8 — decisões (discutidas e fechadas com o usuário em 2026-10-16)
 
-O usuário combinou fazer o item 8 depois do plano C, num branch próprio. Estes são os conceitos e as recomendações discutidos.
+Substitui as recomendações anteriores ("só o piloto"). O usuário quer migrar **módulo a módulo, tudo**, com um padrão claro e **verificável** (cada regra quebra o CI quando violada). Princípios: SOLID, SRP, DRY e a balança. Módulo **não** é um use case: o que é muito parecido fica junto.
 
-**Recomendação geral:**
-- **Não migrar tudo.** Fazer só o piloto (identificação) e avaliar se o ganho compensa. Para um projeto deste tamanho, com uma pessoa, o monólito modular completo tende a ser exagero, e o import-linter já protege as camadas.
-- **Fazer depois do plano C**, porque o C redefine as fronteiras (identificação × jardim × treino).
+### Branches
+- `main`: só releases e fixes (a `v0.1.1` saiu assim).
+- `develop` sai da `v0.1.1` e é a branch de integração.
+- Uma branch curta por milestone sai da `develop` e volta por PR com CI: `refactor/characterization-tests`, `refactor/modules-skeleton`, `refactor/module-identification`…
+- Fix urgente vai na `main` e desce para a `develop`.
 
-**Módulos candidatos** (subdomínio por módulo, hexagonal dentro, testes junto, shared kernel mínimo):
-- **identity:** usuário, autenticação, OTP, tokens JWT.
-- **subscription/profile:** plano, tokens diários, conquistas.
-- **identification:** identificações, espécies, imagens de referência, provedores de IA, consenso.
-- **garden:** `user_plant`, cuidados, sequência.
-- **health:** diagnóstico.
-- **training:** novo, nasce do plano C. Amostras de treino, feedback, engine de confiança do rótulo, exportação.
-- **shared kernel:** IDs (`NewType`), `JsonValue`, exceções base. Só o que é realmente comum.
+### Regras do padrão (todas checadas por teste ou linter)
+1. **README por módulo** com seções fixas: *Propósito*, *API pública*, *Decisões*, *Erros*.
+   - O catálogo de erros sai do `ARCHITECTURE.md` e vai para cada README. Cada módulo tem uma faixa de códigos; um teste garante que nenhum código se repete.
+   - Um teste confere a existência do README e das seções.
+2. **Barrel files:**
+   - Entre módulos, só se importa a raiz do módulo (`src.modules.<x>`). Isso é conferido por um teste de AST, no estilo do `test_packages.py`, e pelo `no_implicit_reexport` do mypy strict.
+   - Dentro do módulo, importa-se o barrel de pastas irmãs, **nunca o barrel do próprio pacote** (em Python isso gera import circular e carrega tudo antes da hora).
+3. **`ARCHITECTURE.md` só com regras:** princípios, layout obrigatório, regras de import, tipagem e checklist. O mapa de subdomínios (seção 2) e os erros (seção 3) vão para os READMEs.
+4. **Testes dentro do módulo** (`src/modules/<x>/tests/{unit,integration,contract}/` + `fakes.py`):
+   - Os fakes de uma porta ficam no módulo dono da porta.
+   - A raiz `tests/` guarda só o testbed (plugin pytest com Postgres/Redis via testcontainers, cliente HTTP, relógio, factory base) e os testes `e2e/` que atravessam módulos.
+   - Os testes ficam fora da imagem Docker.
+   - No import-linter, `tests` é a camada mais alta do módulo (também não fura o barrel de outro módulo).
+5. **AAA obrigatório:** todo teste tem `# Arrange`, `# Act` e `# Assert` (`# Act & Assert` liberado para `pytest.raises`). Um teste de AST confere.
+6. **Layout fixo do módulo:** nomes de pasta fixos e nenhuma pasta vazia; um teste confere que toda pasta está no conjunto permitido. Cada módulo tem o próprio container de DI e o próprio router; a raiz só compõe.
 
-**Acoplamentos difíceis**, que são a discussão real:
-- **O `User` é tocado por todos:** tokens, plano, `garden_count`. O plano C já remove o `garden_count`, calculado a partir do jardim.
-- **Tokens:** identificação e saúde gastam tokens de subscription. Recomendação: uma porta no módulo consumidor (ex.: `ITokenWallet`), implementada por subscription, chamada **na mesma transação**, porque cobrança precisa de consistência forte. Eventos assíncronos aqui abririam espaço para cobrar sem entregar, ou entregar sem cobrar.
-- **Treino alimentado por identification/health:** recomendação: uma porta do módulo training (ex.: `ITrainingRecorder`) chamada na mesma transação, para a amostra não se perder se a publicação de um evento falhar. A porta mantém a fronteira.
-- **Unit of Work por módulo:** com um Postgres só, manter **uma transação física**; cada módulo vê só os próprios repositórios (UoW do módulo como uma visão sobre a mesma sessão). A fronteira é garantida pelo import-linter, não por sessões separadas.
+### Template de módulo
+```
+<modulo>/
+  __init__.py        # barrel: API pública
+  README.md
+  container.py
+  domain/
+    entities/  value_objects/  policies/  ports/
+    services/        # chamados por outros módulos, dentro da transação de quem chama (sem commit)
+    use_cases/       # entradas com transação própria
+    events.py  exceptions.py
+  adapters/
+    persistence/{models,mappers,repositories}/
+    <tecnologia>/
+  api/   router.py  schemas.py  [deps.py]
+  workers/ tasks.py
+  tests/ unit/  integration/  [contract/]  fakes.py
+```
 
-**Mecânica:**
-- **Layout sugerido:** `src/modules/<nome>/{domain,adapters,api}`, `src/shared/` (kernel), `src/infrastructure/` (composição: containers, settings, Celery), `src/main.py`. Testes junto do módulo ou em `tests/modules/<nome>/`; ajustar `testpaths` e o `pyproject`.
-- **import-linter:** um contrato de independência entre módulos, um contrato de camadas dentro de cada módulo e um contrato de shared kernel (ninguém importa módulo pelo kernel).
-- **Antes de mover código:** escrever **testes de caracterização de ponta a ponta** (rotas HTTP contra Postgres/Redis reais via testcontainers). Hoje os testes de rota mocam os use cases, então não garantem o comportamento de A a B durante a refatoração. É o "aumentar testes para garantir consistência" que o usuário pediu.
-- **Branch:** fechar a `main`, abrir `develop` e fazer o piloto em `refactor/modular-identification` (ou similar).
+### Layout geral
+```
+src/
+  main.py
+  bootstrap/      # hoje src/infrastructure: settings, container raiz, Celery, app FastAPI (decidido renomear)
+  shared/         # mesmo layout de um módulo, sem regra de negócio
+  modules/  identity  subscription  catalog  training  identification  garden  health  achievements
+tests/            # testbed + e2e
+migrations/       # continua único (um Postgres)
+```
+
+### Dependências permitidas (contrato de camadas do import-linter entre módulos)
+```
+health · achievements
+garden
+identification
+identity · subscription · catalog · training      (base: não importam módulo)
+shared
+```
+- identification usa identity (localização), subscription (tokens), catalog (espécie) e training (amostra).
+- garden usa identification (identificação de origem), subscription (limite do FREE), catalog e training (sinal implícito).
+- health usa garden (planta), identity, subscription, catalog e training.
+- achievements, por enquanto, não usa ninguém.
+
+### Módulos
+- **identity**: quem é o usuário e como ele entra.
+  - Entidade `User` com credenciais, e-mail, verificado e localização; plano e tokens saem dela.
+  - OTP, JWT, bcrypt, SES e a task de e-mail de verificação.
+  - Use cases: register, verify, login, logout, refresh, change email/senha, localização.
+  - Rotas `/auth` e `/profile/location|email|password`, mais `deps.py` (`current_user`).
+  - Service `user_region`, para identification e health.
+- **subscription** (decidido separado de identity):
+  - Tabela própria `subscriptions` (migration copia de `users`). **Sem linha = FREE**, então o cadastro não chama subscription.
+  - O plano é **demonstrativo** (sem compra, upgrade é só flag); a **cota de tokens é regra de verdade**, porque protege os créditos de Kindwise e Gemini.
+  - Services `token_wallet` (gasto na mesma transação de quem consome) e `garden_quota`.
+  - Rota `/profile/subscription/upgrade`.
+- **catalog**:
+  - Espécies, imagens de referência, nutricional (`ImageSource` mora aqui).
+  - `ISpeciesEnricher` (Gemini: `enrich_species`, `enrich_nutritional`) e `EnrichPlantSpeciesUseCase` (fica, mesmo sem entrada ainda).
+  - Service `species_registry` (achar/criar espécie, gravar imagens de referência).
+  - Sem rota própria.
+- **training**:
+  - Amostras e feedback. **O vocabulário do dataset mora aqui**: `provider_signals`, `training_location`, origem (`IdentificationOrigin`, `HealthSource`) e `HealthSeverity`. Quem produz o dado importa de training.
+  - Service `ITrainingRecorder` (gravar amostra e feedback).
+  - Sem rota.
+- **identification**:
+  - `Identification`, `ConfidenceScore`, `ConsensusResult` e `ConsensusPolicy`.
+  - Adapters Kindwise (só `/identification`), PlantNet e consenso, cada identificador com seu breaker.
+  - Use cases: identify, feedback.
+  - Service `identification_lookup` (para garden).
+  - Rota `/identify`; os testes de contrato vêm para cá.
+- **garden**:
+  - `UserPlant`, `CareSchedule`, `CareInterval`, `Streak` e `GardenCalendar`.
+  - Use cases: add, delete, water, garden, detalhes, `break_streak`.
+  - Rotas `/garden` e `/plants`; task `garden.break_missed_streaks`.
+  - Service `plant_lookup` (para health).
+- **health**:
+  - `HealthRecord`.
+  - `IHealthAnalyzer` (Kindwise, só `/health_assessment`) e `IHealthEnricher` (Gemini: `diagnose_health`, `analyze_disease`).
+  - Use cases: diagnose, feedback, history.
+  - Rota `/diagnose`.
+- **achievements**: módulo próprio desde já (não em identity, para identity não virar o módulo-deus do `User`).
+  - Listagem e `AchievementBadge` (fica).
+  - A regra de concessão (consumir eventos) é da **segunda entrega**.
+  - Rota `/profile/achievements`.
+- **shared**:
+  - `domain`: `UserId` (os outros IDs vão para o módulo dono), `JsonValue`, `DomainEvent`, exceções base (`PlantEError`, `ExternalServiceError`, `InvalidImageError`, `RateLimitExceeded`) e as portas `unit_of_work` (base), `event_publisher`, `image_storage` e `image_sanitizer`.
+  - `adapters`: persistence (Base, AuditMixin, sessão, UoW base com **uma transação física compartilhada entre módulos**), redis, s3, pillow, celery (cada módulo registra o roteamento evento → task), resilience e providers (clientes HTTP finos de Kindwise e Gemini, erro HTTP → `ExternalServiceError`, sem tipos de botânica).
+  - `api`: middlewares, envelope, exception handlers, OpenAPI e probes.
+  - `workers`: `async_runner`.
+
+### Decisões pontuais
+- **`/profile` continua como prefixo de URL** (é a tela "Meu perfil" do cliente). Cada módulo registra as próprias rotas sob ele; não existe módulo "profile".
+- **Kindwise e Gemini divididos por porta (ISP).**
+  - Cada módulo tem o próprio adapter (endpoint e parsing). O comum (URL, chave, timeout, erro) fica no cliente em `shared/adapters/providers`.
+  - Motivo: um adapter mora num módulo e não sai pelo barrel. Em identification, health precisaria importar o interior de outro módulo; em shared, o kernel saberia de botânica.
+  - **Manter um circuit breaker por provedor** (singleton no `bootstrap`, entregue aos dois módulos): Kindwise fora abre identificação e saúde juntas.
+- **Imagens:** o **mecanismo** (gravar, URL assinada com TTL) fica em `shared/adapters/s3`. A **política** (o que é privado, por quanto tempo) é de cada módulo: foto da identificação é privada (identification); referência é pública (catalog).
+  - Vira um módulo `media` quando a imagem ganhar regras próprias: dono, ciclo de vida/LGPD, sessões de upload direto do app (PUT assinado), miniaturas, HEIC. Esse critério vai no README do shared.
+  - Complexidades de app real já mapeadas:
+    - URL assinada muda a cada chamada, então o cache precisa de chave estável (ID da imagem);
+    - expiração com a lista em cache;
+    - CDN (CloudFront assina diferente do S3).
+- **Feedback fica em training, com alvo tipado.** O código mostrou que os dados já são unificados (uma entidade, uma tabela, um enum), e os dois use cases têm o mesmo formato.
+  - Trocar os dois IDs opcionais + `__post_init__` por uma união:
+    ```python
+    @dataclass(frozen=True)
+    class IdentificationLabel:  # "esta espécie está certa?"
+        sample_id: TrainingIdentificationSampleId
+        suggested_name: str | None = None
+
+    @dataclass(frozen=True)
+    class HealthLabel:          # "este diagnóstico está certo?"
+        sample_id: TrainingHealthSampleId
+
+    FeedbackTarget = IdentificationLabel | HealthLabel
+    # TrainingFeedback(id, target, verdict, origin, given_on)
+    ```
+    Assim `suggested_name` em saúde deixa de compilar, "exatamente um alvo" vira garantia do tipo e a tabela não muda (o mapper traduz).
+  - **Sem módulo `feedback` próprio:** ele é anônimo e só serve à engine de confiança; um módulo separado dividiria o mesmo conceito.
+  - **Sem use case genérico único:** conferir o dono é regra do módulo do dado pessoal; se training fizesse isso, a seta inverteria.
+  - Resultado: training expõe `ITrainingRecorder.record_feedback(target, verdict, origin)`, e identification, health e garden ficam com uma cola fina (dono → alvo tipado → porta).
+  - Alinhar health a `health_records.get_for_user` (hoje confere o dono à mão).
+
+### Milestones
+0. **Testes de caracterização ponta a ponta** (HTTP contra Postgres/Redis reais, sem mocar use case). É a rede de segurança: hoje os testes de rota mocam os use cases. Branch `refactor/characterization-tests`.
+1. **Esqueleto:** `shared/`, `bootstrap/`, contratos do import-linter, testes das regras (README, barrel, layout, AAA, faixas de erro), template de README e novo `ARCHITECTURE.md`.
+2. **Piloto: identification + catalog.** Avaliar se o padrão se paga antes de replicar.
+3. training → health → garden → subscription → identity (por último, o mais acoplado) → achievements.
+
+### Ideias removidas (2026-10-16, commit `6f2b3e3`; código recuperável do pai, `8107105`)
+- **Firebase (FCM):** push. Tem ganho, mas é futuro distante. Se voltar, vira um módulo `notifications` (tokens por aparelho, opt-in, envio), reagindo a eventos de garden ("hora de regar", "sua sequência vai quebrar"). Não entra em profile.
+- **OpenMeteo:** clima. A ideia era dar contexto climático ao Gemini no diagnóstico ("está muito quente, mas já esteve muito frio"). Descartado: utilidade real duvidosa e difícil de medir; mais confunde que ajuda.
+- **Nominatim:** geocodificador do OpenStreetMap (texto ↔ coordenadas). Serviria à geocodificação reversa do plano C (estado a partir do GPS). Descartado:
+  - manda o GPS do usuário a terceiros;
+  - o servidor público limita a 1 req/s e proíbe uso pesado.
 
 ---
 
@@ -259,7 +407,7 @@ Substitui a ordem anterior (Bloco 1 → 2 → 3). Prioridade por impacto real; o
   - Regra proposta, aceita em princípio mas **a avaliar com calma**: `PlantSpecies.apply_enrichment(result, at)` só preenche campos vazios (Gemini nunca sobrescreve dado dos provedores de identificação); nomes populares unidos, provedores primeiro; `ENRICHED` + `enriched_at` + `enrichment_source=GEMINI`; falha → `FAILED` e sem cobrança.
   - Em aberto: cobrar de novo quem consulta espécie já enriquecida (hoje cobra 2 tokens sempre)? Ligar a feature completa (rota, nutricional, marcações do dataset) ou só corrigir o use case?
 - **Testes de contrato:** o usuário roda no PC de casa (onde estão as chaves).
-- `FirebaseAdapter` agora implementa a porta, mas nada envia notificação ainda.
+- ~~`FirebaseAdapter` agora implementa a porta, mas nada envia notificação ainda.~~ Removido em 2026-10-16 (ver "Ideias removidas").
 
 ~~Próximo passo: item 13 junto com o item 8~~ — superado: ver "Estado e próximos passos" no topo (13 feito; plano C; depois 8).
 
