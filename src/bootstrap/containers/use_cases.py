@@ -16,7 +16,6 @@ from src.domain.use_cases.change_email_use_case import ChangeEmailUseCase
 from src.domain.use_cases.change_password_use_case import ChangePasswordUseCase
 from src.domain.use_cases.delete_user_plant_use_case import DeleteUserPlantUseCase
 from src.domain.use_cases.diagnose_health_use_case import DiagnoseHealthUseCase
-from src.domain.use_cases.enrich_plant_species_use_case import EnrichPlantSpeciesUseCase
 from src.domain.use_cases.get_health_history_use_case import GetHealthHistoryUseCase
 from src.domain.use_cases.get_plant_details_use_case import GetPlantDetailsUseCase
 from src.domain.use_cases.get_user_garden_use_case import GetUserGardenUseCase
@@ -41,7 +40,7 @@ from src.domain.use_cases.upgrade_subscription_use_case import (
 from src.domain.use_cases.verify_email_use_case import VerifyEmailUseCase
 from src.domain.use_cases.water_plant_use_case import WaterPlantUseCase
 from src.domain.value_objects.local_calendar import LocalCalendar
-from src.modules.catalog import ISpeciesEnricher, ISpeciesRegistry
+from src.modules.catalog import ISpeciesRegistry
 from src.modules.training import ITrainingRecorder
 from src.shared.domain import IDomainPublisher, IImageSanitizer, IImageStorage
 
@@ -59,7 +58,6 @@ class UseCasesContainer(containers.DeclarativeContainer):
     plant_identifier: providers.Dependency[IPlantIdentifier] = providers.Dependency()
     health_analyzer: providers.Dependency[IHealthAnalyzer] = providers.Dependency()
     health_enricher: providers.Dependency[IHealthEnricher] = providers.Dependency()
-    species_enricher: providers.Dependency[ISpeciesEnricher] = providers.Dependency()
     species_registry: providers.Dependency[ISpeciesRegistry] = providers.Dependency()
 
     image_storage: providers.Dependency[IImageStorage] = providers.Dependency()
@@ -177,14 +175,6 @@ class UseCasesContainer(containers.DeclarativeContainer):
         publisher=domain_publisher,
         calendar=local_calendar,
         training=training_recorder,
-        catalog=species_registry,
-    )
-
-    enrich_plant_species_use_case = providers.Factory(
-        EnrichPlantSpeciesUseCase,
-        uow=unit_of_work,
-        enricher=species_enricher,
-        calendar=local_calendar,
         catalog=species_registry,
     )
 

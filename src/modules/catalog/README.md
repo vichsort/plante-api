@@ -31,9 +31,10 @@ fica em `tests/fakes.py`.
 - **Sem JOIN de fora.** O detalhe da planta (jardim) pergunta a espécie ao `ISpeciesRegistry`, em
   vez de fazer JOIN na tabela `plant_species`. São duas consultas em vez de uma, e a tabela continua
   sendo só deste módulo.
-- **O enriquecimento cobrado (`EnrichPlantSpeciesUseCase`) fica fora daqui.** Ele cobra tokens do
-  usuário, e o catalog é um módulo base, sem depender de subscription. Ainda não tem rota e descarta
-  o resultado; mora no código antigo até a feature de análise profunda ser desenhada.
+- **O enriquecimento cobrado (análise profunda) não mora aqui.** Ele cobra tokens do usuário, e o
+  catalog é um módulo base, sem depender de subscription. O use case antigo (sem rota, descartava o
+  resultado do Gemini e cobrava mesmo assim) foi removido; quando a feature for desenhada, o use case
+  nasce no módulo da tela que a oferece e usa o `ISpeciesEnricher` daqui.
 
 ## Erros
 

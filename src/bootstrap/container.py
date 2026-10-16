@@ -45,7 +45,6 @@ class Container(containers.DeclarativeContainer):
         plant_identifier=adapters.plant_identifier,
         health_analyzer=adapters.health_analyzer,
         health_enricher=adapters.health_enricher,
-        species_enricher=catalog.species_enricher,
         species_registry=catalog.registry,
         image_storage=adapters.image_storage,
         image_sanitizer=adapters.image_sanitizer,

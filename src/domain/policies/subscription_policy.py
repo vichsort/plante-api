@@ -39,12 +39,6 @@ class SubscriptionPolicy:
         return remaining >= FeatureCost.DIAGNOSIS + FeatureCost.DIAGNOSIS_ENRICHMENT
 
     @staticmethod
-    def enforce_can_deep_analyze(user: User, now: datetime, today: date) -> None:
-        """Garante que o usuário tem saldo/plano para uma análise profunda."""
-        if not SubscriptionPolicy.can_spend(user, FeatureCost.DEEP_ANALYSIS, now, today):
-            raise SubscriptionRequiredError(feature="Análise Profunda com IA")
-
-    @staticmethod
     def enforce_can_add_to_garden(user: User, plants_in_garden: int, now: datetime) -> None:
         """
         Garante que o usuário pode adicionar uma planta ao jardim (`plants_in_garden` = plantas
