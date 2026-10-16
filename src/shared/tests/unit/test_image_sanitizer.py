@@ -30,13 +30,19 @@ def _encode(fmt: str, size: tuple[int, int] = (10, 10), mode: str = "RGB") -> by
 
 
 def test_fixture_photo_really_has_gps() -> None:
+    # Act
     with Image.open(io.BytesIO(_photo_with_exif())) as image:
-        assert image.getexif().get_ifd(_GPS_IFD)
+        gps = image.getexif().get_ifd(_GPS_IFD)
+
+    # Assert
+    assert gps
 
 
 def test_removes_all_metadata() -> None:
+    # Act
     cleaned = PillowImageSanitizer().sanitize(_photo_with_exif())
 
+    # Assert
     with Image.open(io.BytesIO(cleaned)) as image:
         assert image.format == "JPEG"
         assert len(image.getexif()) == 0
@@ -45,28 +51,32 @@ def test_removes_all_metadata() -> None:
 
 
 def test_applies_orientation_before_removing_it() -> None:
-    # Orientação 6 = girar 90°: a foto 40x20 deve sair em pé (20x40)
+    # Act: orientação 6 = girar 90°
     cleaned = PillowImageSanitizer().sanitize(_photo_with_exif(orientation=6))
 
+    # Assert: a foto 40x20 sai em pé (20x40)
     with Image.open(io.BytesIO(cleaned)) as image:
         assert image.size == (20, 40)
 
 
 @pytest.mark.parametrize(("fmt", "mode"), [("PNG", "RGBA"), ("WEBP", "RGB"), ("JPEG", "L")])
 def test_supported_formats_become_rgb_jpeg(fmt: str, mode: str) -> None:
+    # Act
     cleaned = PillowImageSanitizer().sanitize(_encode(fmt, mode=mode))
 
+    # Assert
     with Image.open(io.BytesIO(cleaned)) as image:
         assert (image.format, image.mode) == ("JPEG", "RGB")
 
 
 @pytest.mark.parametrize("payload", [b"not an image", b"", _encode("GIF", mode="P"), _encode("BMP")])
 def test_rejects_unsupported_or_unreadable_files(payload: bytes) -> None:
+    # Act & Assert
     with pytest.raises(InvalidImageError):
         PillowImageSanitizer().sanitize(payload)
 
 
 def test_rejects_images_too_large_to_decode() -> None:
-    # 8000x8000 = 64 MP; em PNG de 1 bit o arquivo é pequeno, mas descomprimido não
+    # Act & Assert: 8000x8000 = 64 MP; em PNG de 1 bit o arquivo é pequeno, mas descomprimido não
     with pytest.raises(InvalidImageError):
         PillowImageSanitizer().sanitize(_encode("PNG", size=(8000, 8000), mode="1"))

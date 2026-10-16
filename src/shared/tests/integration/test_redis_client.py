@@ -9,58 +9,82 @@ from src.shared.domain import ExternalServiceError
 
 
 async def test_get_missing_key_returns_none(redis_client: RedisClient) -> None:
-    assert await redis_client.get("missing") is None
+    # Act
+    value = await redis_client.get("missing")
+
+    # Assert
+    assert value is None
 
 
 async def test_set_stores_value_as_bytes_with_ttl(redis_client: RedisClient, raw_redis: Redis) -> None:
+    # Act
     await redis_client.set("text", "olá", ttl_seconds=60)
     await redis_client.set("binary", b"\x00\xff", ttl_seconds=60)
 
+    # Assert
     assert await redis_client.get("text") == "olá".encode()
     assert await redis_client.get("binary") == b"\x00\xff"
     assert 0 < await raw_redis.ttl("text") <= 60
 
 
 async def test_set_overwrites_value_and_ttl(redis_client: RedisClient, raw_redis: Redis) -> None:
+    # Arrange
     await redis_client.set("key", "first", ttl_seconds=600)
+
+    # Act
     await redis_client.set("key", "second", ttl_seconds=30)
 
+    # Assert
     assert await redis_client.get("key") == b"second"
     assert await raw_redis.ttl("key") <= 30
 
 
 async def test_delete_removes_key_and_ignores_missing(redis_client: RedisClient) -> None:
+    # Arrange
     await redis_client.set("key", "value", ttl_seconds=60)
 
+    # Act
     await redis_client.delete("key")
     await redis_client.delete("key")
 
+    # Assert
     assert await redis_client.get("key") is None
 
 
 async def test_increment_with_expiry_counts_and_sets_ttl(redis_client: RedisClient, raw_redis: Redis) -> None:
-    assert await redis_client.increment_with_expiry("counter", ttl_seconds=60) == 1
-    assert await redis_client.increment_with_expiry("counter", ttl_seconds=60) == 2
+    # Act
+    first = await redis_client.increment_with_expiry("counter", ttl_seconds=60)
+    second = await redis_client.increment_with_expiry("counter", ttl_seconds=60)
+
+    # Assert
+    assert (first, second) == (1, 2)
     assert 0 < await raw_redis.ttl("counter") <= 60
 
 
 async def test_increment_with_expiry_restarts_after_key_expires(redis_client: RedisClient, raw_redis: Redis) -> None:
+    # Arrange
     await redis_client.increment_with_expiry("counter", ttl_seconds=60)
     await raw_redis.delete("counter")  # equivale à janela do rate limit ter expirado
 
-    assert await redis_client.increment_with_expiry("counter", ttl_seconds=60) == 1
+    # Act
+    count = await redis_client.increment_with_expiry("counter", ttl_seconds=60)
+
+    # Assert
+    assert count == 1
 
 
 async def test_rejected_command_is_not_retryable(redis_client: RedisClient, raw_redis: Redis) -> None:
+    # Arrange
     await raw_redis.rpush("list", "a")
 
-    # WRONGTYPE: o servidor recusou o comando, tentar de novo não resolve
+    # Act & Assert: WRONGTYPE, o servidor recusou o comando e tentar de novo não resolve
     with pytest.raises(ExternalServiceError) as exc_info:
         await redis_client.get("list")
     assert exc_info.value.retryable is False
 
 
 async def test_ping(redis_client: RedisClient) -> None:
+    # Act & Assert: não levanta
     await redis_client.ping()
 
 
@@ -72,8 +96,10 @@ def _unused_port() -> int:
 
 
 async def test_unreachable_redis_raises_retryable_external_error() -> None:
+    # Arrange
     client = RedisClient.from_url(f"redis://127.0.0.1:{_unused_port()}/0", socket_timeout=0.5, socket_connect_timeout=0.5)
     try:
+        # Act & Assert
         with pytest.raises(ExternalServiceError) as exc_info:
             await client.ping()
         assert exc_info.value.retryable is True

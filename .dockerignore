@@ -40,3 +40,5 @@ celerybeat.pid
 
 # Logs
 *.log
+# Testes dos módulos ficam dentro de src/, mas também não vão para produção
+src/**/tests/

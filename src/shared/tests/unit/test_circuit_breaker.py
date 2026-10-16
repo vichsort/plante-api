@@ -1,8 +1,8 @@
 import asyncio
+from collections.abc import Awaitable, Callable
 
 import pytest
 
-from src.adapters.resilience import CircuitBreakerPlantIdentifier
 from src.shared.adapters import CircuitBreaker, CircuitState
 from src.shared.domain import ExternalServiceError, InvalidImageError
 
@@ -19,101 +19,114 @@ def _provider_down() -> ExternalServiceError:
     return ExternalServiceError(service="Kindwise", retryable=True)
 
 
-async def _fail(exc: BaseException):
-    raise exc
+def _failing(exc: BaseException) -> Callable[[], Awaitable[str]]:
+    async def call() -> str:
+        raise exc
+    return call
 
 
-async def _ok():
+async def _ok() -> str:
     return "ok"
 
 
 async def _trip(breaker: CircuitBreaker, times: int) -> None:
     for _ in range(times):
         with pytest.raises(ExternalServiceError):
-            await breaker.call(lambda: _fail(_provider_down()))
+            await breaker.call(_failing(_provider_down()))
 
 
-@pytest.mark.asyncio
-async def test_opens_after_threshold_and_fails_fast():
+async def test_opens_after_threshold_and_fails_fast() -> None:
+    # Arrange
     breaker = CircuitBreaker("Kindwise", failure_threshold=2, clock=_Clock())
-    await _trip(breaker, 2)
-    assert breaker.state is CircuitState.OPEN
-
     called = False
 
-    async def should_not_run():
+    async def should_not_run() -> None:
         nonlocal called
         called = True
 
+    # Act
+    await _trip(breaker, 2)
+
+    # Assert
+    assert breaker.state is CircuitState.OPEN
     with pytest.raises(ExternalServiceError):
         await breaker.call(should_not_run)
     assert called is False
 
 
-@pytest.mark.asyncio
-async def test_half_open_success_closes_circuit():
+async def test_half_open_success_closes_circuit() -> None:
+    # Arrange
     clock = _Clock()
     breaker = CircuitBreaker("Kindwise", failure_threshold=1, recovery_timeout_seconds=30, clock=clock)
     await _trip(breaker, 1)
-
     clock.now = 30
-    assert await breaker.call(_ok) == "ok"
+
+    # Act
+    result = await breaker.call(_ok)
+
+    # Assert
+    assert result == "ok"
     assert breaker.state is CircuitState.CLOSED
 
 
-@pytest.mark.asyncio
-async def test_half_open_failure_reopens_circuit():
+async def test_half_open_failure_reopens_circuit() -> None:
+    # Arrange
     clock = _Clock()
     breaker = CircuitBreaker("Kindwise", failure_threshold=1, recovery_timeout_seconds=30, clock=clock)
     await _trip(breaker, 1)
-
     clock.now = 30
+
+    # Act
     await _trip(breaker, 1)
+
+    # Assert
     assert breaker.state is CircuitState.OPEN
     with pytest.raises(ExternalServiceError):
         await breaker.call(_ok)
 
 
-@pytest.mark.asyncio
-async def test_half_open_allows_single_probe():
+async def test_half_open_allows_single_probe() -> None:
+    # Arrange
     clock = _Clock()
     breaker = CircuitBreaker("Kindwise", failure_threshold=1, recovery_timeout_seconds=30, clock=clock)
     await _trip(breaker, 1)
     clock.now = 30
-
     release = asyncio.Event()
 
-    async def slow_probe():
+    async def slow_probe() -> str:
         await release.wait()
         return "ok"
 
+    # Act
     probe = asyncio.create_task(breaker.call(slow_probe))
     await asyncio.sleep(0)
+
+    # Assert: enquanto a sonda roda, as outras chamadas falham rápido
     with pytest.raises(ExternalServiceError):
         await breaker.call(_ok)
-
     release.set()
     assert await probe == "ok"
     assert breaker.state is CircuitState.CLOSED
 
 
-@pytest.mark.asyncio
-async def test_cancelled_probe_allows_new_probe():
+async def test_cancelled_probe_allows_new_probe() -> None:
+    # Arrange
     clock = _Clock()
     breaker = CircuitBreaker("Kindwise", failure_threshold=1, recovery_timeout_seconds=30, clock=clock)
     await _trip(breaker, 1)
     clock.now = 30
-
     probe = asyncio.create_task(breaker.call(asyncio.Event().wait))
     await asyncio.sleep(0)
+
+    # Act
     probe.cancel()
     with pytest.raises(asyncio.CancelledError):
         await probe
 
+    # Assert
     assert await breaker.call(_ok) == "ok"
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "exc",
     [
@@ -123,26 +136,25 @@ async def test_cancelled_probe_allows_new_probe():
         TimeoutError(),
     ],
 )
-async def test_non_retryable_errors_do_not_count_as_failures(exc):
+async def test_non_retryable_errors_do_not_count_as_failures(exc: Exception) -> None:
+    # Arrange
     breaker = CircuitBreaker("Kindwise", failure_threshold=1, clock=_Clock())
+
+    # Act
     with pytest.raises(type(exc)):
-        await breaker.call(lambda: _fail(exc))
+        await breaker.call(_failing(exc))
+
+    # Assert
     assert breaker.state is CircuitState.CLOSED
 
 
-@pytest.mark.asyncio
-async def test_retryable_external_errors_count_as_failures():
+async def test_retryable_external_errors_count_as_failures() -> None:
+    # Arrange
     breaker = CircuitBreaker("Kindwise", failure_threshold=1, clock=_Clock())
+
+    # Act
     with pytest.raises(ExternalServiceError):
-        await breaker.call(lambda: _fail(_provider_down()))
+        await breaker.call(_failing(_provider_down()))
+
+    # Assert
     assert breaker.state is CircuitState.OPEN
-
-
-@pytest.mark.asyncio
-async def test_plant_identifier_wrapper_delegates_through_breaker():
-    class _Identifier:
-        async def identify(self, image_bytes, latitude=None, longitude=None):
-            return (image_bytes, latitude, longitude)
-
-    wrapper = CircuitBreakerPlantIdentifier(_Identifier(), CircuitBreaker("PlantNet"))
-    assert await wrapper.identify(b"img", latitude=1.0, longitude=2.0) == (b"img", 1.0, 2.0)

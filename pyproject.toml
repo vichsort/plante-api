@@ -70,7 +70,7 @@ packages = ["src"]
 asyncio_mode = "auto"
 # Loop novo por teste: fixtures assíncronas (sessão do banco, cliente Redis) não atravessam testes
 asyncio_default_fixture_loop_scope = "function"
-testpaths = ["tests"]
+testpaths = ["tests", "src"]  # testes dos módulos ficam em `src/**/tests/`
 # Contrato chama as APIs reais (gasta créditos): só com `pytest -m contract`
 addopts = "-m 'not contract'"
 markers = ["contract: chama as APIs reais dos provedores de IA"]
@@ -82,6 +82,7 @@ markers = ["contract: chama as APIs reais dos provedores de IA"]
 python_version = "3.12"
 strict = true
 files = ["src"]
+exclude = ["^src/.*/tests/"]  # testes não passam pelo mypy estrito (o ruff cobre)
 plugins = ["pydantic.mypy"]
 # `Any` é proibido: nem escrito, nem vindo de decorators ou de expressões de bibliotecas
 disallow_any_explicit = true
@@ -132,7 +133,7 @@ module = ["src.bootstrap.settings"]
 disallow_any_explicit = false
 
 # ---------------------------------------------------------------------------
-# Import Linter — camadas da arquitetura hexagonal (ARCHITECTURE.md, seção 1)
+# Import Linter — camadas e fronteiras dos módulos (ARCHITECTURE.md, seção 3)
 # ---------------------------------------------------------------------------
 [tool.importlinter]
 root_package = "src"
