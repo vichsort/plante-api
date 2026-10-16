@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from src.domain.entities.plant_species import PlantSpecies
 from src.domain.exceptions import (
@@ -11,6 +12,8 @@ from src.domain.policies.subscription_policy import SubscriptionPolicy
 from src.domain.ports.plant_enricher import IPlantEnricher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.ids import PlantSpeciesId, UserId
+from src.domain.value_objects.local_calendar import LocalCalendar
+from src.domain.value_objects.subscription_tier import FeatureCost
 
 
 @dataclass(frozen=True)
@@ -30,11 +33,15 @@ class EnrichPlantSpeciesUseCase:
         self,
         uow: IUnitOfWork,
         enricher: IPlantEnricher,
+        calendar: LocalCalendar,
     ) -> None:
         self.uow = uow
         self.enricher = enricher
+        self.calendar = calendar
 
     async def execute(self, dto: EnrichPlantInputDTO) -> PlantSpecies:
+        now = datetime.now(UTC)
+        today = self.calendar.date_of(now)
         async with self.uow as uow:
             user = await uow.users.get_by_id(dto.user_id)
             if not user:
@@ -44,7 +51,7 @@ class EnrichPlantSpeciesUseCase:
             if not species:
                 raise SpeciesNotFoundError(dto.species_id)
 
-            SubscriptionPolicy.enforce_can_deep_analyze(user)
+            SubscriptionPolicy.enforce_can_deep_analyze(user, now, today)
 
         # Chamada lenta fora da transação
         if not species.is_enriched:
@@ -59,7 +66,7 @@ class EnrichPlantSpeciesUseCase:
                 raise UserNotFoundError(user_id=dto.user_id)
             if not species.is_enriched:
                 await uow.species.save(species)
-            user.consume_deep_analysis_token()
+            user.consume_tokens(FeatureCost.DEEP_ANALYSIS, today)
             await uow.users.save(user)
             await uow.commit()
 

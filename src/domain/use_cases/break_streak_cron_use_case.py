@@ -5,7 +5,7 @@ from src.domain.entities.care_schedule import CareSchedule
 from src.domain.events.domain_events import StreakBrokenEvent
 from src.domain.ports.domain_publisher import IDomainPublisher
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.garden_calendar import GardenCalendar
+from src.domain.value_objects.local_calendar import LocalCalendar
 
 
 @dataclass(frozen=True)
@@ -23,7 +23,7 @@ class BreakStreakCronUseCase:
         self,
         uow: IUnitOfWork,
         publisher: IDomainPublisher,
-        calendar: GardenCalendar,
+        calendar: LocalCalendar,
     ) -> None:
         self.uow = uow
         self.publisher = publisher

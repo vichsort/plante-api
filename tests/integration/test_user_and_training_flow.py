@@ -102,6 +102,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     # 1. Identificar (com GPS) e dar feedback
     identified = await IdentifyPlantUseCase(
         uow=uow(), sanitizer=MarkingSanitizer(), plant_identifier=_identifier(), storage=storage, publisher=AsyncMock(),
+        calendar=CALENDAR,
     ).execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"photo", latitude=-23.5617, longitude=-46.6559))
 
     await GiveIdentificationFeedbackUseCase(uow=uow()).execute(GiveIdentificationFeedbackInputDTO(
@@ -120,6 +121,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     # 3. Diagnosticar e dar feedback
     diagnosis = await DiagnoseHealthUseCase(
         uow=uow(), sanitizer=MarkingSanitizer(), health_analyzer=_analyzer(), plant_enricher=enricher, storage=storage,
+        calendar=CALENDAR,
     ).execute(DiagnoseHealthInputDTO(user_id=user.id, user_plant_id=plant.id, image_bytes=b"leaf"))
 
     await GiveHealthFeedbackUseCase(uow=uow()).execute(GiveHealthFeedbackInputDTO(

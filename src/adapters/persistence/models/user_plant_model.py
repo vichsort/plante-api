@@ -48,7 +48,7 @@ class UserPlantModel(Base, AuditMixin):
     care_type: Mapped[str] = mapped_column(String(50), nullable=False)
     care_interval_days: Mapped[int] = mapped_column(Integer, nullable=False)
     care_is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    # Dia do calendário local (`GardenCalendar`), não instante
+    # Dia do calendário local (`LocalCalendar`), não instante
     care_next_due_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     care_last_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     care_climate_adjusted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

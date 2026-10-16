@@ -1,10 +1,11 @@
 import uuid
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
 
 from src.domain.entities.user import User
-from src.domain.exceptions import ExternalServiceError
+from src.domain.exceptions import ExternalServiceError, SubscriptionRequiredError
 from src.domain.ports.health_analyzer import DiseaseHint, HealthAssessmentResult
 from src.domain.ports.plant_enricher import HealthDiagnosisEnrichment
 from src.domain.use_cases.diagnose_health_use_case import (
@@ -13,7 +14,7 @@ from src.domain.use_cases.diagnose_health_use_case import (
 )
 from src.domain.value_objects.ids import UserId, UserPlantId
 from src.domain.value_objects.provider_signals import DiseaseSuggestion, HealthSignals
-from tests.factories import make_user, make_user_plant
+from tests.factories import CALENDAR, make_user, make_user_plant
 from tests.fakes import FakeUnitOfWork, MarkingSanitizer
 
 
@@ -48,6 +49,7 @@ def _use_case(enricher: AsyncMock) -> tuple[DiagnoseHealthUseCase, User, FakeUni
         health_analyzer=analyzer,
         plant_enricher=enricher,
         storage=storage,
+        calendar=CALENDAR,
     )
     return use_case, user, uow
 
@@ -107,3 +109,32 @@ async def test_diagnosis_records_anonymous_training_sample_linked_one_way():
     assert (sample.location.grid_latitude, sample.location.grid_longitude) == (-27.6, -48.5)
     assert sample.period.day == 1
     assert uow.committed
+
+
+@pytest.mark.asyncio
+async def test_diagnosis_without_tokens_is_refused_before_calling_providers():
+    # Arrange: antes o /diagnose não conferia o saldo e gastava créditos dos provedores
+    enricher = AsyncMock()
+    use_case, user, _ = _use_case(enricher)
+    user.tokens_used_today, user.tokens_day = 3, CALENDAR.date_of(datetime.now(UTC))
+
+    # Act & Assert
+    with pytest.raises(SubscriptionRequiredError):
+        await use_case.execute(_dto())
+    enricher.diagnose_health.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_last_token_buys_the_diagnosis_without_gemini():
+    # Arrange: sobra 1 token; o complemento custaria mais 1
+    enricher = AsyncMock()
+    use_case, user, _ = _use_case(enricher)
+    user.tokens_used_today, user.tokens_day = 2, CALENDAR.date_of(datetime.now(UTC))
+
+    # Act
+    result = await use_case.execute(_dto())
+
+    # Assert
+    enricher.diagnose_health.assert_not_called()
+    assert result.record.source == "kindwise"
+    assert user.tokens_used_today == 3

@@ -26,9 +26,9 @@ celery_app = Celery(
 # Celery 6 deixa de tentar reconectar ao broker na subida sem isto (hoje só avisa)
 celery_app.conf.broker_connection_retry_on_startup = True
 
-# Tarefas agendadas (`celery -A src.workers beat`, uma instância só). O crontab segue o fuso do
-# jardim: "03:00" é de madrugada no Brasil, longe da virada do dia e do horário de uso.
-celery_app.conf.update(timezone=get_settings().garden_timezone)
+# Tarefas agendadas (`celery -A src.workers beat`, uma instância só). O crontab segue o fuso
+# local: "03:00" é de madrugada no Brasil, longe da virada do dia e do horário de uso.
+celery_app.conf.update(timezone=get_settings().local_timezone)
 celery_app.conf.beat_schedule = {
     "garden-break-missed-streaks": {
         "task": "garden.break_missed_streaks",

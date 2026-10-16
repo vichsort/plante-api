@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, Integer, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -34,6 +34,7 @@ class UserModel(Base, AuditMixin):
         default=SubscriptionTier.FREE,
     )
     tokens_used_today: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    tokens_day: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     subscription_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)

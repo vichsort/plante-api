@@ -1,5 +1,5 @@
 """`save` de entidade já persistida atualiza a linha (antes fazia INSERT e violava a PK)."""
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +16,7 @@ from src.adapters.persistence.repositories.user_plant_repository import (
 from src.adapters.persistence.repositories.user_repository import UserRepository
 from src.domain.entities.plant_species import PlantSpecies
 from src.domain.entities.user import User
+from src.domain.value_objects.subscription_tier import FeatureCost
 from src.domain.value_objects.user_location import UserLocation
 from tests.factories import (
     make_health_record,
@@ -40,13 +41,13 @@ async def test_saving_existing_user_updates_it(db_session: AsyncSession) -> None
 
     loaded = await repo.get_by_id(user.id)
     assert loaded is not None
-    loaded.consume_identify_token()
+    loaded.consume_tokens(FeatureCost.IDENTIFY, date(2026, 10, 16))
     await repo.save(loaded)
     await db_session.commit()
 
     reloaded = await repo.get_by_id(user.id)
     assert reloaded is not None
-    assert reloaded.tokens_used_today == 1
+    assert (reloaded.tokens_used_today, reloaded.tokens_day) == (1, date(2026, 10, 16))
 
 
 async def test_saving_new_species_maps_provider_entity_id(db_session: AsyncSession) -> None:

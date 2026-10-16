@@ -17,7 +17,6 @@ from src.domain.entities.user_plant import (
     UserPlant,
 )
 from src.domain.value_objects.care_interval import CareInterval
-from src.domain.value_objects.garden_calendar import GardenCalendar
 from src.domain.value_objects.ids import (
     HealthRecordId,
     IdentificationId,
@@ -27,6 +26,7 @@ from src.domain.value_objects.ids import (
     UserId,
     UserPlantId,
 )
+from src.domain.value_objects.local_calendar import LocalCalendar
 from src.domain.value_objects.provider_signals import (
     DiseaseSuggestion,
     HealthSignals,
@@ -38,7 +38,7 @@ from src.domain.value_objects.training_location import TrainingLocation
 from src.domain.value_objects.user_location import UserLocation
 
 NOW = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)
-CALENDAR = GardenCalendar.from_name("America/Sao_Paulo")
+CALENDAR = LocalCalendar.from_name("America/Sao_Paulo")
 
 
 def make_user(

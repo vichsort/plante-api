@@ -61,8 +61,8 @@ class Settings(BaseSettings):
 
     # App
     debug: bool = False
-    # Dia do jardim (rega, sequência, cron diário): nome IANA do fuso
-    garden_timezone: str = "America/Sao_Paulo"
+    # Dia local (rega, sequência, cota diária de tokens, cron): nome IANA do fuso
+    local_timezone: str = "America/Sao_Paulo"
     consensus_enabled: bool = True
 
 @lru_cache

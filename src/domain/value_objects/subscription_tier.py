@@ -6,7 +6,8 @@ class FeatureCost(IntEnum):
     IDENTIFY = 1
     REIDENTIFY = 1
     DEEP_ANALYSIS = 2
-    HEALTH_ANALYSIS = 2
+    DIAGNOSIS = 1             # diagnóstico do Kindwise
+    DIAGNOSIS_ENRICHMENT = 1  # complemento do Gemini, só quando entregue
 
 class SubscriptionTier(Enum):
     """

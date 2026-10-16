@@ -95,8 +95,8 @@ Embora o código viva em uma estrutura Hexagonal unificada, o domínio do **Plan
   - Uma planta só entra no jardim a partir de uma identificação (`POST /garden` com `identification_id`): é aí que o `UserPlant` é criado. Repetir com a mesma identificação devolve a planta existente.
   - Limite do plano conta as plantas **ativas** no jardim (`count_by_user`; não há contador guardado): FREE até 3, PRO até 50 (`SubscriptionPolicy.enforce_can_add_to_garden`).
   - Adicionar ao jardim registra um sinal implícito positivo (`added_to_garden`) na amostra de treino da identificação.
-  - **Rega e sequência** (`CareSchedule`, `Streak`): o vencimento é um **dia do calendário local** (`GardenCalendar`, fuso em `GARDEN_TIMEZONE`, padrão `America/Sao_Paulo`), não um instante. A janela vai de 1 dia antes a 1 dia depois do vencimento. Antes dela a rega é recusada (`PLANTE_4016`); dentro dela soma 1 à sequência; depois dela é aceita, mas a sequência recomeça em 1. Uma rega por dia. A primeira rega (sem vencimento) vale a qualquer dia. Cada rega recalcula o vencimento (dia da rega + intervalo).
-  - O cron diário `garden.break_missed_streaks` (beat, 03:00 no fuso do jardim) zera a sequência das plantas cuja janela passou inteira e publica `StreakBrokenEvent`. Rodar de novo no mesmo dia não quebra nada a mais.
+  - **Rega e sequência** (`CareSchedule`, `Streak`): o vencimento é um **dia do calendário local** (`LocalCalendar`, fuso em `LOCAL_TIMEZONE`, padrão `America/Sao_Paulo`), não um instante. A janela vai de 1 dia antes a 1 dia depois do vencimento. Antes dela a rega é recusada (`PLANTE_4016`); dentro dela soma 1 à sequência; depois dela é aceita, mas a sequência recomeça em 1. Uma rega por dia. A primeira rega (sem vencimento) vale a qualquer dia. Cada rega recalcula o vencimento (dia da rega + intervalo).
+  - O cron diário `garden.break_missed_streaks` (beat, 03:00 no fuso local) zera a sequência das plantas cuja janela passou inteira e publica `StreakBrokenEvent`. Rodar de novo no mesmo dia não quebra nada a mais.
   - Exclusão de plantas utiliza **Soft Delete** (`deleted_at.is_(None)`). **Não é rejeição da identificação** (a planta pode ter morrido): identificação e dado de treino não mudam.
 
 ---
@@ -120,6 +120,9 @@ Embora o código viva em uma estrutura Hexagonal unificada, o domínio do **Plan
 * **Ports Requeridos**: `IAchievementRepository`, `IUserRepository`.
 * **Regras de Negócio**:
   - O plano `PRO` desbloqueia até 50 plantas no jardim e consultas avançadas de saúde.
+  - Vale o plano **ativo** (`User.get_active_tier`): PRO vencido conta como FREE.
+  - **Cota diária de tokens** (FREE 3, PRO 30), no dia local (`LocalCalendar`). Zera sozinha na primeira cobrança de um dia novo (`User.tokens_day`), sem cron.
+  - Custos: identificar 1; diagnóstico 1, mais 1 pelo complemento do Gemini (só chamado se os 2 couberem no saldo, e só cobrado se entregue); análise profunda 2. O saldo é conferido **antes** de chamar os provedores.
 
 ---
 

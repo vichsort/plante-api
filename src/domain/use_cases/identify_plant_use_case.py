@@ -22,6 +22,8 @@ from src.domain.ports.plant_identifier import IPlantIdentifier
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.domain.value_objects.ids import IdentificationId, ReferenceImageId, UserId
+from src.domain.value_objects.local_calendar import LocalCalendar
+from src.domain.value_objects.subscription_tier import FeatureCost
 from src.domain.value_objects.training_location import TrainingLocation, month_of
 
 
@@ -67,22 +69,25 @@ class IdentifyPlantUseCase:
         plant_identifier: IPlantIdentifier,
         storage: IImageStorage,
         publisher: IDomainPublisher,
+        calendar: LocalCalendar,
     ) -> None:
         self.uow = uow
         self.sanitizer = sanitizer
         self.plant_identifier = plant_identifier
         self.storage = storage
         self.publisher = publisher
+        self.calendar = calendar
 
     async def execute(self, dto: IdentifyPlantInputDTO) -> IdentifyPlantOutput:
         now = datetime.now(UTC)
+        today = self.calendar.date_of(now)
 
         # 1. Leitura curta: a transação não fica aberta durante as chamadas à IA e ao S3
         async with self.uow as uow:
             user = await uow.users.get_by_id(dto.user_id)
             if user is None:
                 raise UserNotFoundError(user_id=dto.user_id)
-            SubscriptionPolicy.enforce_can_identify_plant(user)
+            SubscriptionPolicy.enforce_can_identify_plant(user, now, today)
 
         # 2. Serviços externos, só com a foto já sem metadados (GPS, aparelho, data)
         image_bytes = self.sanitizer.sanitize(dto.image_bytes)
@@ -169,7 +174,7 @@ class IdentifyPlantUseCase:
                 created_at=now,
             ))
 
-            user.consume_identify_token()
+            user.consume_tokens(FeatureCost.IDENTIFY, today)
             await uow.users.save(user)
             await uow.commit()
 
