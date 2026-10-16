@@ -26,8 +26,13 @@ async def test_close_connections_closes_all_even_if_one_fails():
 def test_lifespan_starts_and_shuts_down():
     from fastapi.testclient import TestClient
 
-    from src.main import create_app
+    from src import main
 
-    app = create_app()
-    with TestClient(app) as client:
-        assert client.get("/health/liveness").status_code == 200
+    app = main.create_app()
+    try:
+        with TestClient(app) as client:
+            assert client.get("/health/liveness").status_code == 200
+    finally:
+        # Devolve as rotas ao container do `src.main.app`, que os outros testes usam
+        app.state.container.unwire()
+        main.app.state.container.wire(modules=main.WIRED_MODULES)
