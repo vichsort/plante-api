@@ -361,14 +361,14 @@ shared
      - Feedback de saúde confere o dono com `health_records.get_for_user`.
    - **Falta (próxima sessão):**
      - abrir o PR para a `develop`;
-     - decidir a ordem do restante (abaixo).
+     - ~~decidir a ordem do restante~~ ✅ (2026-10-16): opção (a), abaixo.
    - ~~Testes de rota antigos dependiam da ordem da suíte~~ ✅ (corrigido): o `test_shutdown` devolve a ligação ao container do `src.main.app` (`WIRED_MODULES`), porque o `wire()` é global.
-   - **Decisão pendente: ordem.** O `identification` depende de identity (usuário, localização) e subscription (tokens, `SubscriptionRequiredError`), que ainda são código antigo, e um módulo não pode importar código antigo. Opções:
+   - **Ordem decidida: (a).** O `identification` depende de identity (usuário, localização) e subscription (tokens, `SubscriptionRequiredError`), que ainda são código antigo, e um módulo não pode importar código antigo. Opções:
      - (a) migrar identity e subscription antes do identification, de baixo para cima;
      - (b) portas no identification (`ITokenWallet`, `IUserRegion`) com pontes no código antigo, mas os erros de subscription não teriam dono.
-     - Recomendação: (a).
+     - Escolhida: (a).
    - `EnrichPlantSpeciesUseCase` ficou no código antigo: ele cobra tokens, e o catalog é módulo base.
-3. training → health → garden → subscription → identity (por último, o mais acoplado) → achievements.
+3. De baixo para cima (decidido em 2026-10-16, opção (a) acima): identity → subscription → identification → garden → health → achievements. Uma branch `refactor/module-<x>` por módulo. Training e catalog já saíram no piloto.
 
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:
