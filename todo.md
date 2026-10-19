@@ -438,6 +438,17 @@ Leia antes de começar o próximo. Cada item já custou tempo uma vez.
      - Testes de contrato no módulo, com as chaves do ambiente: `uv run --env-file .env pytest -m contract` (o módulo não lê o `Settings`).
    - **Achado, corrigido só nesta branch (decisão do usuário, 2026-10-19):** o Kindwise de produção lia só `PLANT_ID_API_KEY`, mas o `.env.example`, o README e o teste de contrato usam `KINDWISE_API_KEY`; com o `.env` do exemplo, o `/identify` real mandava a chave vazia (401 → `ExternalServiceError`). Agora `Settings.kindwise_key`: `KINDWISE_API_KEY`, com `PLANT_ID_API_KEY` como nome antigo. A `main` (`v0.1.x`) continua com o bug até esta pilha entrar: na validação do `/identify` real com a `v0.1.x`, usar `PLANT_ID_API_KEY`.
 
+   - **garden** ✅ (branch `refactor/module-garden`, empilhada na do identification, sem push). 2026-10-19.
+     - `UserPlant`/`GardenPlant`, `CareSchedule`, `CareInterval`, `Streak`, os três eventos, erros 4001/4009/4016; use cases add, water, delete, garden, details e o cron; persistência; rotas `/garden` e `/plants` num router só (mesma ordem no OpenAPI); task `garden.break_missed_streaks` por wiring no container do worker.
+     - Para o health, `IPlantLookup` (`get_for_user`, lança 4001); diagnose e histórico usam ele em vez de `uow.user_plants`.
+     - Testes do módulo com AAA e fakes em memória (37 unitários + 13 de integração); OpenAPI idêntico ao da `develop`.
+   - **Decidido sem o usuário (vai no PR):**
+     - `/plants/{id}` ficou no garden (o detalhe é da planta do jardim); o prefixo `/plants` é só contrato.
+     - Sem tasks antigas, o `task_container` (fix da `develop`) saiu; o `close_connections` ficou, usado pelo app e pelo worker.
+     - O teste do agendamento no beat foi para `tests/unit/workers/test_celery_app.py` (é da composição); o do módulo roda a task com a dependência injetada.
+     - O container dos use cases antigos ficou só com saúde e conquistas, e só com as dependências que eles usam (saíram `settings`, `domain_publisher`, `species_registry`, `garden_quota`, `local_calendar`, `identification_lookup`).
+   - **Achado (comportamento mantido):** o `WaterPlantUseCase` confere o dono depois de uma busca que já filtra por ele, então o `PLANTE_4009_FORBIDDEN` nunca sai. O OpenAPI da rega documenta o 403; tirar é mudança de contrato: perguntar ao usuário. Marcado como "Hoje" no README do módulo.
+
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:
   - **zera ao consumir**, sem cron: `User.tokens_day` guarda o dia local a que o contador se refere; num dia novo, ele vale zero;
