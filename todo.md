@@ -5,6 +5,14 @@ READMEs dos módulos.
 
 ## Próxima release (`v0.2.0`, `develop` → `main`)
 
+- [ ] **Próximo passo: refactor da cota** (decisão e plano em
+  `docs/decisions/2026-10-19-funding-and-quota.md`). Sem plano pago: doação sem contrapartida de uso;
+  cota `standard` para todos e `extended` concedida por pedido, nunca por pagamento.
+  1. Hotfix na `main`: tirar a rota pública de upgrade (qualquer usuário se dá o PRO); `v0.1.3`.
+  2. Renomear o módulo `subscription` → `quota`.
+  3. `FREE`/`PRO` → `standard`/`extended` (migração renomeia o enum; `details.quota` nos erros).
+  4. Comando do mantenedor para conceder e revogar a cota ampliada (sem rota HTTP).
+  5. Limites vindos da configuração (meta coletiva sobe o `standard` sem mexer em código).
 - [ ] **`SpeciesNotFoundError` (4330) nunca sai.** O catalog não tem rota; `/identify` cria a
   espécie e o detalhe da planta tolera espécie ausente. O certo seria sair quando o provedor não
   encontra a planta, mas o PlantNet sempre devolve algo, mesmo sem certeza; falta ver o Kindwise.
@@ -27,19 +35,6 @@ READMEs dos módulos.
 
 ## Produto e dados
 
-- [ ] **Trocar o plano Pro por apoio** (decidido em 2026-10-19): o PlantE é educacional, aberto e sem
-  fins lucrativos, e o uso precisa ser não comercial sem dúvida (fontes NC, parcerias, licença de
-  pesquisa com o Kindwise). Doação **sem contrapartida de uso**, gastos públicos (ex.: Open
-  Collective), agradecimento simbólico (página de apoiadores, selo no perfil).
-  - Limites iguais para todos; sobem para todos conforme as doações cobrem os custos (meta
-    coletiva).
-  - **Cota ampliada por pedido, nunca por pagamento** (decidido): escola, pesquisador, ONG ou quem
-    tiver um uso que justifique pede, e o mantenedor concede de graça, caso a caso. Doar não dá
-    cota; apoiador ganha só o agradecimento simbólico.
-  - No código: o módulo subscription vira só cota (sai pagamento e vencimento do Pro); planejar
-    antes de mexer.
-  - Antes de publicar: página "Sobre" (origem numa disciplina do técnico, sem fins lucrativos) e
-    e-mail do projeto para os contatos com provedores.
 - [ ] **Fotos privadas no S3:** hoje tudo é gravado com `ACL="public-read"` e quem tem a URL vê a
   foto. Servir URLs assinadas (com validade) onde a API devolve imagem (`image_url` do `/identify`,
   `primary_image_url` do jardim, foto do diagnóstico); imagens de referência podem continuar
