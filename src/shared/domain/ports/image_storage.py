@@ -30,6 +30,14 @@ class IImageStorage(ABC):
         ...
 
     @abstractmethod
+    async def delete_user_images(self, user_id: UserId) -> int:
+        """
+        Deletes every photo the user sent (identifications and diagnoses); the training copies
+        stay. Returns how many objects went. Raises `ExternalServiceError` if the storage fails.
+        """
+        ...
+
+    @abstractmethod
     async def upload_training_image(self, image_bytes: bytes, scientific_name: str) -> str:
         """
         Cópia da foto para o dataset de treino: chave própria (aleatória, em prefixo separado),

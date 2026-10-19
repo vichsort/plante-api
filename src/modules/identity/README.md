@@ -40,12 +40,22 @@ portas em memória dos testes daqui.
   - E-mail na forma canônica (`normalize_email`: sem espaços nas pontas, em minúsculas) no
     cadastro, no login e na troca. O banco garante com o CHECK `ck_users_email_normalized`.
   - **Senha forte** (`PasswordPolicy`: 8+ caracteres, uma maiúscula, um número) no cadastro e na troca.
+  - **Exclusão definitiva** (`DELETE /profile`, senha no corpo, nunca na query): sem soft delete,
+    porque guardar o e-mail de quem pediu para sair é guardar dado pessoal (LGPD).
+    - A linha do usuário sai, e o banco leva jardim, identificações, diagnósticos, plano e
+      conquistas (`CASCADE`). O treino não aponta para o usuário e fica.
+    - O e-mail fica livre na hora: o mesmo endereço cria uma conta nova.
+    - O refresh é revogado; o access morre sozinho em minutos (e não acha mais o usuário).
+    - As fotos saem depois do commit (`IImageStorage.delete_user_images`, que apaga o prefixo do
+      usuário). Se o S3 falhar, a conta sai mesmo assim e o log `account.photos_not_deleted` diz qual
+      prefixo limpar à mão.
 - **Código de verificação:** `PLA-XXX-C-XXX`, com dígito verificador. Fica 15 minutos no Redis.
   - É enviado pela task do Celery depois do commit do cadastro.
   - Uma nova tentativa da task reaproveita o código ainda válido: o e-mail que chegar tem sempre o
     código aceito.
 - **Tokens:** access de 15 minutos, refresh de 30 dias, um refresh por usuário (login novo derruba a
-  sessão anterior).
+  sessão anterior). Uma sessão só é decisão, não limitação: sessões por aparelho foram descartadas
+  (2026-10-19).
   - O refresh **rotaciona**: cada uso devolve um refresh novo. Reusar um refresh já trocado revoga
     a sessão (sinal de roubo). Efeito aceito: um retry do app também derruba.
   - Todo token tem `jti`, então dois emitidos no mesmo segundo nunca são iguais.

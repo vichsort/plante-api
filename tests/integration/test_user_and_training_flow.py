@@ -29,6 +29,7 @@ from src.modules.garden.domain.use_cases.water_plant import (
     WaterPlantInputDTO,
     WaterPlantUseCase,
 )
+from src.modules.garden.domain.value_objects.removal_reason import RemovalReason
 from src.modules.health.adapters.persistence.unit_of_work import (
     SqlAlchemyHealthUnitOfWork,
 )
@@ -196,8 +197,14 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
         assert sample is not None
         assert (sample.location.grid_latitude, sample.location.grid_longitude) == (-23.6, -46.7)
 
-    # 4. Apagar a planta (soft delete) e depois o usuário (hard delete, como uma exclusão de conta)
-    await DeleteUserPlantUseCase(uow=garden()).execute(DeleteUserPlantInputDTO(user_id=user.id, user_plant_id=plant.id))
+    # 4. Apagar a planta (soft delete, dizendo que a espécie estava errada) e depois o usuário (hard
+    #    delete, como uma exclusão de conta)
+    await DeleteUserPlantUseCase(
+        uow=garden(), training=training(), identifications=IdentificationLookup(identifications()),
+    ).execute(DeleteUserPlantInputDTO(user_id=user.id, user_plant_id=plant.id, reason=RemovalReason.MISIDENTIFIED))
+    async with SqlAlchemyTrainingUnitOfWork(session_factory) as dataset:
+        feedback = await dataset.training.list_feedback(identification.training_sample_id)
+        assert (FeedbackVerdict.WRONG, FeedbackOrigin.REMOVED_MISIDENTIFIED) in {(f.verdict, f.origin) for f in feedback}
     await db_session.execute(text("DELETE FROM users WHERE id = :id"), {"id": user.id})
 
     for table in ("identifications", "user_plants", "health_records", "subscriptions"):
@@ -210,7 +217,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     assert {table: len(rows) for table, rows in training_rows.items()} == {
         "training_identification_samples": 1,
         "training_health_samples": 1,
-        "training_feedback": 3,
+        "training_feedback": 4,
     }
     # Nada no dataset aponta para o usuário: nem o ID, nem as fotos dele, nem o GPS exato
     everything = "\n".join(row for rows in training_rows.values() for row in rows)

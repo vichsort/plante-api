@@ -29,8 +29,12 @@ domínio, inclusive por caminho indireto).
   técnico e fica em `adapters/s3`. Decidir o que é privado e por quanto tempo é regra de cada
   módulo: a foto da identificação é privada (identification); a imagem de referência é pública
   (catalog).
-  - **Vira um módulo `media`** quando a imagem ganhar regras próprias: dono, ciclo de vida/LGPD
-    (apagar os objetos do usuário), sessões de upload direto do app (PUT assinado), miniaturas, HEIC.
+  - **Foto do usuário sob o prefixo dele** (`identifications/{user_id}/…`, inclusive a do
+    diagnóstico): a exclusão de conta apaga o prefixo inteiro (`delete_user_images`), sem precisar
+    saber quais módulos guardaram chaves. As cópias de treino ficam em `training/…`, sem dono.
+    Fotos gravadas antes dessa regra não têm o prefixo e ficam fora da limpeza.
+  - **Vira um módulo `media`** quando a imagem ganhar regras próprias: dono, ciclo de vida,
+    sessões de upload direto do app (PUT assinado), miniaturas.
   - Já mapeado para o app real: a URL assinada muda a cada chamada (o cache do app precisa de chave
     estável, o ID da imagem); a lista em cache expira; com CDN, quem assina é o CloudFront, não o S3.
 - **Clientes de provedor finos.** Kindwise e Gemini atendem mais de um módulo. Aqui fica só o
@@ -67,7 +71,7 @@ sem detalhes sai com `details: null`.
 | Código | Erro | HTTP | Quando |
 | :--- | :--- | :---: | :--- |
 | `PLANTE_4000_VALIDATION_ERROR` | `InvalidRequestError` | 422 | Corpo/query/path inválidos (montado pelo handler; só `loc`/`msg`/`type` nos detalhes), ou outro 4xx do próprio framework (ex.: corpo ilegível). |
-| `PLANTE_4001_INVALID_IMAGE` | `InvalidImageError` | 400 | Imagem ilegível, formato não aceito (só JPEG/PNG/WebP) ou acima de 60 MP. Foto legível sem planta é o `PLANTE_4401_NOT_A_PLANT`, do identification. |
+| `PLANTE_4001_INVALID_IMAGE` | `InvalidImageError` | 400 | Imagem ilegível, formato não aceito (só JPEG/PNG/WebP/HEIC) ou acima de 60 MP. Foto legível sem planta é o `PLANTE_4401_NOT_A_PLANT`, do identification. |
 | `PLANTE_4002_METHOD_NOT_ALLOWED` | `MethodNotAllowedError` | 405 | A rota existe, mas não com esse método (montado pelo handler; mantém o header `Allow`). |
 | `PLANTE_4010_UNAUTHORIZED` | `UnauthorizedError` | 401 | Token ausente, inválido ou expirado. Só isso: o app renova o token ou pede novo login. |
 | `PLANTE_4030_ROUTE_NOT_FOUND` | `RouteNotFoundError` | 404 | Nenhuma rota com esse caminho (montado pelo handler). |

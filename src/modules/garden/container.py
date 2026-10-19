@@ -53,7 +53,9 @@ class GardenContainer(containers.DeclarativeContainer):
         calendar=calendar,
         catalog=catalog,
     )
-    delete_plant_use_case = providers.Factory(DeleteUserPlantUseCase, uow=unit_of_work)
+    delete_plant_use_case = providers.Factory(
+        DeleteUserPlantUseCase, uow=unit_of_work, training=training, identifications=identifications,
+    )
     water_plant_use_case = providers.Factory(
         WaterPlantUseCase,
         uow=unit_of_work,

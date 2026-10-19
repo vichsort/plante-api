@@ -69,6 +69,23 @@ def test_supported_formats_become_rgb_jpeg(fmt: str, mode: str) -> None:
         assert (image.format, image.mode) == ("JPEG", "RGB")
 
 
+def test_iphone_heic_becomes_jpeg_without_metadata() -> None:
+    # Arrange: before, HEIC was rejected with PLANTE_4001
+    exif = Image.Exif()
+    exif[_CAMERA_MAKE] = "PhoneMaker"
+    exif[_GPS_IFD] = {1: "S", 2: (23.0, 33.0, 1.0)}
+    heic = io.BytesIO()
+    Image.new("RGB", (40, 20), color=(30, 120, 40)).save(heic, format="HEIF", exif=exif)
+
+    # Act
+    cleaned = PillowImageSanitizer().sanitize(heic.getvalue())
+
+    # Assert
+    with Image.open(io.BytesIO(cleaned)) as image:
+        assert (image.format, image.mode, image.size) == ("JPEG", "RGB", (40, 20))
+        assert len(image.getexif()) == 0
+
+
 @pytest.mark.parametrize("payload", [b"not an image", b"", _encode("GIF", mode="P"), _encode("BMP")])
 def test_rejects_unsupported_or_unreadable_files(payload: bytes) -> None:
     # Act & Assert

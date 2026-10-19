@@ -5,6 +5,14 @@ READMEs dos módulos.
 
 ## Próxima release (`v0.2.0`, `develop` → `main`)
 
+- [ ] **Próximo passo: refactor da cota** (decisão e plano em
+  `docs/decisions/2026-10-19-funding-and-quota.md`). Sem plano pago: doação sem contrapartida de uso;
+  cota `standard` para todos e `extended` concedida por pedido, nunca por pagamento.
+  1. Hotfix na `main`: tirar a rota pública de upgrade (qualquer usuário se dá o PRO); `v0.1.3`.
+  2. Renomear o módulo `subscription` → `quota`.
+  3. `FREE`/`PRO` → `standard`/`extended` (migração renomeia o enum; `details.quota` nos erros).
+  4. Comando do mantenedor para conceder e revogar a cota ampliada (sem rota HTTP).
+  5. Limites vindos da configuração (meta coletiva sobe o `standard` sem mexer em código).
 - [ ] **`SpeciesNotFoundError` (4330) nunca sai.** O catalog não tem rota; `/identify` cria a
   espécie e o detalhe da planta tolera espécie ausente. O certo seria sair quando o provedor não
   encontra a planta, mas o PlantNet sempre devolve algo, mesmo sem certeza; falta ver o Kindwise.
@@ -33,7 +41,17 @@ READMEs dos módulos.
   públicas. Política por módulo, mecanismo no shared (critério do módulo `media` no
   `src/shared/README.md`). Junto: a foto do diagnóstico é gravada com `upload_identification_image`
   (prefixo das fotos de identificação; ver o README do health).
-- [ ] **Engine de confiança do rótulo:** rascunho no README do training.
+- [ ] **Engine de confiança do rótulo** (desenho no README do training), nesta ordem:
+  1. ~~Pesquisar os termos de uso~~ (feito; resumo no README do training). Falta a resposta dos
+     provedores: perguntar ao Kindwise (support@FlowerChecker.com) se dá para treinar um modelo
+     próprio com as respostas como rótulo (17.3.3) e se há licença de pesquisa (17.6); perguntar ao
+     PlantNet (contact@plantnet-project.org) sobre treino com as imagens CC BY-SA e conferir os
+     termos do plano gratuito. Decidir também se o modelo é de pesquisa ou do produto pago.
+  2. Guardar URL + licença de cada imagem de referência, por sugestão, nos sinais da amostra (hoje
+     a licença é descartada e só a sugestão vencedora é guardada).
+  3. v1: engine (só identificação, regras da tabela, N = 10), exportação versionada e relatório.
+  4. Depois, quando houver ~200 amostras: página de revisão do conjunto de referência (foto, rótulo
+     e botões certo/errado/não sei; gera o arquivo de respostas). Serve de demonstração também.
 - [ ] **Análise profunda pela metade:** `ISpeciesEnricher.enrich_nutritional`, `PlantNutritional` e
   `IHealthEnricher.analyze_disease` existem sem uso. Decidir se a feature entra (rota, use case no
   módulo da tela, cobrança) ou se sai.
@@ -41,20 +59,20 @@ READMEs dos módulos.
     nunca sobrescreve dado dos provedores); nomes populares unidos, provedores primeiro; falha →
     `FAILED` e sem cobrança.
 - [ ] **Conquistas:** regra de concessão (consumir os eventos que hoje ninguém consome).
-- [ ] **HEIC (iPhone):** hoje rejeitado com 4001; avaliar `pillow-heif`.
-- [ ] **Motivo da exclusão da planta** como sinal de treino.
-- [ ] **Geocodificação reversa** (estado a partir do GPS; hoje vem do perfil). Sem serviço que mande
-  o GPS do usuário a terceiros (ver "Descartado").
-- [ ] **Reuso do e-mail de conta excluída:** o índice único vale também com soft delete (hoje não
-  existe exclusão de conta).
-- [ ] **Sessões por aparelho:** hoje um refresh por usuário (login em outro aparelho derruba o
-  primeiro). Quando houver app.
+- [ ] **Imagem de referência `user_confirmed` e a exclusão de conta:** a FK `user_id` é `SET NULL`,
+  mas a entidade exige `user_id` nesse tipo; excluir a conta deixaria uma linha que quebra ao ser
+  lida. Hoje nada cria `user_confirmed`. Decidir antes de criar (apagar junto, ou anonimizar e
+  relaxar a regra).
 
 ## Antes de publicar
 
 Contexto: primeiro num servidor caseiro (PC antigo), API usada pelo site pessoal com captcha,
 pouquíssimas requisições por mês; AWS no futuro; possível projeto de pesquisa para a Latinoware.
 
+- [ ] **Consentimento para o treino (LGPD):** aceite dos termos registrado no cadastro (versão dos
+  termos e data), dizendo que as fotos viram dataset anônimo **e** que são enviadas a provedores de
+  identificação (o Kindwise pode usá-las para treinar e redistribuí-las em CC BY-SA 4.0, T&C 17.5).
+  Sem isso não se coleta dado de treino em público.
 - [ ] **Créditos do Kindwise:** a chave tem limite de 10 identificações por mês. Comprar créditos
   (menor pacote ~€50 / 1000) e ajustar o limite no painel. Cada `/identify` e `/diagnose` gasta 1.
 - [ ] **Captcha validado na API** (ao menos em `/auth/register`): captcha só no site não protege a
@@ -72,3 +90,7 @@ Código recuperável pelo commit `6f2b3e3` (pai: `8107105`).
 - **OpenMeteo, clima para o Gemini:** utilidade duvidosa e difícil de medir.
 - **Nominatim, geocodificação:** manda o GPS do usuário a terceiros, e o servidor público limita a
   1 req/s.
+- **Geocodificação reversa em tempo de execução:** o estado só serve ao treino, e o treino já guarda
+  a grade de ~11 km; a exportação tira o estado dela com uma base offline de limites estaduais.
+- **Sessões por aparelho:** fica uma sessão só (um refresh por usuário; login novo derruba o
+  anterior). Ver o README do identity.

@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.modules.identity.adapters.persistence.mappers.user import UserMapper
@@ -30,3 +30,7 @@ class UserRepository(IUserRepository):
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
         return UserMapper.to_domain(model) if model else None
+
+    async def delete(self, user_id: UserId) -> None:
+        await self._session.execute(delete(UserModel).where(UserModel.id == user_id))
+        await self._session.flush()

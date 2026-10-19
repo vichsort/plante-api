@@ -48,7 +48,7 @@ O dublê do recorder para testes fica em `tests/fakes.py`.
 
   Os adapters dos provedores descartam esses campos ao montar os sinais.
 - **Feedback é sinal, não confirmação.** Eventos acumulados, explícitos (`correct | wrong |
-  unsure` + sugestão) ou implícitos (`added_to_garden`; no futuro, motivo da exclusão). A confiança
+  unsure` + sugestão) ou implícitos (`added_to_garden` e `removed_*`, o motivo da exclusão). A confiança
   do rótulo **não** é calculada na gravação: a engine vai pesar os sinais brutos na exportação, com
   versão, para os pesos mudarem sem migrar dados.
 - **Alvo tipado** (`FeedbackTarget = IdentificationLabel | HealthLabel`):
@@ -74,25 +74,99 @@ O dublê do recorder para testes fica em `tests/fakes.py`.
   - `tests/integration/test_user_and_training_flow.py` (raiz): depois de apagar o usuário, o treino
     fica inteiro e sem nada que aponte para ele.
 
-### Engine de confiança do rótulo (rascunho, ainda não implementada)
+### Engine de confiança do rótulo (desenho acordado em 2026-10-19, ainda não implementada)
 
-No espírito da `ConsensusPolicy`: especializada, com pesos, exceções e hierarquia explícitos. Quando
-for implementada, ganha uma explicação completa aqui.
+No espírito da `ConsensusPolicy`: uma classe pura, versionada e testada, em que os testes mostram a
+decisão de cada caso. Decide, para cada amostra, uma **faixa**, o **rótulo** e os **motivos**.
 
-1. **Vetos:** provedor diz que não é planta, ou o usuário diz que não é planta → a amostra fica
-   fora do treino.
-2. **Base, a evidência dos provedores:** acordo exato > acordo de gênero > um provedor só >
-   desacordo, ponderado pela confiança de cada um (reaproveitar a `ConsensusPolicy`).
-3. **Feedback explícito:** o negativo pesa mais que o positivo (quem discorda costuma se dar ao
-   trabalho de dizer; quem concorda, nem sempre). Feedbacks em conflito: vale o mais recente.
-4. **Sinais implícitos:** jardim, cuidado continuado, motivo da exclusão. Peso baixo; nunca
-   decidem sozinhos.
-5. **Exceções:** confiança baixa dos provedores + feedback positivo → "revisar", não "confiável".
-   Sugestão de espécie que diverge dos provedores → candidata, não rótulo.
+**Princípio:** dado certo, mesmo fraco, é ganho; dado com rótulo errado é perda (ensina o modelo a
+errar). As faixas separam o que se sabe que está certo do que não se sabe. Na dúvida, mais garantia
+e menos volume.
 
-Saída: rótulo + peso + motivos (auditável). Calculada na exportação, a partir dos sinais brutos, e
-versionada: os pesos mudam sem migrar dados. A análise profunda (Gemini), se virar sinal, entra
-aqui também.
+**Escopo da v1:** só identificação. Saúde depois (pouco sinal hoje, um provedor só).
+
+**Faixas:** `confiável`, `revisar`, `fora` e `referência` (imagens de referência dos provedores e
+de fontes abertas, abaixo). O treino começa com `confiável` + `referência`.
+
+**Regras da v1**, em ordem (a primeira que casar decide):
+
+| # | Regra | Faixa |
+| :---: | :--- | :--- |
+| 1 | Algum provedor diz que provavelmente não é planta (`is_plant` < 0,5) | fora |
+| 2 | O último voto de rótulo do usuário é `wrong` ou `removed_misidentified` | fora (a sugestão dele vira **candidata**) |
+| 3 | Espécie com menos de N amostras no lote (N = 10 para começar, parâmetro) | fora (cauda longa) |
+| 4 | Acordo exato, sem `low_confidence`, sem voto negativo | confiável |
+| 5 | Último voto `correct` **e** confiança ≥ 85% | confiável |
+| 6 | Todo o resto (consenso parcial, um provedor só, `low_confidence`, `unsure`) | revisar |
+
+- **Vale o voto mais recente:** só o dono vota, então votos em conflito são a mesma pessoa mudando
+  de ideia.
+- **Sinal implícito nunca promove sozinho** (jardim, cuidado continuado, motivo da exclusão).
+- **`correct` não salva confiança baixa:** o usuário não é botânico; a confirmação dele só confirma
+  o que os provedores já achavam provável.
+- Identificação abaixo de 60% e foto vetada como "não é planta" nunca chegam ao dataset (a
+  requisição falha antes de gravar).
+
+**Imagens de referência como dado rotulado** (ideia do usuário):
+
+- Cada imagem que um provedor manda junto de uma sugestão é um exemplo **da espécie daquela
+  sugestão**, independentemente de a sugestão bater com a foto do usuário. Foto borrada de gramínea
+  com sugestões suculenta, palmeira, girassol e maracujá: a gramínea não entra; as quatro imagens
+  entram, cada uma com o rótulo da própria sugestão.
+- Não são 100% certas (observações validadas pela comunidade, bases dos provedores), mas são muito
+  mais confiáveis que um palpite: ficam na faixa `referência` e só saem por licença ou duplicata.
+- **Licença e autor por imagem são obrigatórios.** Sem licença registrada, a imagem não entra. Hoje
+  o adapter lê o `license_name` e o descarta, e só as imagens da sugestão vencedora são guardadas
+  (baixadas dentro da requisição). O plano: guardar URL + licença de cada imagem, por sugestão, nos
+  sinais da amostra (barato); baixar só na exportação, sem custo no `/identify`; remover duplicatas
+  (a mesma imagem volta em muitas consultas).
+- **Termos de uso a verificar antes de qualquer código:** se o Kindwise e o PlantNet permitem usar
+  as imagens similares para treinar outro modelo.
+- **Fontes abertas como adapters** (longo prazo): uma porta de fonte de referência, um adapter por
+  fonte, cada imagem com licença e autor. Candidatas a confirmar: GBIF (licença por imagem),
+  iNaturalist (observações de grau de pesquisa, dados abertos), Pl@ntNet-300K (dataset de pesquisa
+  publicado pelo PlantNet). O dataset nasce juridicamente limpo, e o relatório mostra a origem de
+  cada imagem.
+- **Estratégia:** as referências são a base (o catálogo limpo, o que os provedores já sabem); o
+  diferencial é a foto real do usuário, no quintal, sob a luz do Brasil. Começa mais fraco que eles
+  e ganha especificidade com o tempo; o que eles não são é aberto, simples e brasileiro.
+
+**Termos de uso (lidos em 2026-10-19; leitura nossa, não parecer jurídico):**
+
+| Fonte | O que diz | Para o dataset |
+| :--- | :--- | :--- |
+| Kindwise ([T&C da API, v3](https://www.kindwise.com/terms-and-conditions)) | 17.3.3: o cliente não pode usar os serviços para desenvolver sistema próprio "baseado no mesmo princípio". 17.4.1: fotos do `Output` (as similares) só para processar a resposta para o usuário final. 17.6: outros parâmetros de licença podem ser combinados. | Imagens similares **não** entram. Usar as respostas como rótulo para treinar um identificador próprio também esbarra no 17.3.3: **perguntar antes** (support@FlowerChecker.com). |
+| Kindwise, sobre as fotos que mandamos | 17.5: licença não exclusiva e irrevogável para usar as fotos dos nossos usuários em machine learning e redistribuí-las em CC BY-SA 4.0 (rostos borrados); 20.3/20.4: dados de terceiros anonimizados após 6 meses. | Entra no texto do consentimento: a foto vai para provedores que podem usá-la. |
+| PlantNet ([imagens da API](https://my.plantnet.org/doc/references/using-images), [contrato da API v4](https://my.plantnet.org/documents/agreement_PlantNet_API_english_v4.pdf)) | Imagens em CC BY, CC BY-SA ou domínio público; uso interno e comercial permitido com fonte e autor; outro uso exige consentimento escrito do CIRAD. Nada explícito sobre treino. | Candidatas, com licença e autor por imagem. ShareAlike em modelo treinado é zona cinzenta: **perguntar** (contact@plantnet-project.org). Conferir também os termos do plano gratuito que usamos. |
+| [Pl@ntNet-300K v2](https://zenodo.org/records/10419064) | Dataset de pesquisa; licença por imagem: CC BY-SA, CC BY-NC ou CC BY-NC-SA. | Bom para pesquisa (Latinoware); as NC não servem se o modelo for para o produto pago. |
+| [iNaturalist (AWS Open Data)](https://registry.opendata.aws/inaturalist-open-data) | Licença por foto (CC0 a CC BY-NC). Os termos do iNaturalist proíbem treinar IA **para fins comerciais** com os dados deles. | Só para pesquisa não comercial, salvo autorização. |
+| [GBIF](https://techdocs.gbif.org/en/data-publishing/multimedia-publishing) | Licença por mídia, definida por quem publica (CC0, CC BY, CC BY-NC…). | Filtrar CC0 e CC BY por imagem. |
+
+**Atenção:** o PlantE tem plano pago (Pro). Se o modelo treinado servir ao produto pago, o uso é
+comercial: fica de fora tudo que for NC e os dados do iNaturalist. Um modelo só de pesquisa
+(Latinoware) tem mais fontes à disposição.
+
+**Exportação:** o banco guarda a matéria-prima (amostras e eventos); o treino precisa de uma pasta
+pronta. A exportação é um comando (não uma rota), rodado quando for treinar, que:
+
+1. lê amostras e eventos;
+2. passa cada um pela engine (faixa, rótulo, motivos);
+3. copia as imagens que entram (baixando as de referência, com dedupe);
+4. grava `samples.jsonl` (foto → rótulo, faixa, motivos, versão das regras) e a lista das fotos;
+5. gera o relatório do lote (*datasheet*): contagens por faixa, motivo, espécie, estado e fonte,
+   mais as candidatas sugeridas pelos usuários.
+
+Cada exportação é versionada: regra nova gera um lote novo do mesmo estoque, sem migrar dados.
+
+**Proteções:**
+
+- a amostra bruta nunca é apagada: errar a mão só muda a faixa dela no próximo lote;
+- um conjunto de referência revisado à mão (~200 amostras) mede a precisão da faixa `confiável`
+  antes de afrouxar qualquer regra (formato da revisão: planilha ou página, a decidir);
+- o estado sai da grade de ~11 km com uma base offline de limites estaduais (sem geocodificação
+  em tempo de execução nem serviço de terceiros); sem GPS, vale o estado do perfil.
+
+A análise profunda (Gemini), se virar sinal, entra aqui também.
 
 ## Erros
 
