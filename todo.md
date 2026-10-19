@@ -414,7 +414,7 @@ shared
      - Teste de integração do lookup grava usuário, espécie e amostra de treino com SQL direto (as tabelas são de outros módulos; o teste só enxerga a API pública deles).
      - Respostas reais dos provedores continuam em `tests/fixtures/providers` (catálogo único com as da saúde).
      - Testes de contrato no módulo, com as chaves do ambiente: `uv run --env-file .env pytest -m contract` (o módulo não lê o `Settings`).
-   - **Achado (comportamento mantido, corrigir à parte):** o Kindwise de produção lê `PLANT_ID_API_KEY` (`settings.plant_id_api_key`), mas o `.env.example` e o teste de contrato usam `KINDWISE_API_KEY`. Com o `.env` do exemplo, o `/identify` real manda a chave vazia (401 → `ExternalServiceError`). Vale para a `v0.1.x`; candidato a fix na `develop` (e talvez `v0.1.3`). Também conferir antes da validação do `/identify` real.
+   - **Achado, corrigido só nesta branch (decisão do usuário, 2026-10-19):** o Kindwise de produção lia só `PLANT_ID_API_KEY`, mas o `.env.example`, o README e o teste de contrato usam `KINDWISE_API_KEY`; com o `.env` do exemplo, o `/identify` real mandava a chave vazia (401 → `ExternalServiceError`). Agora `Settings.kindwise_key`: `KINDWISE_API_KEY`, com `PLANT_ID_API_KEY` como nome antigo. A `main` (`v0.1.x`) continua com o bug até esta pilha entrar: na validação do `/identify` real com a `v0.1.x`, usar `PLANT_ID_API_KEY`.
 
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:
