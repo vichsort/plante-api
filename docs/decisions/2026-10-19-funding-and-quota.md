@@ -84,4 +84,5 @@ Open points for the refactor:
       CC BY-SA 4.0, T&C 17.5).
 - [ ] A project email (e.g. contato@planteai.org) for contacts with providers and partners.
 - [ ] Emails to Kindwise (research license, T&C 17.3.3 and 17.6) and PlantNet (training with
-      CC BY-SA images), once the maintainer wants to send them.
+      CC BY-SA images), once the maintainer wants to send them: questions, contacts and status in
+      `2026-10-19-provider-emails.md`.
