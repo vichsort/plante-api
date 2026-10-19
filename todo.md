@@ -32,7 +32,10 @@ READMEs dos módulos.
   pesquisa com o Kindwise). Doação **sem contrapartida de uso**, gastos públicos (ex.: Open
   Collective), agradecimento simbólico (página de apoiadores, selo no perfil).
   - Limites iguais para todos; sobem para todos conforme as doações cobrem os custos (meta
-    coletiva). Cota ampliada só por pedido (escola, pesquisa, ONG), de graça e caso a caso.
+    coletiva).
+  - **Cota ampliada por pedido, nunca por pagamento** (decidido): escola, pesquisador, ONG ou quem
+    tiver um uso que justifique pede, e o mantenedor concede de graça, caso a caso. Doar não dá
+    cota; apoiador ganha só o agradecimento simbólico.
   - No código: o módulo subscription vira só cota (sai pagamento e vencimento do Pro); planejar
     antes de mexer.
   - Antes de publicar: página "Sobre" (origem numa disciplina do técnico, sem fins lucrativos) e
