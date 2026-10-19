@@ -94,9 +94,16 @@ class FakeStorage(IImageStorage):
     async def upload_identification_image(
         self, image_bytes: bytes, scientific_name: str, confidence_value: float, user_id: UserId,
     ) -> str:
-        key = f"identifications/{len(self.uploads)}.jpg"
+        key = f"identifications/{user_id}/{len(self.uploads)}.jpg"
         self.uploads[key] = image_bytes
         return key
+
+    async def delete_user_images(self, user_id: UserId) -> int:
+        prefix = f"identifications/{user_id}/"
+        keys = [key for key in self.uploads if key.startswith(prefix)]
+        for key in keys:
+            del self.uploads[key]
+        return len(keys)
 
     async def download_and_rehost(self, external_url: str, scientific_name: str) -> str:
         self.rehosted.append(external_url)

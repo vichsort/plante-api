@@ -16,3 +16,11 @@ class IUserRepository(ABC):
     @abstractmethod
     async def get_by_email(self, email: str) -> User | None:
         ...
+
+    @abstractmethod
+    async def delete(self, user_id: UserId) -> None:
+        """
+        Deletes the account for good. The database takes the user's data along (`CASCADE`); the
+        training data has no link to the user and stays.
+        """
+        ...

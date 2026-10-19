@@ -29,8 +29,12 @@ domínio, inclusive por caminho indireto).
   técnico e fica em `adapters/s3`. Decidir o que é privado e por quanto tempo é regra de cada
   módulo: a foto da identificação é privada (identification); a imagem de referência é pública
   (catalog).
-  - **Vira um módulo `media`** quando a imagem ganhar regras próprias: dono, ciclo de vida/LGPD
-    (apagar os objetos do usuário), sessões de upload direto do app (PUT assinado), miniaturas.
+  - **Foto do usuário sob o prefixo dele** (`identifications/{user_id}/…`, inclusive a do
+    diagnóstico): a exclusão de conta apaga o prefixo inteiro (`delete_user_images`), sem precisar
+    saber quais módulos guardaram chaves. As cópias de treino ficam em `training/…`, sem dono.
+    Fotos gravadas antes dessa regra não têm o prefixo e ficam fora da limpeza.
+  - **Vira um módulo `media`** quando a imagem ganhar regras próprias: dono, ciclo de vida,
+    sessões de upload direto do app (PUT assinado), miniaturas.
   - Já mapeado para o app real: a URL assinada muda a cada chamada (o cache do app precisa de chave
     estável, o ID da imagem); a lista em cache expira; com CDN, quem assina é o CloudFront, não o S3.
 - **Clientes de provedor finos.** Kindwise e Gemini atendem mais de um módulo. Aqui fica só o

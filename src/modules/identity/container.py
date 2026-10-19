@@ -12,6 +12,7 @@ from src.modules.identity.adapters.ses.email_sender import SesEmailSender
 from src.modules.identity.domain.services.user_directory import UserDirectory
 from src.modules.identity.domain.use_cases.change_email import ChangeEmailUseCase
 from src.modules.identity.domain.use_cases.change_password import ChangePasswordUseCase
+from src.modules.identity.domain.use_cases.delete_account import DeleteAccountUseCase
 from src.modules.identity.domain.use_cases.login import LoginUseCase
 from src.modules.identity.domain.use_cases.logout import LogoutUseCase
 from src.modules.identity.domain.use_cases.refresh_token import RefreshTokenUseCase
@@ -21,13 +22,14 @@ from src.modules.identity.domain.use_cases.update_location import (
 )
 from src.modules.identity.domain.use_cases.verify_email import VerifyEmailUseCase
 from src.shared.adapters import RedisClient
-from src.shared.domain import IDomainPublisher
+from src.shared.domain import IDomainPublisher, IImageStorage
 
 
 class IdentityContainer(containers.DeclarativeContainer):
     session_factory: providers.Dependency[async_sessionmaker[AsyncSession]] = providers.Dependency()
     redis: providers.Dependency[RedisClient] = providers.Dependency()
     publisher: providers.Dependency[IDomainPublisher] = providers.Dependency()
+    storage: providers.Dependency[IImageStorage] = providers.Dependency()
     secret_key: providers.Dependency[str] = providers.Dependency()
     jwt_algorithm: providers.Dependency[str] = providers.Dependency()
     aws_region: providers.Dependency[str] = providers.Dependency()
@@ -85,4 +87,11 @@ class IdentityContainer(containers.DeclarativeContainer):
     update_location_use_case = providers.Factory(
         UpdateLocationFallbackUseCase,
         uow=unit_of_work,
+    )
+    delete_account_use_case = providers.Factory(
+        DeleteAccountUseCase,
+        uow=unit_of_work,
+        hasher=password_hasher,
+        token_repo=token_repository,
+        storage=storage,
     )

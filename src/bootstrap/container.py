@@ -47,6 +47,7 @@ class Container(containers.DeclarativeContainer):
         session_factory=infra.session_factory,
         redis=adapters.redis,
         publisher=adapters.domain_publisher,
+        storage=adapters.image_storage,
         secret_key=settings.provided.secret_key,
         jwt_algorithm=settings.provided.jwt_algorithm,
         aws_region=settings.provided.aws_region,

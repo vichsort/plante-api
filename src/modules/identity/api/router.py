@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 from src.modules.identity.api.schemas import (
     ChangeEmailRequest,
     ChangePasswordRequest,
+    DeleteAccountRequest,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
@@ -22,6 +23,10 @@ from src.modules.identity.domain.use_cases.change_email import (
 from src.modules.identity.domain.use_cases.change_password import (
     ChangePasswordInputDTO,
     ChangePasswordUseCase,
+)
+from src.modules.identity.domain.use_cases.delete_account import (
+    DeleteAccountInputDTO,
+    DeleteAccountUseCase,
 )
 from src.modules.identity.domain.use_cases.login import LoginUseCase
 from src.modules.identity.domain.use_cases.logout import LogoutUseCase
@@ -190,6 +195,24 @@ async def update_location(
         state=body.state,
     ))
     return ApiResponse.success(MessageResponse(message="Location updated successfully."))
+
+
+@profile_router.delete(
+    "",
+    status_code=200,
+    response_model=ApiResponse[MessageResponse],
+    responses=error_responses(*DeleteAccountUseCase.raises),
+)
+@inject
+async def delete_account(
+    # In the body, never in the query string: a password must not reach access logs
+    body: DeleteAccountRequest,
+    use_case: Annotated[DeleteAccountUseCase, Depends(Provide[IdentityContainer.delete_account_use_case])],
+    user_id: CurrentUserId,
+) -> ApiResponse[MessageResponse]:
+    """Deletes the account and every personal datum for good, confirmed with the password."""
+    await use_case.execute(DeleteAccountInputDTO(user_id=user_id, password=body.password))
+    return ApiResponse.success(MessageResponse(message="Account deleted."))
 
 
 # Um router só para a composição incluir

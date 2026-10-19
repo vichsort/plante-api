@@ -107,3 +107,27 @@ async def test_achievements_start_empty(api: Api) -> None:
     # Hoje: nada concede conquistas (regra de concessão é da segunda entrega)
     assert response.status_code == 200
     assert response.json()["data"] == []
+
+
+async def test_deleting_the_account_frees_the_email_and_takes_the_photos(api: Api) -> None:
+    # Arrange: an account with a photo, and the account next door
+    headers = await api.signed_up("olga@plante.org")
+    assert (await api.identify(headers)).status_code == 200
+    neighbor = await api.signed_up("pedro@plante.org")
+    assert (await api.identify(neighbor)).status_code == 200
+    user_id = api.user_id_of(headers)
+
+    # Act
+    wrong = await api.http.request("DELETE", "/profile", headers=headers, json={"password": "Wr0ng!Password"})
+    deleted = await api.http.request("DELETE", "/profile", headers=headers, json={"password": PASSWORD})
+    login_after = await api.login("olga@plante.org")
+    registered_again = await api.register("olga@plante.org")
+
+    # Assert
+    assert (wrong.status_code, wrong.json()["error"]["code"]) == (400, "PLANTE_4102_WRONG_CREDENTIALS")
+    assert deleted.status_code == 200
+    assert login_after.status_code == 400
+    assert registered_again.status_code == 201  # the same email makes a brand-new account
+    photos = [key for key in api.fakes.storage.uploads if key.startswith("identifications/")]
+    assert photos and not any(user_id in key for key in photos)  # only the neighbor's photo is left
+    assert any(key.startswith("training/") for key in api.fakes.storage.uploads)  # the dataset stays

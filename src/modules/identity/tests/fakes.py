@@ -65,6 +65,9 @@ class InMemoryUserRepository(IUserRepository):
     async def get_by_email(self, email: str) -> User | None:
         return next((user for user in self.by_id.values() if user.email == email), None)
 
+    async def delete(self, user_id: UserId) -> None:
+        self.by_id.pop(user_id, None)
+
 
 class FakeIdentityUnitOfWork(IIdentityUnitOfWork):
     """Contas em memória (gravadas na hora, sem rollback) e contagem de commits."""

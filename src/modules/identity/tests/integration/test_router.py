@@ -163,3 +163,28 @@ def test_profile_changes_are_confirmed(api: _App, path: str, body: dict[str, str
     # Assert
     assert (response.status_code, response.json()["data"]["message"]) == (200, message)
     assert use_case.execute.call_args.args[0].user_id == USER
+
+
+def test_delete_account_takes_the_password_in_the_body(api: _App) -> None:
+    # Arrange
+    use_case = api.use_case(api.container.delete_account_use_case)
+
+    # Act
+    response = api.client.request("DELETE", "/profile", json={"password": "SecretPassword123"}, headers=AUTH)
+
+    # Assert
+    assert (response.status_code, response.json()["data"]["message"]) == (200, "Account deleted.")
+    dto = use_case.execute.call_args.args[0]
+    assert (dto.user_id, dto.password) == (USER, "SecretPassword123")
+
+
+def test_delete_account_without_the_password_is_refused(api: _App) -> None:
+    # Arrange
+    use_case = api.use_case(api.container.delete_account_use_case)
+
+    # Act
+    response = api.client.request("DELETE", "/profile", headers=AUTH)
+
+    # Assert
+    assert (response.status_code, response.json()["error"]["code"]) == (422, "PLANTE_4000_VALIDATION_ERROR")
+    use_case.execute.assert_not_awaited()
