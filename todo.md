@@ -56,7 +56,7 @@ Suíte: 352 testes (com os 33 ponta a ponta da `refactor/characterization-tests`
 
 **Ordem combinada com o usuário:**
 1. ~~**Plano C: separar dados do usuário e dados de treino + anonimização**~~ ✅ (2026-10-15). Pendências que sobraram, na seção do plano: HEIC, motivo da exclusão como sinal, engine de confiança, geocodificação reversa.
-2. **Item 8: monólito modular.** Código concluído em 2026-10-19 (branches empilhadas, sem push; ver o fim de "Milestones"). Decidido em 2026-10-16; a seção "Item 8 — decisões" abaixo é a fonte. A `develop` saiu da `v0.1.1`. O milestone 0 (testes de caracterização) roda em `refactor/characterization-tests`. **É o próximo passo.** As validações acima não bloqueiam o item 8: um bug achado nelas vira fix na `main` e desce para a `develop`.
+2. ~~**Item 8: monólito modular.**~~ ✅ Na `develop` em 2026-10-19 (PRs #5 a #12; ver o fim de "Milestones"). A `main` ainda não tem nada disso (nem os fixes do estado, das conexões do worker e da chave do Kindwise): falta decidir a release. Decidido em 2026-10-16; a seção "Item 8 — decisões" abaixo é a fonte. A `develop` saiu da `v0.1.1`. O milestone 0 (testes de caracterização) roda em `refactor/characterization-tests`. **É o próximo passo.** As validações acima não bloqueiam o item 8: um bug achado nelas vira fix na `main` e desce para a `develop`.
 3. Depois:
    - fotos públicas no S3 (URLs assinadas);
    - engine de confiança do rótulo;
@@ -473,7 +473,8 @@ Leia antes de começar o próximo. Cada item já custou tempo uma vez.
      - O `grant_badge` do repositório saiu (ninguém usava); a concessão, e quem gera o ID da conquista, fica para a segunda entrega. O `AchievementBadge` ficou, sem uso, como catálogo das medalhas.
      - Os testes da composição em `tests/` (fora do `e2e/`) continuam sem a exigência de AAA (registrado no `ARCHITECTURE.md`).
    - **Achado (mantido, "Hoje:" no README):** nada concede conquistas (a lista sai sempre vazia) e a consulta não ordena a lista.
-   - **Item 8 concluído em código.** Falta: push das branches empilhadas (subscription → identity → identification-v2 → garden → health → achievements) e um PR por módulo, cada um com base no anterior, com o "Decidido sem o usuário" de cada um. Push e PRs só com o aval do usuário.
+   - **Item 8 concluído e na `develop` (2026-10-19).** PRs: #5 (fixes), #6 subscription, #7 identity, #8 identification, #9 garden, #10 health, #11 achievements, todos empilhados. As branches não foram apagadas ao mesclar, então #7 a #11 entraram cada um na branch de base, e não na `develop`; o resto chegou pelo #12 (`refactor/module-achievements` → `develop`, sem conteúdo novo). Branches do item 8 apagadas.
+     - **Lição para PRs empilhados:** apagar a branch de cada PR ao mesclar (o GitHub então muda a base do seguinte para a `develop`), ou conferir que a `develop` recebeu tudo antes de limpar.
 
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:
