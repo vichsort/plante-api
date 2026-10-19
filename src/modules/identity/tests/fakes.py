@@ -1,5 +1,5 @@
 """
-Dublês do identity: `FakeUserDirectory` para quem usa o módulo (outros módulos e o código antigo) e,
+Dublês do identity: `FakeUserDirectory` para quem usa o módulo (outros módulos) e,
 para os testes daqui, as portas em memória.
 """
 from dataclasses import dataclass, field

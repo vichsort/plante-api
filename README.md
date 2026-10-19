@@ -39,7 +39,7 @@ Este repositório contém o **backend da plataforma**, construído com arquitetu
 
 ## Arquitetura
 
-Monólito modular, hexagonal por dentro de cada módulo: um subdomínio por pasta em `src/modules/`, com o domínio puro e as dependências apontando para dentro. O kernel comum fica em `src/shared/`, e a composição (container, settings, Celery) em `src/bootstrap/`. A migração do código em camadas antigo (`src/domain`, `src/adapters`, `src/api`, `src/workers`) é feita módulo a módulo.
+Monólito modular, hexagonal por dentro de cada módulo: um subdomínio por pasta em `src/modules/`, com o domínio puro e as dependências apontando para dentro. O kernel comum fica em `src/shared/`, e a composição (container, settings, Celery) em `src/bootstrap/`. `src/workers` é só a entrada do Celery (`celery -A src.workers`).
 
 As regras (layout, imports, erros, testes) estão no [`ARCHITECTURE.md`](ARCHITECTURE.md) e a maioria é conferida no CI. Cada módulo explica o próprio propósito e as decisões no `README.md` dele.
 

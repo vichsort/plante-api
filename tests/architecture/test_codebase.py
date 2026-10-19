@@ -35,8 +35,8 @@ def test_every_error_is_documented_in_its_module() -> None:
 
 
 def test_error_codes_are_unique() -> None:
-    # Arrange: inclui o código antigo enquanto ele existir
-    files = sorted(_SRC.glob("**/exceptions.py")) + sorted((_SRC / "domain" / "exceptions").glob("*.py"))
+    # Arrange
+    files = sorted(_SRC.glob("**/exceptions.py"))
 
     # Act
     violations = rules.duplicated_error_codes(files)
@@ -54,7 +54,7 @@ def test_imports_go_through_barrels() -> None:
 
 
 def test_tests_follow_arrange_act_assert() -> None:
-    # Arrange: testes dos módulos e os ponta a ponta; os antigos ganham marcadores ao migrar
+    # Arrange: testes dos módulos e os ponta a ponta (os da composição, em `tests/`, ficam de fora)
     files = sorted(_SRC.glob("**/tests/**/test_*.py")) + sorted((_ROOT / "tests" / "e2e").glob("test_*.py"))
 
     # Act

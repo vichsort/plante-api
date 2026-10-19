@@ -1,4 +1,4 @@
-"""Dublê do `ITrainingRecorder` para os testes de quem grava no dataset (outros módulos e o código antigo)."""
+"""Dublê do `ITrainingRecorder` para os testes de quem grava no dataset (outros módulos)."""
 from dataclasses import dataclass, field
 from datetime import date
 

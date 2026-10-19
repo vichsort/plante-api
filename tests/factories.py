@@ -1,5 +1,5 @@
 """Entidades de domínio válidas para os testes, com valores padrão sobrescrevíveis."""
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from uuid import uuid4
 
 from src.modules.catalog import EnrichmentStatus, PlantSpecies, PlantSpeciesId
@@ -186,7 +186,3 @@ def make_health_record(
         issues_detected=("leaf_spots",),
         treatment_plan=("Remover folhas afetadas",),
     )
-
-
-def days_from_now(days: int) -> datetime:
-    return NOW + timedelta(days=days)
