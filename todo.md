@@ -6,6 +6,15 @@ READMEs dos módulos.
 ## Próxima release (`v0.2.0`, `develop` → `main`)
 
 - [ ] Revisar os erros (catálogo, códigos, HTTP, quando cada um sai).
+  - Aprovados, esperando sinal verde: 404/405 no envelope; país/estado inválido virar 422 (hoje
+    500); `details` do 4005 com dois inteiros; erros de digitação (4013, 4016); tirar o preço do
+    4019; e-mail não verificado com código próprio (403); login com senha errada = mesmo erro da
+    troca de senha (400); tudo em inglês (mensagens, docstrings, `ValueError`).
+  - Em discussão: novo esquema de numeração (os erros vão ser refeitos, sem contrato antes da
+    `v0.2.0`).
+  - **`SpeciesNotFoundError` (4014) hoje nunca sai.** O certo seria sair quando o provedor não
+    encontra a planta, mas o PlantNet sempre devolve algo, mesmo sem certeza; falta ver o
+    Kindwise. Discutir depois, com testes que cubram esse caso.
 - [ ] Ok do usuário de que está "redondinho". Só então a release.
 
 ## Validar com as chaves reais
