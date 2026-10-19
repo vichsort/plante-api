@@ -1,11 +1,9 @@
 import uuid
-from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
 
 from src.domain.entities.user import User
-from src.domain.exceptions import SubscriptionRequiredError
 from src.domain.ports.health_analyzer import DiseaseHint, HealthAssessmentResult
 from src.domain.ports.health_enricher import HealthDiagnosisEnrichment
 from src.domain.use_cases.diagnose_health_use_case import (
@@ -13,14 +11,16 @@ from src.domain.use_cases.diagnose_health_use_case import (
     DiagnoseHealthUseCase,
 )
 from src.domain.value_objects.ids import UserPlantId
+from src.modules.subscription import SubscriptionRequiredError
+from src.modules.subscription.tests.fakes import FakeTokenWallet
 from src.modules.training import DiseaseSuggestion, HealthSignals
 from src.modules.training.tests.fakes import FakeTrainingRecorder
 from src.shared.domain import ExternalServiceError, UserId
-from tests.factories import CALENDAR, make_user, make_user_plant
+from tests.factories import make_user, make_user_plant
 from tests.fakes import FakeUnitOfWork, MarkingSanitizer
 
 
-def _use_case(enricher: AsyncMock) -> tuple[DiagnoseHealthUseCase, User, FakeUnitOfWork]:
+def _use_case(enricher: AsyncMock, used_today: int = 0) -> tuple[DiagnoseHealthUseCase, User, FakeUnitOfWork]:
     user = make_user()
     user_repo = AsyncMock()
     user_repo.get_by_id.return_value = user
@@ -51,10 +51,15 @@ def _use_case(enricher: AsyncMock) -> tuple[DiagnoseHealthUseCase, User, FakeUni
         health_analyzer=analyzer,
         plant_enricher=enricher,
         storage=storage,
-        calendar=CALENDAR,
+        wallet=FakeTokenWallet(used_today=used_today),
         training=FakeTrainingRecorder(),
     )
     return use_case, user, uow
+
+
+def _wallet(use_case: DiagnoseHealthUseCase) -> FakeTokenWallet:
+    assert isinstance(use_case._wallet, FakeTokenWallet)
+    return use_case._wallet
 
 
 def _dto() -> DiagnoseHealthInputDTO:
@@ -71,28 +76,28 @@ def _dto() -> DiagnoseHealthInputDTO:
 async def test_diagnose_uses_gemini_and_charges_extra_token():
     enricher = AsyncMock()
     enricher.diagnose_health.return_value = HealthDiagnosisEnrichment(vitality_score=0.5, treatment_plan=("water less",))
-    use_case, user, _ = _use_case(enricher)
+    use_case, _, _ = _use_case(enricher)
 
     result = await use_case.execute(_dto())
 
     assert result.record.treatment_plan == ("water less",)
     assert result.record.vitality_score == 0.5
     assert result.record.source == "kindwise+gemini"
-    assert user.tokens_used_today == 2
+    assert _wallet(use_case).charged == 2
 
 
 @pytest.mark.asyncio
 async def test_diagnose_degrades_to_kindwise_when_gemini_fails():
     enricher = AsyncMock()
     enricher.diagnose_health.side_effect = ExternalServiceError(service="Gemini", retryable=True)
-    use_case, user, _ = _use_case(enricher)
+    use_case, _, _ = _use_case(enricher)
 
     result = await use_case.execute(_dto())
 
     assert result.record.vitality_score == 0.1
     assert result.record.treatment_plan == ()
     assert result.record.source == "kindwise"
-    assert user.tokens_used_today == 1
+    assert _wallet(use_case).charged == 1
 
 
 @pytest.mark.asyncio
@@ -119,8 +124,7 @@ async def test_diagnosis_records_anonymous_training_sample_linked_one_way():
 async def test_diagnosis_without_tokens_is_refused_before_calling_providers():
     # Arrange: antes o /diagnose não conferia o saldo e gastava créditos dos provedores
     enricher = AsyncMock()
-    use_case, user, _ = _use_case(enricher)
-    user.tokens_used_today, user.tokens_day = 3, CALENDAR.date_of(datetime.now(UTC))
+    use_case, _, _ = _use_case(enricher, used_today=3)
 
     # Act & Assert
     with pytest.raises(SubscriptionRequiredError):
@@ -132,8 +136,7 @@ async def test_diagnosis_without_tokens_is_refused_before_calling_providers():
 async def test_last_token_buys_the_diagnosis_without_gemini():
     # Arrange: sobra 1 token; o complemento custaria mais 1
     enricher = AsyncMock()
-    use_case, user, _ = _use_case(enricher)
-    user.tokens_used_today, user.tokens_day = 2, CALENDAR.date_of(datetime.now(UTC))
+    use_case, _, _ = _use_case(enricher, used_today=2)
 
     # Act
     result = await use_case.execute(_dto())
@@ -141,4 +144,4 @@ async def test_last_token_buys_the_diagnosis_without_gemini():
     # Assert
     enricher.diagnose_health.assert_not_called()
     assert result.record.source == "kindwise"
-    assert user.tokens_used_today == 3
+    assert _wallet(use_case).used_today == 3

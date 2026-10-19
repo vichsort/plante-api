@@ -3,7 +3,6 @@ from typing import Annotated
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 
-from src.api.deps import CurrentUserId
 from src.api.schemas.auth import (
     LoginRequest,
     MessageResponse,
@@ -14,7 +13,6 @@ from src.api.schemas.auth import (
     VerifyEmailRequest,
 )
 from src.bootstrap.container import Container
-from src.domain.exceptions import UnauthorizedError
 from src.domain.use_cases.login_use_case import LoginUseCase
 from src.domain.use_cases.logout_use_case import LogoutUseCase
 from src.domain.use_cases.refresh_token_use_case import RefreshTokenUseCase
@@ -26,8 +24,8 @@ from src.domain.use_cases.verify_email_use_case import (
     VerifyEmailInputDTO,
     VerifyEmailUseCase,
 )
-from src.shared.api import ApiResponse, error_responses
-from src.shared.domain import UserId
+from src.shared.api import ApiResponse, CurrentUserId, error_responses
+from src.shared.domain import UnauthorizedError, UserId
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

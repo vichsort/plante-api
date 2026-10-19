@@ -5,9 +5,8 @@ from uuid import UUID, uuid4
 import jwt
 from pydantic import BaseModel, ConfigDict, ValidationError
 
-from src.domain.exceptions import UnauthorizedError
 from src.domain.ports.token_service import ITokenService, TokenKind
-from src.shared.domain import UserId
+from src.shared.domain import UnauthorizedError, UserId
 
 
 class _Claims(BaseModel):

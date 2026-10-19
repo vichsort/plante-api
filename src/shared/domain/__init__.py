@@ -5,17 +5,22 @@ from src.shared.domain.exceptions import (
     InvalidImageError,
     PlantEError,
     RateLimitExceededError,
+    UnauthorizedError,
+    UserNotFoundError,
 )
+from src.shared.domain.ports.access_token_verifier import IAccessTokenVerifier
 from src.shared.domain.ports.domain_publisher import IDomainPublisher
 from src.shared.domain.ports.image_sanitizer import IImageSanitizer
 from src.shared.domain.ports.image_storage import IImageStorage
 from src.shared.domain.ports.unit_of_work import IUnitOfWork
 from src.shared.domain.value_objects.ids import UserId
 from src.shared.domain.value_objects.json_value import JsonObject, JsonValue
+from src.shared.domain.value_objects.local_calendar import LocalCalendar
 
 __all__ = [
     "DomainEvent",
     "ExternalServiceError",
+    "IAccessTokenVerifier",
     "IDomainPublisher",
     "IImageSanitizer",
     "IImageStorage",
@@ -23,7 +28,10 @@ __all__ = [
     "InvalidImageError",
     "JsonObject",
     "JsonValue",
+    "LocalCalendar",
     "PlantEError",
     "RateLimitExceededError",
+    "UnauthorizedError",
     "UserId",
+    "UserNotFoundError",
 ]

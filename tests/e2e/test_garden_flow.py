@@ -92,7 +92,10 @@ async def test_free_plan_garden_limit(api: Api, db_session: AsyncSession) -> Non
     headers = await api.signed_up("limite@plante.org")
     for _ in range(3):
         await api.plant_in_garden(headers)
-    await db_session.execute(text("UPDATE users SET tokens_used_today = 0 WHERE email = 'limite@plante.org'"))
+    await db_session.execute(text(
+        "UPDATE subscriptions SET tokens_used_today = 0"
+        " WHERE user_id = (SELECT id FROM users WHERE email = 'limite@plante.org')"
+    ))
     await db_session.commit()
     identification_id = (await api.identify(headers)).json()["data"]["identification_id"]
 

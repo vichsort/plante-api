@@ -11,10 +11,11 @@ from src.domain.use_cases.identify_plant_use_case import (
 )
 from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.modules.catalog.tests.fakes import FakeSpeciesRegistry
+from src.modules.subscription import FeatureCost, SubscriptionRequiredError
+from src.modules.subscription.tests.fakes import FakeTokenWallet
 from src.modules.training import TrainingIdentificationSample
 from src.modules.training.tests.fakes import FakeTrainingRecorder
 from tests.factories import (
-    CALENDAR,
     make_identification_signals,
     make_species,
     make_user,
@@ -27,7 +28,7 @@ def _recorder(use_case: IdentifyPlantUseCase) -> FakeTrainingRecorder:
     return use_case.training
 
 
-def _use_case(confidence: float = 0.9):
+def _use_case(confidence: float = 0.9, used_today: int = 0):
     user = make_user()
     users = AsyncMock()
     users.get_by_id.return_value = user
@@ -53,7 +54,7 @@ def _use_case(confidence: float = 0.9):
         plant_identifier=identifier,
         storage=storage,
         publisher=AsyncMock(),
-        calendar=CALENDAR,
+        wallet=FakeTokenWallet(used_today=used_today),
         training=FakeTrainingRecorder(),
         catalog=FakeSpeciesRegistry({"Monstera deliciosa": make_species()}),
     )
@@ -123,7 +124,19 @@ async def test_reads_and_writes_in_separate_transactions_and_charges_one_token()
     # Leitura e escrita em transações separadas (a IA roda entre elas); só a escrita confirma
     assert uow.opened == 2
     assert uow.commits == 1
-    assert user.tokens_used_today == 1
+    assert isinstance(use_case.wallet, FakeTokenWallet)
+    assert use_case.wallet.charges == [(user.id, FeatureCost.IDENTIFY)]
+
+
+@pytest.mark.asyncio
+async def test_identification_without_tokens_is_refused_before_calling_providers():
+    use_case, uow, user, identifier, _ = _use_case(used_today=3)
+
+    with pytest.raises(SubscriptionRequiredError):
+        await use_case.execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"img"))
+
+    identifier.identify.assert_not_called()
+    assert uow.commits == 0
 
 
 @pytest.mark.asyncio

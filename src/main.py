@@ -1,5 +1,5 @@
 import inspect
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import structlog
@@ -8,8 +8,6 @@ from fastapi.middleware.gzip import GZipMiddleware
 
 from src.bootstrap.connections import close_connections
 from src.bootstrap.container import Container
-from src.domain.exceptions import UnauthorizedError
-from src.domain.ports.token_service import ITokenService, TokenKind
 from src.shared.adapters import CircuitBreaker
 from src.shared.api import (
     COMMON_ERROR_RESPONSES,
@@ -17,9 +15,9 @@ from src.shared.api import (
     CorrelationIdMiddleware,
     RateLimitMiddleware,
     SecurityHeadersMiddleware,
+    install_authentication,
     register_exception_handlers,
 )
-from src.shared.domain import UserId
 
 log = structlog.stdlib.get_logger()
 
@@ -41,22 +39,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     log.info("plante.shutdown")
 
 
-def _access_token_owner(container: Container) -> Callable[[str], UserId | None]:
-    """Identifica o usuário pelo access token, para o rate limit contar por usuário."""
-    token_service: ITokenService = container.adapters.token_service()
-
-    def owner(token: str) -> UserId | None:
-        try:
-            return token_service.verify(token, TokenKind.ACCESS)
-        except UnauthorizedError:
-            return None
-
-    return owner
-
-
 # A ligação do container é global (por módulo), não por app: o último `create_app()` vence
 WIRED_MODULES = [
-    "src.api.deps",
     "src.api.routers.auth",
     "src.api.routers.identification",
     "src.api.routers.garden",
@@ -67,9 +51,15 @@ WIRED_MODULES = [
 ]
 
 
+def wire(container: Container) -> None:
+    container.wire(modules=WIRED_MODULES)
+    # Cada módulo liga as próprias rotas ao container dele (aninhado no raiz)
+    container.subscription().wire(modules=["src.modules.subscription.api.router"])
+
+
 def create_app() -> FastAPI:
     container = Container()
-    container.wire(modules=WIRED_MODULES)
+    wire(container)
 
     app = FastAPI(
         title="PlantE API",
@@ -79,6 +69,7 @@ def create_app() -> FastAPI:
     )
 
     app.state.container = container
+    install_authentication(app, container.adapters.token_service)
 
     # Middlewares (registrados na ordem interna -> externa)
     app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -86,7 +77,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         RateLimitMiddleware,
         redis_provider=container.adapters.redis,
-        token_decoder=_access_token_owner(container),
+        token_decoder=container.adapters.token_service().owner_of,
         # Após uma falha do Redis, só o contador em memória por 30s antes de tentar de novo
         redis_breaker=CircuitBreaker("Redis", failure_threshold=1, recovery_timeout_seconds=30.0),
     )
@@ -104,7 +95,8 @@ def create_app() -> FastAPI:
         profile,
     )
     from src.bootstrap import probes
-    for domain in (auth, identification, garden, plants, health, profile):
+    from src.modules.subscription import api as subscription
+    for domain in (auth, identification, garden, plants, health, profile, subscription):
         app.include_router(domain.router, responses=COMMON_ERROR_RESPONSES)
     # Probes ficam fora do rate limit, então não documentam os erros comuns (ex.: 429)
     app.include_router(probes.router)

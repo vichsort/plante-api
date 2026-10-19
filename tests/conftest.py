@@ -6,11 +6,13 @@ import jwt
 import pytest
 from fastapi.testclient import TestClient
 
-from src.main import app
+from src.main import app, wire
 
 
 @pytest.fixture
 def client() -> TestClient:
+    # A ligação das rotas é global: outro teste pode ter ligado outro container
+    wire(app.state.container)
     return TestClient(app)
 
 @pytest.fixture

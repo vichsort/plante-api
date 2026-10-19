@@ -3,18 +3,14 @@ from typing import Annotated
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
 
-from src.api.deps import CurrentUserId
 from src.api.schemas.auth import MessageResponse
 from src.api.schemas.profile import (
     AchievementItemResponse,
     ChangeEmailRequest,
     ChangePasswordRequest,
     UpdateLocationRequest,
-    UpgradeSubscriptionRequest,
-    UpgradeSubscriptionResponse,
 )
 from src.bootstrap.container import Container
-from src.domain.exceptions import UnauthorizedError
 from src.domain.use_cases.change_email_use_case import (
     ChangeEmailInputDTO,
     ChangeEmailUseCase,
@@ -31,11 +27,8 @@ from src.domain.use_cases.update_location_fallback_use_case import (
     UpdateLocationFallbackInputDTO,
     UpdateLocationFallbackUseCase,
 )
-from src.domain.use_cases.upgrade_subscription_use_case import (
-    UpgradeSubscriptionInputDTO,
-    UpgradeSubscriptionUseCase,
-)
-from src.shared.api import ApiResponse, error_responses
+from src.shared.api import ApiResponse, CurrentUserId, error_responses
+from src.shared.domain import UnauthorizedError
 
 router = APIRouter(prefix="/profile", tags=["profile"], responses=error_responses(UnauthorizedError))
 
@@ -101,25 +94,6 @@ async def update_location(
         state=body.state,
     ))
     return ApiResponse.success(MessageResponse(message="Location updated successfully."))
-
-
-@router.post(
-    "/subscription/upgrade",
-    status_code=200,
-    response_model=ApiResponse[UpgradeSubscriptionResponse],
-    responses=error_responses(*UpgradeSubscriptionUseCase.raises),
-)
-@inject
-async def upgrade_subscription(
-    body: UpgradeSubscriptionRequest,
-    use_case: Annotated[UpgradeSubscriptionUseCase, Depends(Provide[Container.use_cases.upgrade_subscription_use_case])],
-    user_id: CurrentUserId,
-) -> ApiResponse[UpgradeSubscriptionResponse]:
-    user = await use_case.execute(UpgradeSubscriptionInputDTO(
-        user_id=user_id,
-        plan_duration_days=body.plan_duration_days,
-    ))
-    return ApiResponse.success(UpgradeSubscriptionResponse.from_domain(user))
 
 
 @router.get("/achievements", status_code=200, response_model=ApiResponse[list[AchievementItemResponse]])

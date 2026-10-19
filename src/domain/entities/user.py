@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import datetime
 from uuid import uuid4
 
 from src.domain.value_objects.email import normalize_email
-from src.domain.value_objects.subscription_tier import FeatureCost, SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
 from src.shared.domain import UserId
 
@@ -24,25 +23,15 @@ class User:
     hashed_password: str
     location: UserLocation
     is_verified: bool
-    subscription: SubscriptionTier
     created_at: datetime | None = None
-    tokens_used_today: int = 0
-    # Dia local a que `tokens_used_today` se refere: em outro dia o contador vale zero
-    tokens_day: date | None = None
     # Novo e-mail aguardando o código: o atual continua valendo até a confirmação
     pending_email: str | None = None
-    subscription_expires_at: datetime | None = None
     bio: str | None = None
     profile_picture_url: str | None = None
 
     def __post_init__(self) -> None:
         self.email = normalize_email(self.email)
         self._assert_valid_email(self.email)
-
-        if self.tokens_used_today < 0:
-            raise ValueError("tokens_used_today cannot be negative.")
-        if self.subscription == SubscriptionTier.PRO and self.subscription_expires_at is None:
-            raise ValueError("PRO subscription requires an expiration date.")
 
     @classmethod
     def create_new(
@@ -59,21 +48,11 @@ class User:
             hashed_password=hashed_password,
             location=location,
             is_verified=False,
-            subscription=SubscriptionTier.FREE,
             created_at=current_time,
         )
 
     def verify_email(self) -> None:
         self.is_verified = True
-
-    def tokens_used_on(self, today: date) -> int:
-        """A cota é diária: o contador gravado só vale no dia a que se refere."""
-        return self.tokens_used_today if self.tokens_day == today else 0
-
-    def consume_tokens(self, cost: FeatureCost, today: date) -> None:
-        """Zera ao virar o dia na primeira cobrança, sem cron (quem decide se pode é a política)."""
-        self.tokens_used_today = self.tokens_used_on(today) + cost.value
-        self.tokens_day = today
 
     def update_location(self, new_location: UserLocation) -> None:
         self.location = new_location
@@ -94,23 +73,6 @@ class User:
         if not new_hashed_password:
             raise ValueError("hashed_password cannot be empty.")
         self.hashed_password = new_hashed_password
-
-    def upgrade_to_pro(self, expires_at: datetime, current_time: datetime) -> None:
-        if expires_at <= current_time:
-            raise ValueError("expires_at must be a future datetime.")
-        self.subscription = SubscriptionTier.PRO
-        self.subscription_expires_at = expires_at
-        self.tokens_used_today = 0  # o upgrade começa com a cota do PRO cheia
-
-    def is_pro(self, current_time: datetime) -> bool:
-        return (
-            self.subscription == SubscriptionTier.PRO
-            and self.subscription_expires_at is not None
-            and current_time < self.subscription_expires_at
-        )
-
-    def get_active_tier(self, current_time: datetime) -> SubscriptionTier:
-        return SubscriptionTier.PRO if self.is_pro(current_time) else SubscriptionTier.FREE
 
     @staticmethod
     def _assert_valid_email(value: str) -> None:

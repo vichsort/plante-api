@@ -6,11 +6,7 @@ import pytest
 
 from src.adapters.security.jwt_token_service import JwtTokenService
 from src.domain.entities.user import User
-from src.domain.exceptions import (
-    EmailAlreadyInUseError,
-    UnauthorizedError,
-    WeakPasswordError,
-)
+from src.domain.exceptions import EmailAlreadyInUseError, WeakPasswordError
 from src.domain.ports.token_service import TokenKind
 from src.domain.use_cases.login_use_case import REFRESH_TOKEN_TTL, LoginUseCase
 from src.domain.use_cases.refresh_token_use_case import RefreshTokenUseCase
@@ -18,9 +14,8 @@ from src.domain.use_cases.register_user_use_case import (
     RegisterUserInputDTO,
     RegisterUserUseCase,
 )
-from src.domain.value_objects.subscription_tier import SubscriptionTier
 from src.domain.value_objects.user_location import UserLocation
-from src.shared.domain import UserId
+from src.shared.domain import UnauthorizedError, UserId
 from tests.fakes import FakeUnitOfWork, InMemoryTokenRepository
 
 
@@ -36,7 +31,6 @@ async def test_register_user_success():
         hashed_password="hashed_secret",
         location=UserLocation(country="BR", state="SP"),
         is_verified=False,
-        subscription=SubscriptionTier.FREE,
         created_at=datetime.now(UTC),
     )
     user_repo.save.return_value = fake_user
@@ -87,7 +81,6 @@ async def test_login_user_success():
         hashed_password="hashed_secret",
         location=UserLocation(country="BR", state="SP"),
         is_verified=True,
-        subscription=SubscriptionTier.FREE,
         created_at=datetime.now(UTC),
     )
 
@@ -122,7 +115,6 @@ async def test_login_invalid_password_raises():
         hashed_password="hashed_secret",
         location=UserLocation(country="BR", state="SP"),
         is_verified=True,
-        subscription=SubscriptionTier.FREE,
         created_at=datetime.now(UTC),
     )
 

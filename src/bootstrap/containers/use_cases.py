@@ -16,7 +16,6 @@ from src.domain.use_cases.change_email_use_case import ChangeEmailUseCase
 from src.domain.use_cases.change_password_use_case import ChangePasswordUseCase
 from src.domain.use_cases.delete_user_plant_use_case import DeleteUserPlantUseCase
 from src.domain.use_cases.diagnose_health_use_case import DiagnoseHealthUseCase
-from src.domain.use_cases.enrich_plant_species_use_case import EnrichPlantSpeciesUseCase
 from src.domain.use_cases.get_health_history_use_case import GetHealthHistoryUseCase
 from src.domain.use_cases.get_plant_details_use_case import GetPlantDetailsUseCase
 from src.domain.use_cases.get_user_garden_use_case import GetUserGardenUseCase
@@ -35,15 +34,17 @@ from src.domain.use_cases.register_user_use_case import RegisterUserUseCase
 from src.domain.use_cases.update_location_fallback_use_case import (
     UpdateLocationFallbackUseCase,
 )
-from src.domain.use_cases.upgrade_subscription_use_case import (
-    UpgradeSubscriptionUseCase,
-)
 from src.domain.use_cases.verify_email_use_case import VerifyEmailUseCase
 from src.domain.use_cases.water_plant_use_case import WaterPlantUseCase
-from src.domain.value_objects.local_calendar import LocalCalendar
-from src.modules.catalog import ISpeciesEnricher, ISpeciesRegistry
+from src.modules.catalog import ISpeciesRegistry
+from src.modules.subscription import IGardenQuota, ITokenWallet
 from src.modules.training import ITrainingRecorder
-from src.shared.domain import IDomainPublisher, IImageSanitizer, IImageStorage
+from src.shared.domain import (
+    IDomainPublisher,
+    IImageSanitizer,
+    IImageStorage,
+    LocalCalendar,
+)
 
 
 class UseCasesContainer(containers.DeclarativeContainer):
@@ -59,18 +60,15 @@ class UseCasesContainer(containers.DeclarativeContainer):
     plant_identifier: providers.Dependency[IPlantIdentifier] = providers.Dependency()
     health_analyzer: providers.Dependency[IHealthAnalyzer] = providers.Dependency()
     health_enricher: providers.Dependency[IHealthEnricher] = providers.Dependency()
-    species_enricher: providers.Dependency[ISpeciesEnricher] = providers.Dependency()
     species_registry: providers.Dependency[ISpeciesRegistry] = providers.Dependency()
 
     image_storage: providers.Dependency[IImageStorage] = providers.Dependency()
     image_sanitizer: providers.Dependency[IImageSanitizer] = providers.Dependency()
     token_service: providers.Dependency[ITokenService] = providers.Dependency()
     training_recorder: providers.Dependency[ITrainingRecorder] = providers.Dependency()
-
-    local_calendar = providers.Singleton(
-        LocalCalendar.from_name,
-        settings.provided.local_timezone,
-    )
+    token_wallet: providers.Dependency[ITokenWallet] = providers.Dependency()
+    garden_quota: providers.Dependency[IGardenQuota] = providers.Dependency()
+    local_calendar: providers.Dependency[LocalCalendar] = providers.Dependency()
 
     login_use_case = providers.Factory(
         LoginUseCase,
@@ -119,12 +117,6 @@ class UseCasesContainer(containers.DeclarativeContainer):
         otp_repo=otp_repository,
     )
 
-    upgrade_subscription_use_case = providers.Factory(
-        UpgradeSubscriptionUseCase,
-        uow=unit_of_work,
-        publisher=domain_publisher,
-    )
-
     update_location_fallback_use_case = providers.Factory(
         UpdateLocationFallbackUseCase,
         uow=unit_of_work,
@@ -135,6 +127,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
         uow=unit_of_work,
         publisher=domain_publisher,
         calendar=local_calendar,
+        quota=garden_quota,
         training=training_recorder,
     )
 
@@ -175,16 +168,8 @@ class UseCasesContainer(containers.DeclarativeContainer):
         plant_identifier=plant_identifier,
         storage=image_storage,
         publisher=domain_publisher,
-        calendar=local_calendar,
+        wallet=token_wallet,
         training=training_recorder,
-        catalog=species_registry,
-    )
-
-    enrich_plant_species_use_case = providers.Factory(
-        EnrichPlantSpeciesUseCase,
-        uow=unit_of_work,
-        enricher=species_enricher,
-        calendar=local_calendar,
         catalog=species_registry,
     )
 
@@ -214,7 +199,7 @@ class UseCasesContainer(containers.DeclarativeContainer):
         health_analyzer=health_analyzer,
         plant_enricher=health_enricher,
         storage=image_storage,
-        calendar=local_calendar,
+        wallet=token_wallet,
         training=training_recorder,
     )
 

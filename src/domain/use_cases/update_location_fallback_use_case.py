@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 
-from src.domain.exceptions import UserNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.user_location import UserLocation
-from src.shared.domain import UserId
+from src.shared.domain import UserId, UserNotFoundError
 
 
 @dataclass(frozen=True)

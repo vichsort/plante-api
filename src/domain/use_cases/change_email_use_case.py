@@ -1,17 +1,13 @@
 from dataclasses import dataclass
 
-from src.domain.exceptions import (
-    EmailAlreadyInUseError,
-    InvalidCredentialsError,
-    UserNotFoundError,
-)
+from src.domain.exceptions import EmailAlreadyInUseError, InvalidCredentialsError
 from src.domain.ports.email_sender import IEmailSender
 from src.domain.ports.otp_repository import IOtpRepository
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.email import normalize_email
 from src.domain.value_objects.verification_code import VerificationCode
-from src.shared.domain import UserId
+from src.shared.domain import UserId, UserNotFoundError
 
 
 @dataclass(frozen=True)

@@ -12,7 +12,6 @@ from structlog.testing import capture_logs
 from src.adapters.security.jwt_token_service import JwtTokenService
 from src.bootstrap.container import Container
 from src.domain.ports.token_service import TokenKind
-from src.main import _access_token_owner
 from src.shared.adapters import CircuitBreaker, RedisClient
 from src.shared.api import (
     CorrelationIdMiddleware,
@@ -293,13 +292,8 @@ _TEST_SECRET = "test-secret-key-with-at-least-32-bytes"
 def test_rate_limit_with_real_token_decoder():
     # O decodificador do app (`src.main`) com o JwtTokenService de verdade
     tokens = JwtTokenService(secret_key=_TEST_SECRET, algorithm="HS256")
-    container = Container()
     fake = _FakeRedis()
-    with container.adapters.token_service.override(tokens):
-        client = TestClient(_rate_limited_app(
-            redis_provider=lambda: fake,
-            token_decoder=_access_token_owner(container),
-        ))
+    client = TestClient(_rate_limited_app(redis_provider=lambda: fake, token_decoder=tokens.owner_of))
     user_id = UserId(uuid.uuid4())
     access = tokens.issue(user_id, TokenKind.ACCESS, timedelta(minutes=5))
     refresh = tokens.issue(user_id, TokenKind.REFRESH, timedelta(minutes=5))

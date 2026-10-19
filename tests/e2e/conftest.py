@@ -25,7 +25,7 @@ from src.adapters.events.celery_publisher import (
 )
 from src.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
 from src.bootstrap.container import Container
-from src.main import app
+from src.main import app, wire
 from src.shared.adapters import RedisClient
 from src.workers.notification_tasks import send_verification_email_task
 from tests.e2e.doubles import (
@@ -74,7 +74,11 @@ def doubles(
     """Liga o container do app ao Postgres/Redis dos testes e às bordas falsas; desfaz no fim."""
     fakes = Doubles()
     container: Container = app.state.container
+    # A ligação das rotas é global: outro teste pode ter ligado outro container
+    wire(container)
     overrides = {
+        # Toda transação (código antigo e módulos) na conexão do teste
+        container.infra.session_factory: providers.Object(session_factory),
         container.infra.unit_of_work: providers.Factory(SqlAlchemyUnitOfWork, session_factory=session_factory),
         container.adapters.redis: providers.Object(redis_client),
         container.adapters.plant_identifier: providers.Object(fakes.identifier),

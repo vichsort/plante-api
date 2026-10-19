@@ -3,12 +3,12 @@ from datetime import timedelta
 
 import structlog
 
-from src.domain.exceptions import UnauthorizedError
 from src.domain.ports.password_hasher import IPasswordHasher
 from src.domain.ports.token_repository import ITokenRepository
 from src.domain.ports.token_service import ITokenService, TokenKind
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.email import normalize_email
+from src.shared.domain import UnauthorizedError
 
 log = structlog.stdlib.get_logger()
 

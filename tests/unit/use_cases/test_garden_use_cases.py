@@ -7,11 +7,7 @@ import pytest
 
 from src.domain.entities.identification import Identification
 from src.domain.entities.user_plant import IdentificationSource, UserPlant
-from src.domain.exceptions import (
-    IdentificationNotFoundError,
-    PlantLimitExceededError,
-    PlantNotFoundError,
-)
+from src.domain.exceptions import IdentificationNotFoundError, PlantNotFoundError
 from src.domain.use_cases.add_plant_to_garden_use_case import (
     AddPlantToGardenInputDTO,
     AddPlantToGardenUseCase,
@@ -32,6 +28,8 @@ from src.domain.use_cases.water_plant_use_case import (
 from src.domain.value_objects.ids import IdentificationId, UserPlantId
 from src.domain.value_objects.streak import Streak
 from src.modules.catalog import PlantSpeciesId
+from src.modules.subscription import PlantLimitExceededError
+from src.modules.subscription.tests.fakes import FakeGardenQuota
 from src.modules.training import (
     FeedbackOrigin,
     FeedbackVerdict,
@@ -62,7 +60,9 @@ def _garden_use_case(identification: Identification | None, existing: UserPlant 
     user_plants.save.side_effect = lambda plant: plant
     uow = FakeUnitOfWork(users=user_repo, identifications=identifications, user_plants=user_plants)
     publisher = AsyncMock()
-    use_case = AddPlantToGardenUseCase(uow=uow, publisher=publisher, calendar=CALENDAR, training=FakeTrainingRecorder())
+    use_case = AddPlantToGardenUseCase(
+        uow=uow, publisher=publisher, calendar=CALENDAR, quota=FakeGardenQuota(), training=FakeTrainingRecorder(),
+    )
     return use_case, uow, publisher
 
 

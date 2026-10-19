@@ -3,20 +3,11 @@ import pytest
 from dependency_injector import providers
 
 from src.bootstrap.container import Container
+from src.main import wire
 
 
 def test_container_wires_without_error():
-    container = Container()
-    container.wire(modules=[
-        "src.api.deps",
-        "src.api.routers.auth",
-        "src.api.routers.identification",
-        "src.api.routers.garden",
-        "src.api.routers.plants",
-        "src.api.routers.health",
-        "src.api.routers.profile",
-        "src.bootstrap.probes",
-    ])
+    wire(Container())
 
 def test_every_subcontainer_dependency_is_provided():
     container = Container()

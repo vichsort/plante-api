@@ -1,4 +1,6 @@
 """Exceções que qualquer módulo usa. As específicas moram em `domain/exceptions.py` de cada módulo."""
+from uuid import UUID
+
 from src.shared.domain.value_objects.json_value import JsonObject
 
 
@@ -54,6 +56,26 @@ class RateLimitExceededError(PlantEError):
             message=f"Rate limit exceeded. Maximum of {limit} requests per minute allowed.",
             details={"limit": limit, "retry_after_seconds": retry_after_seconds},
         )
+
+
+class UnauthorizedError(PlantEError):
+    """Token inválido, expirado ou ausente."""
+    code = "PLANTE_4006_UNAUTHORIZED"
+    status_code = 401
+
+    def __init__(self, message: str = "Authentication required."):
+        super().__init__(message=message)
+
+
+class UserNotFoundError(PlantEError):
+    """Usuário não encontrado."""
+    code = "PLANTE_4002_USER_NOT_FOUND"
+    status_code = 404
+
+    def __init__(self, message: str = "User not found.", user_id: UUID | None = None):
+        if user_id:
+            message = f"User {user_id} not found."
+        super().__init__(message=message)
 
 
 class InvalidImageError(PlantEError):
