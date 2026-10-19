@@ -42,6 +42,19 @@ class Quota:
         self.tokens_used_today = self.tokens_used_on(today) + cost.value
         self.tokens_day = today
 
+    def grant_extended(self, expires_at: datetime, current_time: datetime) -> None:
+        """The deadline counts from now (it replaces any earlier one), and the extended quota starts full."""
+        if expires_at <= current_time:
+            raise ValueError("expires_at must be a future datetime.")
+        self.level = QuotaLevel.EXTENDED
+        self.expires_at = expires_at
+        self.tokens_used_today = 0
+
+    def revoke_extended(self) -> None:
+        """Back to standard right away; today's tokens stay spent."""
+        self.level = QuotaLevel.STANDARD
+        self.expires_at = None
+
     def is_extended(self, current_time: datetime) -> bool:
         return (
             self.level is QuotaLevel.EXTENDED

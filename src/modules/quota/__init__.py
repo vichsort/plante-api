@@ -9,6 +9,10 @@ from src.modules.quota.domain.exceptions import (
 )
 from src.modules.quota.domain.services.garden_quota import IGardenQuota
 from src.modules.quota.domain.services.token_wallet import ITokenWallet
+from src.modules.quota.domain.use_cases.grant_extended_quota import (
+    MAX_GRANT_DAYS,
+    GrantExtendedQuotaInputDTO,
+)
 from src.modules.quota.domain.value_objects.level import (
     FeatureCost,
     LevelLimits,
@@ -17,6 +21,8 @@ from src.modules.quota.domain.value_objects.level import (
 )
 
 __all__ = [
+    "MAX_GRANT_DAYS",
+    "GrantExtendedQuotaInputDTO",
     "FeatureCost",
     "IGardenQuota",
     "ITokenWallet",

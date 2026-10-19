@@ -184,3 +184,44 @@ def test_limits_cannot_be_negative() -> None:
     # Act & Assert
     with pytest.raises(ValueError, match="negative"):
         QuotaLimits(max_plants=-1, daily_tokens=3)
+
+
+def test_granted_extended_quota_starts_full_until_the_deadline() -> None:
+    # Arrange
+    quota = _standard(tokens_used_today=3)
+
+    # Act
+    quota.grant_extended(expires_at=NOW + timedelta(days=30), current_time=NOW)
+
+    # Assert
+    assert quota.active_level(NOW) is QuotaLevel.EXTENDED
+    assert POLICY.limits.of(quota.active_level(NOW)).remaining_tokens(quota.tokens_used_on(TODAY)) == 10
+    assert quota.active_level(NOW + timedelta(days=31)) is QuotaLevel.STANDARD
+
+
+def test_a_new_grant_replaces_the_deadline() -> None:
+    # Arrange
+    quota = _extended(expires_at=NOW + timedelta(days=90))
+
+    # Act
+    quota.grant_extended(expires_at=NOW + timedelta(days=10), current_time=NOW)
+
+    # Assert
+    assert quota.expires_at == NOW + timedelta(days=10)
+
+
+def test_grant_needs_a_future_deadline() -> None:
+    # Act & Assert
+    with pytest.raises(ValueError, match="future"):
+        _standard().grant_extended(expires_at=NOW, current_time=NOW)
+
+
+def test_revoked_quota_is_standard_now_and_keeps_todays_spending() -> None:
+    # Arrange
+    quota = _extended(tokens_used_today=5)
+
+    # Act
+    quota.revoke_extended()
+
+    # Assert
+    assert (quota.level, quota.expires_at, quota.tokens_used_on(TODAY)) == (QuotaLevel.STANDARD, None, 5)
