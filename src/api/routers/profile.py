@@ -12,8 +12,6 @@ from src.api.schemas.profile import (
     ChangeEmailRequest,
     ChangePasswordRequest,
     UpdateLocationRequest,
-    UpgradeSubscriptionRequest,
-    UpgradeSubscriptionResponse,
 )
 from src.domain.exceptions import UnauthorizedError
 from src.domain.use_cases.change_email_use_case import (
@@ -31,10 +29,6 @@ from src.domain.use_cases.list_user_achievements_use_case import (
 from src.domain.use_cases.update_location_fallback_use_case import (
     UpdateLocationFallbackInputDTO,
     UpdateLocationFallbackUseCase,
-)
-from src.domain.use_cases.upgrade_subscription_use_case import (
-    UpgradeSubscriptionInputDTO,
-    UpgradeSubscriptionUseCase,
 )
 from src.infrastructure.container import Container
 
@@ -102,25 +96,6 @@ async def update_location(
         state=body.state,
     ))
     return ApiResponse.success(MessageResponse(message="Location updated successfully."))
-
-
-@router.post(
-    "/subscription/upgrade",
-    status_code=200,
-    response_model=ApiResponse[UpgradeSubscriptionResponse],
-    responses=error_responses(*UpgradeSubscriptionUseCase.raises),
-)
-@inject
-async def upgrade_subscription(
-    body: UpgradeSubscriptionRequest,
-    use_case: Annotated[UpgradeSubscriptionUseCase, Depends(Provide[Container.use_cases.upgrade_subscription_use_case])],
-    user_id: CurrentUserId,
-) -> ApiResponse[UpgradeSubscriptionResponse]:
-    user = await use_case.execute(UpgradeSubscriptionInputDTO(
-        user_id=user_id,
-        plan_duration_days=body.plan_duration_days,
-    ))
-    return ApiResponse.success(UpgradeSubscriptionResponse.from_domain(user))
 
 
 @router.get("/achievements", status_code=200, response_model=ApiResponse[list[AchievementItemResponse]])

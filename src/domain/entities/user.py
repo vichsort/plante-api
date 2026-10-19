@@ -95,13 +95,6 @@ class User:
             raise ValueError("hashed_password cannot be empty.")
         self.hashed_password = new_hashed_password
 
-    def upgrade_to_pro(self, expires_at: datetime, current_time: datetime) -> None:
-        if expires_at <= current_time:
-            raise ValueError("expires_at must be a future datetime.")
-        self.subscription = SubscriptionTier.PRO
-        self.subscription_expires_at = expires_at
-        self.tokens_used_today = 0  # o upgrade começa com a cota do PRO cheia
-
     def is_pro(self, current_time: datetime) -> bool:
         return (
             self.subscription == SubscriptionTier.PRO
