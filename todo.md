@@ -447,7 +447,7 @@ Leia antes de começar o próximo. Cada item já custou tempo uma vez.
      - Sem tasks antigas, o `task_container` (fix da `develop`) saiu; o `close_connections` ficou, usado pelo app e pelo worker.
      - O teste do agendamento no beat foi para `tests/unit/workers/test_celery_app.py` (é da composição); o do módulo roda a task com a dependência injetada.
      - O container dos use cases antigos ficou só com saúde e conquistas, e só com as dependências que eles usam (saíram `settings`, `domain_publisher`, `species_registry`, `garden_quota`, `local_calendar`, `identification_lookup`).
-   - **Achado (comportamento mantido):** o `WaterPlantUseCase` confere o dono depois de uma busca que já filtra por ele, então o `PLANTE_4009_FORBIDDEN` nunca sai. O OpenAPI da rega documenta o 403; tirar é mudança de contrato: perguntar ao usuário. Marcado como "Hoje" no README do módulo.
+   - **Mudança de contrato aprovada pelo usuário (2026-10-19):** o `WaterPlantUseCase` conferia o dono depois de uma busca que já filtrava por ele, então o `PLANTE_4009_FORBIDDEN` nunca saía. O erro foi aposentado (não reutilizar o número) e a rota de rega não documenta mais o 403. Único diff do OpenAPI contra a `develop` desde o início do item 8.
 
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:
