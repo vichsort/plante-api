@@ -1,31 +1,26 @@
-"""Dublês de `ITokenWallet` e `IGardenQuota` para os testes de quem consome a cota (outros módulos)."""
+"""`ITokenWallet` and `IGardenQuota` doubles for the tests of the quota's consumers (other modules)."""
 from dataclasses import dataclass, field
 from datetime import datetime
 
 from src.modules.quota.domain.entities.quota import Quota
-from src.modules.quota.domain.policies.quota_policy import (
-    QuotaPolicy,
-)
+from src.modules.quota.domain.policies.quota_policy import QuotaPolicy
 from src.modules.quota.domain.services.garden_quota import IGardenQuota
 from src.modules.quota.domain.services.token_wallet import ITokenWallet
-from src.modules.quota.domain.value_objects.tier import (
-    FeatureCost,
-    SubscriptionTier,
-)
+from src.modules.quota.domain.value_objects.level import FeatureCost, QuotaLevel
 from src.shared.domain import UserId
 
 
 @dataclass
 class FakeTokenWallet(ITokenWallet):
     """
-    Uma assinatura FREE em memória, com as regras de verdade (`QuotaPolicy`); o dia é o
-    da chamada, então `used_today` vale para "hoje". `charges` guarda as cobranças, na ordem.
+    A standard quota in memory, with the real rules (`QuotaPolicy`); the day is the call's, so
+    `used_today` counts for "today". `charges` keeps the charges, in order.
     """
     used_today: int = 0
     charges: list[tuple[UserId, FeatureCost]] = field(default_factory=list)
 
     def _quota(self, user_id: UserId, now: datetime) -> Quota:
-        return Quota(user_id, SubscriptionTier.FREE, tokens_used_today=self.used_today, tokens_day=now.date())
+        return Quota(user_id, QuotaLevel.STANDARD, tokens_used_today=self.used_today, tokens_day=now.date())
 
     async def ensure_can_identify(self, user_id: UserId, now: datetime) -> None:
         QuotaPolicy.enforce_can_identify_plant(self._quota(user_id, now), now, now.date())
@@ -47,9 +42,9 @@ class FakeTokenWallet(ITokenWallet):
 
 @dataclass
 class FakeGardenQuota(IGardenQuota):
-    """O limite do jardim de um plano (FREE por padrão)."""
-    tier: SubscriptionTier = SubscriptionTier.FREE
+    """The garden limit of one level (standard by default)."""
+    level: QuotaLevel = QuotaLevel.STANDARD
 
     async def ensure_can_add_plant(self, user_id: UserId, plants_in_garden: int, now: datetime) -> None:
-        quota = Quota(user_id, self.tier, expires_at=datetime.max.replace(tzinfo=now.tzinfo))
-        QuotaPolicy.enforce_can_add_to_garden(quota, plants_in_garden, now)
+        expires_at = datetime.max.replace(tzinfo=now.tzinfo) if self.level is QuotaLevel.EXTENDED else None
+        QuotaPolicy.enforce_can_add_to_garden(Quota(user_id, self.level, expires_at), plants_in_garden, now)

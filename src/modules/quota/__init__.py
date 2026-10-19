@@ -1,6 +1,6 @@
 """
-quota: plano e cota diária de tokens (README.md). A API pública é só domínio; a composição
-monta o módulo por `src.modules.quota.container`.
+quota: quota level and daily AI tokens (README.md). The public API is domain only; the composition
+builds the module through `src.modules.quota.container`.
 """
 from src.modules.quota.domain.entities.quota import Quota
 from src.modules.quota.domain.exceptions import (
@@ -9,9 +9,9 @@ from src.modules.quota.domain.exceptions import (
 )
 from src.modules.quota.domain.services.garden_quota import IGardenQuota
 from src.modules.quota.domain.services.token_wallet import ITokenWallet
-from src.modules.quota.domain.value_objects.tier import (
+from src.modules.quota.domain.value_objects.level import (
     FeatureCost,
-    SubscriptionTier,
+    QuotaLevel,
 )
 
 __all__ = [
@@ -21,5 +21,5 @@ __all__ = [
     "PlantLimitExceededError",
     "Quota",
     "DailyQuotaExceededError",
-    "SubscriptionTier",
+    "QuotaLevel",
 ]

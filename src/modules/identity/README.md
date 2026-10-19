@@ -35,7 +35,7 @@ portas em memória dos testes daqui.
 ## Decisões
 
 - **Conta:**
-  - Todo usuário nasce `pending_verification`. O cadastro não cria nada em `subscriptions`:
+  - Todo usuário nasce `pending_verification`. O cadastro não cria nada em `quotas`:
     quem não tem linha lá é FREE.
   - E-mail na forma canônica (`normalize_email`: sem espaços nas pontas, em minúsculas) no
     cadastro, no login e na troca. O banco garante com o CHECK `ck_users_email_normalized`.

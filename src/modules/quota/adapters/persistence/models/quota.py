@@ -1,35 +1,28 @@
 import uuid
 from datetime import date, datetime
-from enum import Enum
 
 from sqlalchemy import UUID, Date, DateTime, ForeignKey, Integer
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from src.modules.quota.domain.value_objects.tier import SubscriptionTier
-from src.shared.adapters import Base, utcnow
-
-
-def _plan_names(_: type[Enum]) -> list[str]:
-    """`values_callable` do SAEnum: o banco guarda o nome do plano ("FREE", "PRO")."""
-    return [tier.plan_name for tier in SubscriptionTier]
+from src.modules.quota.domain.value_objects.level import QuotaLevel
+from src.shared.adapters import Base, enum_values, utcnow
 
 
 class QuotaModel(Base):
     """
-    Uma linha por usuário que já gastou tokens; sem linha = FREE. A chave é o
-    próprio `user_id` (sem `AuditMixin`: não há ID próprio nem exclusão lógica).
+    One row per user who has spent tokens or was granted an extended quota; no row = standard. The
+    key is the `user_id` itself (no `AuditMixin`: there is no own ID nor soft delete).
     """
-    __tablename__ = "subscriptions"
+    __tablename__ = "quotas"
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    # Mesmo tipo do Postgres que a coluna `users.subscription` usava
-    tier: Mapped[SubscriptionTier] = mapped_column(
-        SAEnum(SubscriptionTier, values_callable=_plan_names, name="subscriptionTier"),
+    level: Mapped[QuotaLevel] = mapped_column(
+        SAEnum(QuotaLevel, values_callable=enum_values, name="quotaLevel"),
         nullable=False,
     )
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

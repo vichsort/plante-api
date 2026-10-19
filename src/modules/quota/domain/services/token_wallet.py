@@ -6,14 +6,14 @@ from src.modules.quota.domain.policies.quota_policy import (
     QuotaPolicy,
 )
 from src.modules.quota.domain.ports.unit_of_work import IQuotaUnitOfWork
-from src.modules.quota.domain.value_objects.tier import FeatureCost
+from src.modules.quota.domain.value_objects.level import FeatureCost
 from src.shared.domain import LocalCalendar, UserId
 
 
 class ITokenWallet(ABC):
     """
     A cota diária de tokens, para quem consome IA. Ela protege os créditos dos provedores, então é
-    regra de verdade (o plano em si é demonstrativo). O uso esperado:
+    regra de verdade. O uso esperado:
 
     1. conferir o saldo (`ensure_can_*`) **antes** das chamadas caras;
     2. chamar os provedores fora da transação;
@@ -66,4 +66,4 @@ class TokenWallet(ITokenWallet):
 
     async def _current(self, user_id: UserId) -> Quota:
         async with self.uow as uow:
-            return await uow.quotas.get(user_id) or Quota.free_for(user_id)
+            return await uow.quotas.get(user_id) or Quota.standard_for(user_id)

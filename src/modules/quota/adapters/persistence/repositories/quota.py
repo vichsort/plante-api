@@ -12,7 +12,7 @@ from src.modules.quota.adapters.persistence.models.quota import (
 )
 from src.modules.quota.domain.entities.quota import Quota
 from src.modules.quota.domain.ports.repository import IQuotaRepository
-from src.modules.quota.domain.value_objects.tier import SubscriptionTier
+from src.modules.quota.domain.value_objects.level import QuotaLevel
 from src.shared.adapters import utcnow
 from src.shared.domain import UserId, UserNotFoundError
 
@@ -30,7 +30,7 @@ class QuotaRepository(IQuotaRepository):
         # Garante a linha (sem corrida entre duas primeiras cobranças) e só então trava
         ensure_row = insert(QuotaModel).values(
             user_id=user_id,
-            tier=SubscriptionTier.FREE,
+            level=QuotaLevel.STANDARD,
             tokens_used_today=0,
             created_at=now,
             updated_at=now,

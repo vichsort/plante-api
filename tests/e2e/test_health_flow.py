@@ -37,7 +37,7 @@ async def test_unhealthy_plant_gets_enriched_diagnosis(api: Api, db_session: Asy
 
 
 async def test_enriched_diagnosis_costs_two_tokens(api: Api) -> None:
-    # Arrange: FREE tem 3 tokens; identificar gastou 1
+    # Arrange: standard tem 3 tokens; identificar gastou 1
     headers = await api.signed_up()
     plant_id = await api.plant_in_garden(headers)
     await _diagnose(api, headers, plant_id)
@@ -51,7 +51,7 @@ async def test_enriched_diagnosis_costs_two_tokens(api: Api) -> None:
 
 
 async def test_diagnosis_without_tokens_never_reaches_the_providers(api: Api) -> None:
-    # Arrange: identificar 3 vezes esgota a cota do FREE
+    # Arrange: identificar 3 vezes esgota a cota standard
     headers = await api.signed_up()
     plant_id = await api.plant_in_garden(headers)
     for _ in range(2):

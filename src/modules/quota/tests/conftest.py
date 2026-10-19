@@ -1,4 +1,4 @@
-"""Contas para a FK de `subscriptions`: o módulo não conhece o identity, então grava a linha direto."""
+"""Contas para a FK de `quotas`: o módulo não conhece o identity, então grava a linha direto."""
 from collections.abc import Awaitable, Callable
 from uuid import uuid4
 

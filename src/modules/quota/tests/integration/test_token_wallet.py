@@ -1,4 +1,4 @@
-"""A cota de verdade, sobre o Postgres: sem linha = FREE; a cobrança trava a linha na transação de quem chama."""
+"""A cota de verdade, sobre o Postgres: sem linha = standard; a cobrança trava a linha na transação de quem chama."""
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -15,7 +15,7 @@ from src.modules.quota.domain.exceptions import (
 )
 from src.modules.quota.domain.services.garden_quota import GardenQuota
 from src.modules.quota.domain.services.token_wallet import TokenWallet
-from src.modules.quota.domain.value_objects.tier import FeatureCost
+from src.modules.quota.domain.value_objects.level import FeatureCost
 from src.shared.domain import LocalCalendar, UserId, UserNotFoundError
 
 NOW = datetime(2026, 10, 16, 15, 0, tzinfo=UTC)
@@ -34,7 +34,7 @@ async def _charge(factory: async_sessionmaker[AsyncSession], user_id: UserId, co
         await caller.commit()
 
 
-async def test_user_without_a_row_has_the_free_quota(session_factory: async_sessionmaker[AsyncSession]) -> None:
+async def test_user_without_a_row_has_the_standard_quota(session_factory: async_sessionmaker[AsyncSession]) -> None:
     # Arrange
     wallet = TokenWallet(_uow(session_factory), CALENDAR)
 
@@ -89,12 +89,12 @@ async def test_charging_a_user_without_account_is_not_found(session_factory: asy
         await _charge(session_factory, UserId(uuid4()), FeatureCost.IDENTIFY)
 
 
-async def test_garden_quota_follows_the_plan(session_factory: async_sessionmaker[AsyncSession]) -> None:
+async def test_garden_quota_follows_the_level(session_factory: async_sessionmaker[AsyncSession]) -> None:
     # Arrange
     quota = GardenQuota(_uow(session_factory))
     user_id = UserId(uuid4())
 
-    # Act & Assert: FREE (sem linha) até 3
+    # Act & Assert: standard (sem linha) até 3
     await quota.ensure_can_add_plant(user_id, plants_in_garden=2, now=NOW)
     with pytest.raises(PlantLimitExceededError):
         await quota.ensure_can_add_plant(user_id, plants_in_garden=3, now=NOW)

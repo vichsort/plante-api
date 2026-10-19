@@ -3,6 +3,6 @@ from src.shared.domain import IUnitOfWork
 
 
 class IQuotaUnitOfWork(IUnitOfWork):
-    """Planos e cotas dentro da transação (regras em `src.shared.domain.IUnitOfWork`)."""
+    """Quotas inside the transaction (regras em `src.shared.domain.IUnitOfWork`)."""
 
     quotas: IQuotaRepository

@@ -207,7 +207,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
         assert (FeedbackVerdict.WRONG, FeedbackOrigin.REMOVED_MISIDENTIFIED) in {(f.verdict, f.origin) for f in feedback}
     await db_session.execute(text("DELETE FROM users WHERE id = :id"), {"id": user.id})
 
-    for table in ("identifications", "user_plants", "health_records", "subscriptions"):
+    for table in ("identifications", "user_plants", "health_records", "quotas"):
         assert await _rows(db_session, table) == [], f"{table} deveria ter saído com o usuário"
 
     training_rows = {

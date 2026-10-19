@@ -7,15 +7,15 @@ from src.shared.domain import UserId
 class IQuotaRepository(ABC):
     @abstractmethod
     async def get(self, user_id: UserId) -> Quota | None:
-        """A assinatura gravada, ou `None` (o usuário é FREE com a cota cheia)."""
+        """The stored quota, or `None` (the user is standard with a full quota)."""
         ...
 
     @abstractmethod
     async def lock(self, user_id: UserId) -> Quota:
         """
-        A assinatura travada até o fim da transação, criada como FREE se ainda não existir. Duas
-        cobranças simultâneas do mesmo usuário esperam uma pela outra em vez de uma sobrescrever a
-        outra. Lança `UserNotFoundError` se o usuário não tem conta.
+        The quota locked until the end of the transaction, created as standard if missing. Two
+        concurrent charges for the same user wait for each other instead of one overwriting the
+        other. Raises `UserNotFoundError` if the user has no account.
         """
         ...
 

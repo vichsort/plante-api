@@ -3,53 +3,52 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from src.modules.quota.domain.value_objects.tier import (
-    FeatureCost,
-    SubscriptionTier,
-)
+from src.modules.quota.domain.value_objects.level import FeatureCost, QuotaLevel
 from src.shared.domain import UserId
 
 
 @dataclass(slots=True)
 class Quota:
     """
-    Plano e cota diária de tokens de um usuário. Quem nunca teve linha gravada é FREE com a cota
-    cheia (`free_for`): o cadastro não precisa criar nada aqui.
+    A user's quota level and daily token counter. A user without a stored row is `standard` with a
+    full quota (`standard_for`), so signing up does not need to create anything here.
     """
 
     user_id: UserId
-    tier: SubscriptionTier
+    level: QuotaLevel
     expires_at: datetime | None = None
     tokens_used_today: int = 0
-    # Dia local a que `tokens_used_today` se refere: em outro dia o contador vale zero
+    # Local day `tokens_used_today` refers to: on any other day the counter is zero
     tokens_day: date | None = None
 
     def __post_init__(self) -> None:
         if self.tokens_used_today < 0:
             raise ValueError("tokens_used_today cannot be negative.")
-        if self.tier == SubscriptionTier.PRO and self.expires_at is None:
-            raise ValueError("PRO quota requires an expiration date.")
+        if self.level is QuotaLevel.EXTENDED and self.expires_at is None:
+            raise ValueError("An extended quota requires an expiration date.")
+        if self.level is QuotaLevel.STANDARD and self.expires_at is not None:
+            raise ValueError("A standard quota has no expiration date.")
 
     @classmethod
-    def free_for(cls, user_id: UserId) -> Quota:
-        return cls(user_id=user_id, tier=SubscriptionTier.FREE)
+    def standard_for(cls, user_id: UserId) -> Quota:
+        return cls(user_id=user_id, level=QuotaLevel.STANDARD)
 
     def tokens_used_on(self, today: date) -> int:
-        """A cota é diária: o contador gravado só vale no dia a que se refere."""
+        """The quota is daily: the stored counter only counts on the day it refers to."""
         return self.tokens_used_today if self.tokens_day == today else 0
 
     def consume_tokens(self, cost: FeatureCost, today: date) -> None:
-        """Zera ao virar o dia na primeira cobrança, sem cron (quem decide se pode é a política)."""
+        """Resets on the first charge of a new day, without a cron (the policy decides whether it may)."""
         self.tokens_used_today = self.tokens_used_on(today) + cost.value
         self.tokens_day = today
 
-    def is_pro(self, current_time: datetime) -> bool:
+    def is_extended(self, current_time: datetime) -> bool:
         return (
-            self.tier == SubscriptionTier.PRO
+            self.level is QuotaLevel.EXTENDED
             and self.expires_at is not None
             and current_time < self.expires_at
         )
 
-    def active_tier(self, current_time: datetime) -> SubscriptionTier:
-        """PRO vencido conta como FREE."""
-        return SubscriptionTier.PRO if self.is_pro(current_time) else SubscriptionTier.FREE
+    def active_level(self, current_time: datetime) -> QuotaLevel:
+        """An expired extended quota counts as standard."""
+        return QuotaLevel.EXTENDED if self.is_extended(current_time) else QuotaLevel.STANDARD

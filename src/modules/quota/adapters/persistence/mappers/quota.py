@@ -10,7 +10,7 @@ class QuotaMapper:
     def to_domain(model: QuotaModel) -> Quota:
         return Quota(
             user_id=UserId(model.user_id),
-            tier=model.tier,
+            level=model.level,
             expires_at=model.expires_at,
             tokens_used_today=model.tokens_used_today,
             tokens_day=model.tokens_day,
@@ -20,7 +20,7 @@ class QuotaMapper:
     def to_model(entity: Quota) -> QuotaModel:
         return QuotaModel(
             user_id=entity.user_id,
-            tier=entity.tier,
+            level=entity.level,
             expires_at=entity.expires_at,
             tokens_used_today=entity.tokens_used_today,
             tokens_day=entity.tokens_day,

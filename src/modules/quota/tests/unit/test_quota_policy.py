@@ -8,87 +8,90 @@ from src.modules.quota.domain.exceptions import (
     DailyQuotaExceededError,
     PlantLimitExceededError,
 )
-from src.modules.quota.domain.policies.quota_policy import (
-    QuotaPolicy,
-)
-from src.modules.quota.domain.value_objects.tier import (
-    FeatureCost,
-    SubscriptionTier,
-)
+from src.modules.quota.domain.policies.quota_policy import QuotaPolicy
+from src.modules.quota.domain.value_objects.level import FeatureCost, QuotaLevel
 from src.shared.domain import UserId
 
 NOW = datetime(2026, 10, 16, 15, 0, tzinfo=UTC)
 TODAY = date(2026, 10, 16)
 
 
-def _free(tokens_used_today: int = 0, tokens_day: date | None = TODAY) -> Quota:
-    return Quota(UserId(uuid4()), SubscriptionTier.FREE, tokens_used_today=tokens_used_today, tokens_day=tokens_day)
+def _standard(tokens_used_today: int = 0, tokens_day: date | None = TODAY) -> Quota:
+    return Quota(UserId(uuid4()), QuotaLevel.STANDARD, tokens_used_today=tokens_used_today, tokens_day=tokens_day)
 
 
-def _pro(expires_at: datetime = datetime(2099, 1, 1, tzinfo=UTC), tokens_used_today: int = 0) -> Quota:
-    return Quota(UserId(uuid4()), SubscriptionTier.PRO, expires_at, tokens_used_today=tokens_used_today, tokens_day=TODAY)
+def _extended(expires_at: datetime = datetime(2099, 1, 1, tzinfo=UTC), tokens_used_today: int = 0) -> Quota:
+    return Quota(UserId(uuid4()), QuotaLevel.EXTENDED, expires_at, tokens_used_today=tokens_used_today, tokens_day=TODAY)
 
 
-def test_without_a_stored_row_the_user_is_free_with_a_full_quota() -> None:
+def test_without_a_stored_row_the_user_is_standard_with_a_full_quota() -> None:
     # Act
-    quota = Quota.free_for(UserId(uuid4()))
+    quota = Quota.standard_for(UserId(uuid4()))
 
     # Assert
-    assert (quota.active_tier(NOW), quota.tokens_used_on(TODAY)) == (SubscriptionTier.FREE, 0)
+    assert (quota.active_level(NOW), quota.tokens_used_on(TODAY)) == (QuotaLevel.STANDARD, 0)
 
 
-def test_pro_requires_an_expiration_date() -> None:
+def test_extended_requires_an_expiration_date() -> None:
     # Act & Assert
     with pytest.raises(ValueError, match="expiration"):
-        Quota(UserId(uuid4()), SubscriptionTier.PRO)
+        Quota(UserId(uuid4()), QuotaLevel.EXTENDED)
 
 
-def test_free_user_can_add_up_to_limit() -> None:
+def test_standard_has_no_expiration_date() -> None:
+    # Act & Assert
+    with pytest.raises(ValueError, match="expiration"):
+        Quota(UserId(uuid4()), QuotaLevel.STANDARD, expires_at=NOW)
+
+
+def test_standard_user_can_add_up_to_limit() -> None:
     # Act & Assert: 2 plantas no jardim, a 3ª ainda cabe
-    QuotaPolicy.enforce_can_add_to_garden(_free(), plants_in_garden=2, now=NOW)
+    QuotaPolicy.enforce_can_add_to_garden(_standard(), plants_in_garden=2, now=NOW)
 
 
-def test_free_user_exceeds_garden_limit_raises() -> None:
+def test_standard_user_exceeds_garden_limit_raises() -> None:
     # Act & Assert
     with pytest.raises(PlantLimitExceededError):
-        QuotaPolicy.enforce_can_add_to_garden(_free(), plants_in_garden=3, now=NOW)
+        QuotaPolicy.enforce_can_add_to_garden(_standard(), plants_in_garden=3, now=NOW)
 
 
 def test_garden_limit_details_tell_the_count_and_the_limit_apart() -> None:
     # Act: before, both fields carried the limit, as text
     with pytest.raises(PlantLimitExceededError) as raised:
-        QuotaPolicy.enforce_can_add_to_garden(_free(), plants_in_garden=4, now=NOW)
+        QuotaPolicy.enforce_can_add_to_garden(_standard(), plants_in_garden=4, now=NOW)
 
     # Assert
-    assert raised.value.details == {"plan": "FREE", "current_count": 4, "max_allowed": 3}
+    assert raised.value.details == {"quota": "standard", "current_count": 4, "max_allowed": 3}
+    assert raised.value.message == "The standard quota allows up to 3 plants in the garden."
 
 
-def test_daily_quota_tells_the_plan_and_does_not_assume_free() -> None:
+def test_daily_quota_tells_the_level_and_does_not_assume_standard() -> None:
     # Arrange: before, a Pro user out of tokens was told to subscribe to Pro
-    quota = _pro(tokens_used_today=30)
+    quota = _extended(tokens_used_today=10)
 
     # Act
     with pytest.raises(DailyQuotaExceededError) as raised:
         QuotaPolicy.enforce_can_identify_plant(quota, NOW, TODAY)
 
     # Assert
-    assert raised.value.details == {"plan": "PRO", "used_today": 30, "daily_limit": 30}
+    assert raised.value.details == {"quota": "extended", "used_today": 10, "daily_limit": 10}
+    assert "plan" not in raised.value.message.lower()
     assert "subscribe" not in raised.value.message.lower()
 
 
-def test_pro_user_garden_limit() -> None:
+def test_extended_user_garden_limit() -> None:
     # Arrange
-    quota = _pro()
+    quota = _extended()
 
     # Act & Assert
-    QuotaPolicy.enforce_can_add_to_garden(quota, plants_in_garden=49, now=NOW)
+    QuotaPolicy.enforce_can_add_to_garden(quota, plants_in_garden=9, now=NOW)
     with pytest.raises(PlantLimitExceededError):
-        QuotaPolicy.enforce_can_add_to_garden(quota, plants_in_garden=50, now=NOW)
+        QuotaPolicy.enforce_can_add_to_garden(quota, plants_in_garden=10, now=NOW)
 
 
-def test_expired_pro_has_free_limits() -> None:
-    # Arrange: antes valia o plano gravado, e o PRO vencido seguia com os limites de PRO
-    quota = _pro(expires_at=NOW - timedelta(days=1), tokens_used_today=3)
+def test_expired_extended_has_standard_limits() -> None:
+    # Arrange: before, the stored plan counted, and an expired PRO kept the PRO limits
+    quota = _extended(expires_at=NOW - timedelta(days=1), tokens_used_today=3)
 
     # Act & Assert
     with pytest.raises(PlantLimitExceededError):
@@ -99,7 +102,7 @@ def test_expired_pro_has_free_limits() -> None:
 
 def test_token_limit_enforcement() -> None:
     # Arrange
-    quota = _free(tokens_used_today=3)
+    quota = _standard(tokens_used_today=3)
 
     # Act & Assert
     with pytest.raises(DailyQuotaExceededError):
@@ -109,8 +112,8 @@ def test_token_limit_enforcement() -> None:
 
 
 def test_quota_is_full_again_on_the_next_day() -> None:
-    # Arrange: antes nada zerava o contador, e o FREE ficava sem tokens para sempre
-    quota = _free(tokens_used_today=3, tokens_day=TODAY - timedelta(days=1))
+    # Arrange: before, nothing reset the counter, and a FREE user ran out of tokens for good
+    quota = _standard(tokens_used_today=3, tokens_day=TODAY - timedelta(days=1))
 
     # Act & Assert
     QuotaPolicy.enforce_can_identify_plant(quota, NOW, TODAY)
@@ -119,7 +122,7 @@ def test_quota_is_full_again_on_the_next_day() -> None:
 
 def test_first_charge_of_a_new_day_restarts_the_counter() -> None:
     # Arrange
-    quota = _free(tokens_used_today=3, tokens_day=TODAY - timedelta(days=1))
+    quota = _standard(tokens_used_today=3, tokens_day=TODAY - timedelta(days=1))
 
     # Act
     quota.consume_tokens(FeatureCost.IDENTIFY, TODAY)
@@ -130,7 +133,7 @@ def test_first_charge_of_a_new_day_restarts_the_counter() -> None:
 
 def test_charges_on_the_same_day_add_up() -> None:
     # Arrange
-    quota = _free(tokens_used_today=1)
+    quota = _standard(tokens_used_today=1)
 
     # Act
     quota.consume_tokens(FeatureCost.DEEP_ANALYSIS, TODAY)
@@ -141,8 +144,8 @@ def test_charges_on_the_same_day_add_up() -> None:
 
 @pytest.mark.parametrize("used, can_enrich", [(0, True), (1, True), (2, False)])
 def test_diagnosis_enrichment_only_when_both_tokens_fit(used: int, can_enrich: bool) -> None:
-    # Arrange: FREE tem 3; diagnóstico custa 1 e o complemento do Gemini mais 1
-    quota = _free(tokens_used_today=used)
+    # Arrange: standard tem 3; diagnóstico custa 1 e o complemento do Gemini mais 1
+    quota = _standard(tokens_used_today=used)
 
     # Act & Assert
     assert QuotaPolicy.can_enrich_diagnosis(quota, NOW, TODAY) is can_enrich
@@ -150,4 +153,4 @@ def test_diagnosis_enrichment_only_when_both_tokens_fit(used: int, can_enrich: b
 
 def test_identifying_does_not_depend_on_garden_size() -> None:
     # Act & Assert: identificar não adiciona planta ao jardim, então jardim cheio não bloqueia
-    QuotaPolicy.enforce_can_identify_plant(_free(), NOW, TODAY)
+    QuotaPolicy.enforce_can_identify_plant(_standard(), NOW, TODAY)

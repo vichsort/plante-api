@@ -10,7 +10,7 @@ from src.shared.domain import UserId
 
 
 class IGardenQuota(ABC):
-    """Quantas plantas o plano ativo do usuário deixa ter no jardim."""
+    """How many plants the user's active quota allows in the garden."""
 
     @abstractmethod
     async def ensure_can_add_plant(self, user_id: UserId, plants_in_garden: int, now: datetime) -> None:
@@ -24,5 +24,5 @@ class GardenQuota(IGardenQuota):
 
     async def ensure_can_add_plant(self, user_id: UserId, plants_in_garden: int, now: datetime) -> None:
         async with self.uow as uow:
-            quota = await uow.quotas.get(user_id) or Quota.free_for(user_id)
+            quota = await uow.quotas.get(user_id) or Quota.standard_for(user_id)
         QuotaPolicy.enforce_can_add_to_garden(quota, plants_in_garden, now)
