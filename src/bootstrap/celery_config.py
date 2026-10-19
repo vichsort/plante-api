@@ -18,8 +18,9 @@ celery_app = Celery(
     # Carregados pelo worker ao subir; sem isto ele não registra nenhuma task (só nomes, sem
     # importar: `src.workers` fica acima desta camada)
     include=[
-        "src.workers.notification_tasks",
-        "src.workers.garden_tasks",
+        "src.bootstrap.worker",
+        "src.modules.identity.workers.tasks",
+        "src.modules.garden.workers.tasks",
     ],
 )
 

@@ -47,7 +47,7 @@ Leia esta seção primeiro. Ela substitui o "Próximo passo" antigo do fim da or
 Suíte: 352 testes (com os 33 ponta a ponta da `refactor/characterization-tests`). CI: `ruff`, `mypy`, `lint-imports`, `pytest`.
 
 **Falta validar a `v0.1.0`/`v0.1.1`/`v0.1.2` (depende das credenciais do usuário; não deu para testar em 2026-10-16):**
-- [ ] Testes de contrato contra as APIs reais: `uv run pytest -m contract` no PC de casa (~2 créditos do Kindwise). Os adapters mudaram (sinais tipados) depois da última rodada.
+- [ ] Testes de contrato contra as APIs reais: `uv run --env-file .env pytest -m contract` no PC de casa (~2 créditos do Kindwise). Os adapters mudaram (sinais tipados) depois da última rodada.
 - [ ] Um `/identify` real com as chaves e o S3 de verdade. Risco: bucket novo bloqueia `ACL="public-read"` por padrão, e o upload (inclusive a cópia de treino) pode falhar. Se falhar, corrigir numa `v0.1.3`.
 
 **Manutenção do CI (avisos do GitHub no primeiro run):**
@@ -56,7 +56,7 @@ Suíte: 352 testes (com os 33 ponta a ponta da `refactor/characterization-tests`
 
 **Ordem combinada com o usuário:**
 1. ~~**Plano C: separar dados do usuário e dados de treino + anonimização**~~ ✅ (2026-10-15). Pendências que sobraram, na seção do plano: HEIC, motivo da exclusão como sinal, engine de confiança, geocodificação reversa.
-2. **Item 8: monólito modular.** Decidido em 2026-10-16; a seção "Item 8 — decisões" abaixo é a fonte. A `develop` saiu da `v0.1.1`. O milestone 0 (testes de caracterização) roda em `refactor/characterization-tests`. **É o próximo passo.** As validações acima não bloqueiam o item 8: um bug achado nelas vira fix na `main` e desce para a `develop`.
+2. **Item 8: monólito modular.** Código concluído em 2026-10-19 (branches empilhadas, sem push; ver o fim de "Milestones"). Decidido em 2026-10-16; a seção "Item 8 — decisões" abaixo é a fonte. A `develop` saiu da `v0.1.1`. O milestone 0 (testes de caracterização) roda em `refactor/characterization-tests`. **É o próximo passo.** As validações acima não bloqueiam o item 8: um bug achado nelas vira fix na `main` e desce para a `develop`.
 3. Depois:
    - fotos públicas no S3 (URLs assinadas);
    - engine de confiança do rótulo;
@@ -327,6 +327,29 @@ shared
   - Resultado: training expõe `ITrainingRecorder.record_feedback(target, verdict, origin)`, e identification, health e garden ficam com uma cola fina (dono → alvo tipado → porta).
   - Alinhar health a `health_records.get_for_user` (hoje confere o dono à mão).
 
+### Como migrar um módulo (checklist, escrito em 2026-10-19 depois de subscription, identity e identification)
+
+Leia antes de começar o próximo. Cada item já custou tempo uma vez.
+
+1. **Branch:** `refactor/module-<x>` sai da branch do módulo anterior (empilhada). Se o nome já existir (ex.: o piloto usou `refactor/module-identification`), use um sufixo e registre.
+2. **OpenAPI de referência antes de mexer:** gere o JSON (`app.openapi()`, `sort_keys=True`) aqui e na `develop` (worktree temporário no scratchpad) e confira que são iguais. No fim, tem que sair idêntico; diferença = mudança de contrato = parar e perguntar.
+3. **Levantamento:** `grep` no código antigo (`src/domain`, `src/adapters`, `src/api`, `src/workers`) e em `tests/` por tudo do subdomínio, inclusive quem usa de fora (outros use cases, routers, eventos, mappers, `tests/e2e/conftest.py`, `tests/factories.py`, `tests/integration/persistence/seed.py`).
+4. **Mover com `git mv`** (preserva o histórico) e trocar os imports em massa; depois revisar arquivo por arquivo. Tirar o que saiu dos barrels antigos (`src/adapters/persistence/{models,mappers,repositories}/__init__.py`, `src/domain/exceptions/__init__.py`, `src/domain/value_objects/ids.py`, `src/domain/events/domain_events.py`) e do `IUnitOfWork`/`SqlAlchemyUnitOfWork` antigos. Pacote antigo que ficou vazio: `git rm` do `__init__.py`.
+5. **Módulo:** template da seção acima; todo pacote com `__init__.py` (vazio, menos a raiz e `api/`). Raiz exporta só domínio. UoW próprio (`I<X>UnitOfWork` + `SqlAlchemy<X>UnitOfWork`). Service para outros módulos lê "dentro da transação de quem chama" (o UoW compartilhado cuida disso).
+6. **Composição:** container do módulo em `src/bootstrap/container.py` (antes do `use_cases`, que pode depender dele), `wire` em `src/bootstrap/wiring.py` (router e tasks), `include_router` no `main.py` **na mesma posição** da rota antiga (a ordem muda o OpenAPI), modelo registrado em `src/bootstrap/models.py`. Tasks: no `include` do `celery_app` e com `Provide[<X>Container.y]` (o módulo não importa o container raiz).
+7. **mypy estrito:** `providers.Selector` e `providers.Singleton(...)` aninhado como argumento tipam como `Any` num container de módulo (só os de `src/bootstrap` estão na lista de cola). Use providers nomeados e `providers.Callable` com função tipada.
+8. **Fronteiras dos testes:**
+   - Teste de módulo só importa de outro módulo a raiz e o `tests.fakes` dele; do shared, as camadas e `src.shared.tests.fakes` (sanitizer, storage, publisher).
+   - Precisa de linha em tabela de outro módulo por causa de FK? SQL direto no teste (ex.: `identification/tests/integration/test_identification_lookup.py`).
+   - Módulo não lê o `Settings` (é da composição): teste de contrato lê as chaves do ambiente.
+   - Os testes da raiz (`tests/`) podem importar qualquer coisa: são o código antigo até o fim.
+   - Ajudante de teste que não é dublê de porta (ex.: `provider_responses.py`) não atravessa módulos: copie ou suba para o shared se for de verdade comum.
+9. **Testes do módulo:** AAA em todos (`# Arrange`, `# Act`, `# Assert`; `# Act & Assert` com `pytest.raises`); fakes em memória que guardam estado, não `AsyncMock` com `assert_called`. Rotas testadas num app mínimo (molde: `identity/tests/integration/test_router.py`).
+10. **Overrides que mudam de lugar:** `tests/e2e/conftest.py` (providers do container), testes de rota antigos (`client.app.state.container.use_cases.x`), `tests/test_container_wiring.py` (incluir o container do módulo no laço que resolve os providers).
+11. **Docs:** README do módulo (Propósito, API pública, Decisões, Erros; todo erro com `code` próprio documentado), tirar a seção do `docs/domain-map.md`, `ARCHITECTURE.md` só se uma regra mudar.
+12. **Verificação final:** `ruff check src tests migrations conftest.py`, `mypy`, `lint-imports`, `pytest` (com Docker para os testcontainers) e o diff do OpenAPI. Pastas só com `__pycache__` que sobram de outra branch fazem o teste de layout falhar localmente: não são do commit.
+13. **Commits:** por tema, uma linha, sem co-autor (`test:` para regra/infra de teste, `refactor:` para o módulo, `docs:` só para o `todo.md`). Registrar aqui o módulo e o "Decidido sem o usuário".
+
 ### Milestones
 0. ~~**Testes de caracterização ponta a ponta**~~ ✅ (2026-10-16, branch `refactor/characterization-tests`).
    - O que existe: `tests/e2e/`, 33 testes. A requisição HTTP passa pelo app real (middlewares, rotas, use cases, UoW) e grava em Postgres e Redis reais.
@@ -385,7 +408,72 @@ shared
      - `FeatureCost.REIDENTIFY` removido (ninguém usava).
      - Contrato novo do import-linter, "Dependências entre módulos" (o `ARCHITECTURE.md` previa; o piloto não tinha criado).
      - Rota de módulo: a composição liga o container aninhado (`container.subscription().wire(...)`), porque a rota não pode importar o container raiz.
-   - **Para a validação do identity:** o `POST /garden` documenta 4002, mas o identity vai deixar de carregar o usuário ali (o limite vem do subscription). A resposta vira inalcançável; tirar do OpenAPI é mudança de contrato (só documentação). Perguntar.
+   - **identity** ✅ (branch `refactor/module-identity`, empilhada na do subscription, sem push). **Validado pelo usuário em 2026-10-19**; daqui em diante, sozinho.
+     - Conta, sessão (JWT, refresh com rotação), código de verificação (Redis + SES), troca de e-mail/senha e localização. Rotas `/auth/*` e `/profile/email|password|location`; task `notification.send_verification_email`.
+     - Para os outros módulos, `IUserDirectory`: `region_of` (identify e diagnose gravam a região no treino) e `ensure_exists`.
+     - Testes do módulo com AAA e fakes em memória (estado, não chamadas de `AsyncMock`); 46 testes. A regra dos `raises` passou a cobrir os use cases dos módulos.
+     - Teste de fumaça com worker real (Redis em contêiner, `celery -A src.workers worker`, duas tasks seguidas): ok. Virou teste da suíte (`tests/unit/workers/test_worker_composition.py`), que falha sem o reset dos singletons.
+   - **Decidido sem o usuário (vai no PR):**
+     - `IUserDirectory` em vez de só `user_region`: o `ensure_exists` mantém o 404 (4002) que o `POST /garden` documenta. Assim o contrato não muda, e a pergunta que eu ia fazer sumiu.
+     - Tasks de módulo por wiring (`Provide[IdentityContainer.x]`), já que o módulo não pode importar o container raiz. O worker carrega `src/bootstrap/worker.py`, que zera os singletons depois de cada task (cada uma roda num event loop novo; sem isso, a segunda falha com `Event loop is closed`, conferido).
+     - `src/bootstrap/wiring.py`: um `wire` só para o app, o worker e os testes.
+     - `CeleryPublisher` no shared, com uma `EventRoute` por módulo (o plano previa "cada módulo registra o roteamento").
+     - `MessageResponse` no `src.shared.api` (todos os routers usam).
+     - `ForbiddenError` (4009) ficou no código antigo: só a rega usa; vai com o garden.
+     - Nos módulos, os arquivos de use case não têm o sufixo `_use_case` (os nomes das classes não mudaram).
+   - **Achados, corrigidos na `develop` em 2026-10-19** (a pedido do usuário, na `develop` e não na `main`) e descidos para subscription e identity por merge:
+     - Estado do `UserLocation`: o `title()` fazia "SP" virar "Sp" (inclusive na região do treino) e "Rio Grande do Sul" virar "Rio Grande Do Sul". Agora: sigla em maiúsculas; nome com inicial maiúscula, menos os conectivos (de/da/do/das/dos/e).
+     - Conexões do worker: Redis e banco são fechados no fim de cada task, dentro do loop dela. Na `develop`, as tasks antigas usam `task_container` (`src/bootstrap/connections.py`, que também recebeu o fechamento do `main.py`). Nos módulos, o `src/bootstrap/worker.py` registra a limpeza com `on_task_loop_end` (novo no `src.shared.workers`), que substituiu o reset no `task_postrun`. O teste do worker real falha com o aviso "Event loop is closed".
+
+   - **identification** ✅ (branch `refactor/module-identification-v2`, empilhada na do identity, sem push; o nome sem sufixo já era do piloto, PR #4). 2026-10-19.
+     - `Identification`, `ConfidenceScore`, `ConsensusResult`/`ConsensusPolicy`, portas, use cases identify e feedback, `PlantIdentifiedEvent`, erros 4011/4012 e `NotAPlantError`; adapters Kindwise (só `/identification`), PlantNet, consenso e breaker; persistência e rotas `/identify`.
+     - Para o garden, `IIdentificationLookup` (`get_for_user`, lança 4012); o `AddPlantToGardenUseCase` usa ele em vez de `uow.identifications`.
+     - Testes do módulo com AAA e fakes em memória (59 unitários + 8 de integração; 5 de contrato fora da execução padrão); OpenAPI idêntico ao da `develop`.
+   - **Decidido sem o usuário (vai no PR):**
+     - `KindwiseClient` no shared (URL, chave, erros); a saúde ficou com o próprio adapter (`KindwiseHealthAnalyzer`, ainda código antigo), com a cópia do contrato de resposta do endpoint dela. Era o previsto no plano (ISP).
+     - Escolha consenso × só Kindwise por `Callable` tipado em vez do `Selector` (que tipa como `Any` e comparava o bool como texto). Novo teste confere a escolha pelos dois valores de `CONSENSUS_ENABLED`.
+     - `PLANTE_4010_IDENTIFICATION_FAILED` aposentado: nunca era lançado nem aparecia no OpenAPI.
+     - Regra dos barrels: os **testes** de um módulo podem importar os dublês publicados por outro (`src.modules.<x>.tests.fakes`) e pelo shared (`src.shared.tests.fakes`, novo: `MarkingSanitizer`, `RecordingImageStorage`, `RecordingPublisher`). O plano já punha os fakes no dono da porta; o identification é o primeiro módulo cujos testes dependem de outros. Provada em `test_rules.py`; `ARCHITECTURE.md` atualizado.
+     - Teste de integração do lookup grava usuário, espécie e amostra de treino com SQL direto (as tabelas são de outros módulos; o teste só enxerga a API pública deles).
+     - Respostas reais dos provedores continuam em `tests/fixtures/providers` (catálogo único com as da saúde).
+     - Testes de contrato no módulo, com as chaves do ambiente: `uv run --env-file .env pytest -m contract` (o módulo não lê o `Settings`).
+   - **Achado, corrigido só nesta branch (decisão do usuário, 2026-10-19):** o Kindwise de produção lia só `PLANT_ID_API_KEY`, mas o `.env.example`, o README e o teste de contrato usam `KINDWISE_API_KEY`; com o `.env` do exemplo, o `/identify` real mandava a chave vazia (401 → `ExternalServiceError`). Agora `Settings.kindwise_key`: `KINDWISE_API_KEY`, com `PLANT_ID_API_KEY` como nome antigo. A `main` (`v0.1.x`) continua com o bug até esta pilha entrar: na validação do `/identify` real com a `v0.1.x`, usar `PLANT_ID_API_KEY`.
+
+   - **garden** ✅ (branch `refactor/module-garden`, empilhada na do identification, sem push). 2026-10-19.
+     - `UserPlant`/`GardenPlant`, `CareSchedule`, `CareInterval`, `Streak`, os três eventos, erros 4001/4009/4016; use cases add, water, delete, garden, details e o cron; persistência; rotas `/garden` e `/plants` num router só (mesma ordem no OpenAPI); task `garden.break_missed_streaks` por wiring no container do worker.
+     - Para o health, `IPlantLookup` (`get_for_user`, lança 4001); diagnose e histórico usam ele em vez de `uow.user_plants`.
+     - Testes do módulo com AAA e fakes em memória (37 unitários + 13 de integração); OpenAPI idêntico ao da `develop`.
+   - **Decidido sem o usuário (vai no PR):**
+     - `/plants/{id}` ficou no garden (o detalhe é da planta do jardim); o prefixo `/plants` é só contrato.
+     - Sem tasks antigas, o `task_container` (fix da `develop`) saiu; o `close_connections` ficou, usado pelo app e pelo worker.
+     - O teste do agendamento no beat foi para `tests/unit/workers/test_celery_app.py` (é da composição); o do módulo roda a task com a dependência injetada.
+     - O container dos use cases antigos ficou só com saúde e conquistas, e só com as dependências que eles usam (saíram `settings`, `domain_publisher`, `species_registry`, `garden_quota`, `local_calendar`, `identification_lookup`).
+   - **Mudança de contrato aprovada pelo usuário (2026-10-19):** o `WaterPlantUseCase` conferia o dono depois de uma busca que já filtrava por ele, então o `PLANTE_4009_FORBIDDEN` nunca saía. O erro foi aposentado (não reutilizar o número) e a rota de rega não documenta mais o 403. Único diff do OpenAPI contra a `develop` desde o início do item 8.
+
+   - **health** ✅ (branch `refactor/module-health`, empilhada na do garden, sem push). 2026-10-19.
+     - `HealthRecord`, `HealthRecordId`, portas `IHealthAnalyzer`/`IHealthEnricher`/repositório, use cases diagnose, feedback e history, erro 4017; adapters Kindwise (só `/health_assessment`, sobre o `KindwiseClient` do shared), Gemini e o breaker; persistência; rotas `/diagnose`.
+     - O `HealthContainer` recebe da raiz o `KindwiseClient` e o breaker do Kindwise (os mesmos da identificação) e a chave do Gemini; o `AdaptersContainer` não conhece mais a saúde.
+     - Testes do módulo com AAA e fakes em memória (36 unitários + 10 de integração); suíte inteira com 459 testes; OpenAPI idêntico ao do garden (só o diff aprovado da rega contra a `develop`).
+   - **Decidido sem o usuário (vai no PR):**
+     - Saíram `get_latest_by_plant` (repositório) e `HealthRecord.needs_attention`: ninguém usava. `IHealthEnricher.analyze_disease` ficou, sem uso, porque o plano o nomeia (base da análise profunda).
+     - O Gemini da saúde cria o próprio `GeminiClient` a partir da chave, como o do catalog: sem breaker e sem estado compartilhado, um cliente único na composição não traria nada.
+     - Os testes dos adapters (Kindwise e Gemini) vieram de `tests/unit/adapters` para o módulo; lá ficaram só os de `translate_provider_errors` (shared). O ajudante `provider_responses.py` é uma cópia do do identification: teste de módulo só importa de outro o `tests.fakes`, e o ajudante não é dublê de porta.
+     - `tests/fakes.py` (o `FakeUnitOfWork` do código antigo, com `AsyncMock`) saiu: o diagnóstico era o último usuário.
+     - Teste de integração do repositório grava usuário, planta e amostras com SQL direto (como o do garden).
+   - **Achado (mantido, "Hoje:" no README):** a foto do diagnóstico é gravada com `upload_identification_image` (prefixo das fotos de identificação, com a vitalidade no lugar da confiança). Não muda o contrato; rever com a política de imagens privadas (URL assinada).
+
+   - **achievements** ✅ (branch `refactor/module-achievements`, empilhada na do health, sem push). 2026-10-19.
+     - Listagem das conquistas (`ListUserAchievementsUseCase`, rota `/profile/achievements`), `AchievementBadge` como catálogo, persistência própria. A regra de concessão continua para a segunda entrega.
+     - Testes do módulo com AAA e fakes em memória (5 unitários + 4 de integração).
+   - **Camadas antigas removidas** (mesma branch): `src/domain`, `src/adapters` e `src/api` não têm mais arquivos; saíram o UoW antigo, o `UseCasesContainer`, o `unit_of_work` do `InfraContainer`, o `docs/domain-map.md` e as entradas de cola do mypy para o código antigo. `src/workers` ficou só como entrada do Celery (`celery -A src.workers`).
+     - import-linter: camadas globais `main` → `workers` → `bootstrap` → `modules` → `shared`; `ARCHITECTURE.md` sem a seção de transição.
+     - `test_declared_errors.py` passou a olhar só os use cases dos módulos.
+     - Suíte inteira: 467 testes (conferida também num checkout limpo); OpenAPI só com o diff aprovado da rega contra a `develop`.
+   - **Decidido sem o usuário (vai no PR):**
+     - O `grant_badge` do repositório saiu (ninguém usava); a concessão, e quem gera o ID da conquista, fica para a segunda entrega. O `AchievementBadge` ficou, sem uso, como catálogo das medalhas.
+     - Os testes da composição em `tests/` (fora do `e2e/`) continuam sem a exigência de AAA (registrado no `ARCHITECTURE.md`).
+   - **Achado (mantido, "Hoje:" no README):** nada concede conquistas (a lista sai sempre vazia) e a consulta não ordena a lista.
+   - **Item 8 concluído em código.** Falta: push das branches empilhadas (subscription → identity → identification-v2 → garden → health → achievements) e um PR por módulo, cada um com base no anterior, com o "Decidido sem o usuário" de cada um. Push e PRs só com o aval do usuário.
 
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:

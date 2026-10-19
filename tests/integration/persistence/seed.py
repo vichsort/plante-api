@@ -1,12 +1,12 @@
 """Pré-requisitos gravados no banco para os testes de persistência (respeitando as FKs)."""
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.adapters.persistence.repositories.identification_repository import (
-    IdentificationRepository,
-)
-from src.domain.entities.identification import Identification
 from src.modules.catalog.adapters.persistence.repositories.plant_species import (
     PlantSpeciesRepository,
+)
+from src.modules.identification import Identification
+from src.modules.identification.adapters.persistence.repositories.identification import (
+    IdentificationRepository,
 )
 from src.modules.training import TrainingHealthSample
 from src.modules.training.adapters.persistence.repositories.training import (

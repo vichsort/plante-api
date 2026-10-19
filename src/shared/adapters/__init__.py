@@ -1,4 +1,10 @@
 """Adapters técnicos comuns (banco, Redis, S3, imagens, resiliência, clientes de provedores). Sem regra de negócio."""
+from src.shared.adapters.celery.publisher import (
+    CeleryPublisher,
+    EventRoute,
+    TaskCall,
+    TaskSender,
+)
 from src.shared.adapters.persistence.base import AuditMixin, Base, enum_values, utcnow
 from src.shared.adapters.persistence.session import build_engine, build_session_factory
 from src.shared.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
@@ -14,6 +20,7 @@ from src.shared.adapters.providers.json_body import (
     parse_contract_json,
     parse_json_object,
 )
+from src.shared.adapters.providers.kindwise_client import KindwiseClient
 from src.shared.adapters.redis.client import RedisClient
 from src.shared.adapters.resilience.circuit_breaker import (
     CircuitBreaker,
@@ -26,13 +33,18 @@ __all__ = [
     "GEMINI_SERVICE",
     "AuditMixin",
     "Base",
+    "CeleryPublisher",
     "CircuitBreaker",
     "CircuitState",
+    "EventRoute",
     "GeminiClient",
+    "KindwiseClient",
     "PillowImageSanitizer",
     "RedisClient",
     "S3ImageStorage",
     "SqlAlchemyUnitOfWork",
+    "TaskCall",
+    "TaskSender",
     "build_engine",
     "build_session_factory",
     "enum_values",

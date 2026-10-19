@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
-from src.domain.exceptions import PlantNotFoundError
 from src.modules.catalog import SpeciesNotFoundError
+from src.modules.garden import PlantNotFoundError
 from src.modules.subscription import PlantLimitExceededError
 from src.shared.api import error_responses
 
@@ -21,7 +21,8 @@ def test_openapi_documents_domain_and_common_errors(client: TestClient):
     paths = client.get("/openapi.json").json()["paths"]
 
     water = paths["/garden/{user_plant_id}/water"]["post"]["responses"]
-    assert set(water) == {"200", "400", "401", "403", "404", "422", "429", "500"}
+    # Sem 403: planta de outro usuário é 404 (o 4009 foi aposentado)
+    assert set(water) == {"200", "400", "401", "404", "422", "429", "500"}
     examples_429 = water["429"]["content"]["application/json"]["examples"]
     assert "PLANTE_4029_RATE_LIMIT_EXCEEDED" in examples_429
 

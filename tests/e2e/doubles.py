@@ -4,24 +4,26 @@ verdade nos testes ponta a ponta: rotas, middlewares, use cases, Unit of Work, P
 """
 from dataclasses import dataclass, field
 
-from src.domain.ports.email_sender import IEmailSender
-from src.domain.ports.health_analyzer import (
+from src.modules.catalog import ImageSource
+from src.modules.health.domain.ports.health_analyzer import (
     DiseaseHint,
     HealthAssessmentResult,
     IHealthAnalyzer,
 )
-from src.domain.ports.health_enricher import (
+from src.modules.health.domain.ports.health_enricher import (
     DiseaseAnalysisResult,
     HealthDiagnosisEnrichment,
     IHealthEnricher,
 )
-from src.domain.ports.plant_identifier import (
+from src.modules.identification.domain.ports.plant_identifier import (
     IdentificationResult,
     IPlantIdentifier,
     SimilarImage,
 )
-from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.modules.catalog import ImageSource
+from src.modules.identification.domain.value_objects.confidence_score import (
+    ConfidenceScore,
+)
+from src.modules.identity.domain.ports.email_sender import IEmailSender
 from src.modules.training import DiseaseSuggestion, HealthSignals
 from src.shared.domain import IImageStorage, UserId
 from tests.factories import make_identification_signals

@@ -1,4 +1,4 @@
-"""Dublês de `ITokenWallet` e `IGardenQuota` para os testes de quem consome a cota (outros módulos e o código antigo)."""
+"""Dublês de `ITokenWallet` e `IGardenQuota` para os testes de quem consome a cota (outros módulos)."""
 from dataclasses import dataclass, field
 from datetime import datetime
 

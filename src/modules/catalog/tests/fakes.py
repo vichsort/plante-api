@@ -1,4 +1,4 @@
-"""Dublê do `ISpeciesRegistry` para os testes de quem usa o catálogo (outros módulos e o código antigo)."""
+"""Dublê do `ISpeciesRegistry` para os testes de quem usa o catálogo (outros módulos)."""
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime

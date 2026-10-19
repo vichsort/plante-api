@@ -13,7 +13,12 @@ from src.shared.api.openapi import (
     OpenApiResponses,
     error_responses,
 )
-from src.shared.api.response import ApiError, ApiMeta, ApiResponse
+from src.shared.api.response import (
+    ApiError,
+    ApiMeta,
+    ApiResponse,
+    MessageResponse,
+)
 
 __all__ = [
     "COMMON_ERROR_RESPONSES",
@@ -23,6 +28,7 @@ __all__ = [
     "AuditMiddleware",
     "CorrelationIdMiddleware",
     "CurrentUserId",
+    "MessageResponse",
     "OpenApiResponses",
     "RateLimitMiddleware",
     "SecurityHeadersMiddleware",

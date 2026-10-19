@@ -43,7 +43,7 @@ T = TypeVar("T")
 
 
 class CallGuard(Protocol):
-    """Circuit breaker injetado pela composição (ex: CircuitBreaker de src/adapters/resilience)."""
+    """Circuit breaker injetado pela composição (o `CircuitBreaker` de `src.shared.adapters`)."""
 
     async def call(self, func: Callable[[], Awaitable[T]]) -> T: ...
 

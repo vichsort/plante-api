@@ -3,8 +3,7 @@
 > **PlantE API** é uma plataforma *open source* de identificação e gestão botânica para cultivo
 > residencial. Este documento diz **o que todo código precisa seguir**. O que é específico de um
 > módulo (propósito, decisões, erros) fica no `README.md` do módulo. O kernel comum está em
-> `src/shared/README.md`. As regras de negócio dos subdomínios que ainda não migraram estão em
-> `docs/domain-map.md` (transitório).
+> `src/shared/README.md`.
 >
 > Quase toda regra daqui quebra o CI quando violada: import-linter, mypy, ruff e
 > `tests/architecture/`. As que dependem de revisão estão marcadas como tal.
@@ -52,18 +51,17 @@ src/
   bootstrap/       # composição: settings, container raiz, Celery, app FastAPI, probes
   shared/          # kernel e infraestrutura comuns (src/shared/README.md)
   modules/<nome>/  # um subdomínio por pasta
-  domain/ adapters/ api/ workers/   # código em camadas antigo, sai à medida que os módulos migram
+  workers/         # entrada do Celery (`celery -A src.workers`): só expõe o `celery_app`
 tests/
   testbed/         # fixtures de infraestrutura (Postgres, Redis, ambiente), plugin do pytest
   e2e/             # caracterização ponta a ponta, atravessa módulos
   architecture/    # as regras deste documento como testes
-docs/domain-map.md # regras de negócio ainda não migradas (transitório)
+  integration/ unit/ test_*.py  # da composição: schema e migrations, container, app, worker
 migrations/        # Alembic, único (um Postgres)
 ```
 
-**Transição:** o código em camadas antigo convive com `modules` e `shared` até cada módulo
-migrar. O código antigo pode usar módulos e o kernel; módulos e kernel **nunca** usam o código
-antigo (import-linter).
+Módulos e kernel **nunca** importam a composição (`main`, `bootstrap`, `workers`): ela é quem os
+monta (import-linter).
 
 ### 2.2. Template de módulo
 
@@ -88,7 +86,8 @@ src/modules/<nome>/
 - Nomes fixos. Pasta só existe se tiver conteúdo (nada de pasta só com `__init__.py`).
   Conferido por `tests/architecture` (`test_module_layout`).
 - `shared` segue o mesmo esqueleto, com uma diferença: a borda HTTP dele é a do app inteiro.
-- Os fakes de uma porta ficam no módulo dono da porta.
+- Os fakes de uma porta ficam no módulo dono da porta, em `tests/fakes.py`, e os testes de quem usa
+  a porta os importam de lá (regra 3 de imports).
 - Todo pacote em `src` precisa de `__init__.py` (o import-linter não enxerga namespace packages;
   `tests/test_packages.py` confere).
 
@@ -124,8 +123,11 @@ e por `tests/architecture` (`test_imports_go_through_barrels`).
    importa continuar puro.
 2. **A composição** (`src/main.py`, `src/bootstrap`) também pode importar `container`, `api` e
    `workers` de cada módulo, para montar o app. Nunca `adapters` ou `domain` direto.
+   Os **testes** de um módulo também podem importar os dublês publicados por outro
+   (`src.modules.<x>.tests.fakes`), e nada mais do interior dele.
 3. **O shared se importa pela camada:** `src.shared.domain`, `src.shared.adapters`,
-   `src.shared.api`, `src.shared.workers`. O domínio de um módulo só usa `src.shared.domain`.
+   `src.shared.api`, `src.shared.workers`. O domínio de um módulo só usa `src.shared.domain`. Os
+   testes também podem importar os dublês das portas do shared (`src.shared.tests.fakes`).
 4. **Ninguém importa o barrel de um pacote que o contém** (ex.: um arquivo de
    `src/modules/garden/domain/` importando `src.modules.garden`). Em Python isso gera import
    circular e carrega tudo antes da hora. Dentro do módulo, importa-se o arquivo ou o barrel de uma
@@ -133,13 +135,13 @@ e por `tests/architecture` (`test_imports_go_through_barrels`).
 5. **Barrels exportam explicitamente** (`__all__` ou reexport com `as`): o mypy estrito
    (`no_implicit_reexport`) recusa o resto.
 6. **Camadas:**
-   - **Globais:** `main` → `api` | `workers` → `bootstrap` → código antigo (`adapters` → `domain`)
-     → `modules` → `shared`. Uma camada só importa as de baixo.
+   - **Globais:** `main` → `workers` → `bootstrap` → `modules` → `shared`. Uma camada só importa
+     as de baixo.
    - **Dentro de cada módulo:** `tests` → `api` | `workers` → `container` → `adapters` → `domain`.
    - **Dentro do shared:** `tests` → `api` | `workers` → `adapters` → `domain`.
    - As entradas (`api`, `workers`) recebem adapters pelo container, nunca importando-os direto.
 7. **Dependências entre módulos** (sem ciclo; contrato "Dependências entre módulos" do
-   import-linter, com os módulos que ainda não migraram entre parênteses):
+   import-linter):
 
    ```
    health · achievements
@@ -173,7 +175,15 @@ e por `tests/architecture` (`test_imports_go_through_barrels`).
 ## 5. Workers (Celery)
 
 - Task que chama código assíncrono usa `@run_async` (`src.shared.workers`).
-- A task aceita `container: Container | None = None`, para os testes injetarem dublês.
+- **Task de módulo** (`workers/tasks.py`): `@shared_task`, e as dependências entram por wiring
+  (`Provide[<Modulo>Container.x]` com `@inject`), porque o módulo não pode importar o container raiz.
+  - A composição liga os containers às tasks em `src/bootstrap/wiring.py` (o mesmo `wire` do app).
+  - O worker carrega `src/bootstrap/worker.py`, que zera os singletons depois de cada task: cada
+    task roda num event loop novo, e o cliente do Redis fica preso ao loop em que nasceu.
+  - Os testes passam as dependências direto na chamada.
+- **Evento → task:** cada módulo entrega uma `EventRoute` (em `workers`), e a composição as passa
+  ao `CeleryPublisher` (`src.shared.adapters`). O publisher manda pelo nome da task, sem importar o
+  worker.
 - Payload da task entra por um modelo Pydantic (vem da fila, de fora do processo).
 - Subir: `celery -A src.workers worker` e, para as agendadas, `celery -A src.workers beat`
   (**uma instância só**). Todo módulo com tasks entra no `include` do `celery_app`
@@ -224,7 +234,7 @@ silenciam o checker.
   - `# Arrange` (opcional), `# Act` e `# Assert`, nessa ordem;
   - `# Act & Assert` vale pelos dois (ex.: `pytest.raises`);
   - conferido por `tests/architecture`;
-  - os testes antigos em `tests/` ganham os marcadores quando o módulo deles migrar.
+  - os da composição em `tests/` (fora do `e2e/`) ainda ficam de fora.
 - **Prefira infraestrutura real** (testcontainers) a mock quando o comportamento depende de banco
   ou Redis. Todo bug corrigido ganha um teste que falharia antes (*revisão*).
 - **Contrato com os provedores reais:** fora do padrão e do CI, porque gasta créditos

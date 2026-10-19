@@ -1,20 +1,20 @@
 """Entidades de domínio válidas para os testes, com valores padrão sobrescrevíveis."""
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from uuid import uuid4
 
-from src.domain.entities.care_schedule import CareSchedule, CareType
-from src.domain.entities.health_record import HealthRecord
-from src.domain.entities.identification import Identification
-from src.domain.entities.user import User
-from src.domain.entities.user_plant import (
+from src.modules.catalog import EnrichmentStatus, PlantSpecies, PlantSpeciesId
+from src.modules.garden import UserPlantId
+from src.modules.garden.domain.entities.care_schedule import CareSchedule, CareType
+from src.modules.garden.domain.entities.user_plant import (
     IdentificationSource,
     IdentificationStatus,
     UserPlant,
 )
-from src.domain.value_objects.care_interval import CareInterval
-from src.domain.value_objects.ids import HealthRecordId, IdentificationId, UserPlantId
-from src.domain.value_objects.user_location import UserLocation
-from src.modules.catalog import EnrichmentStatus, PlantSpecies, PlantSpeciesId
+from src.modules.garden.domain.value_objects.care_interval import CareInterval
+from src.modules.health import HealthRecord, HealthRecordId
+from src.modules.identification import Identification, IdentificationId
+from src.modules.identity.domain.entities.user import User
+from src.modules.identity.domain.value_objects.user_location import UserLocation
 from src.modules.training import (
     DiseaseSuggestion,
     HealthSeverity,
@@ -186,7 +186,3 @@ def make_health_record(
         issues_detected=("leaf_spots",),
         treatment_plan=("Remover folhas afetadas",),
     )
-
-
-def days_from_now(days: int) -> datetime:
-    return NOW + timedelta(days=days)

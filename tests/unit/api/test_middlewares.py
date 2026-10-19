@@ -9,9 +9,9 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from structlog.testing import capture_logs
 
-from src.adapters.security.jwt_token_service import JwtTokenService
 from src.bootstrap.container import Container
-from src.domain.ports.token_service import TokenKind
+from src.modules.identity.adapters.security.jwt_token_service import JwtTokenService
+from src.modules.identity.domain.ports.token_service import TokenKind
 from src.shared.adapters import CircuitBreaker, RedisClient
 from src.shared.api import (
     CorrelationIdMiddleware,

@@ -3,7 +3,12 @@ import pytest
 from dependency_injector import providers
 
 from src.bootstrap.container import Container
-from src.main import wire
+from src.bootstrap.settings import Settings
+from src.bootstrap.wiring import wire
+from src.modules.identification.adapters.consensus.identifier import ConsensusIdentifier
+from src.modules.identification.adapters.resilience.circuit_breaker import (
+    CircuitBreakerPlantIdentifier,
+)
 
 
 def test_container_wires_without_error():
@@ -26,9 +31,22 @@ def test_every_use_case_resolves(monkeypatch, consensus_enabled):
     monkeypatch.setenv("GEMINI_API_KEY", "test")
     monkeypatch.setenv("CONSENSUS_ENABLED", consensus_enabled)
     container = Container()
-    for provider in container.use_cases.container.providers.values():
-        if not isinstance(provider, providers.Dependency):
-            provider()
+    for sub in (container.identification, container.garden, container.health, container.achievements):
+        for provider in sub.container.providers.values():
+            if not isinstance(provider, providers.Dependency):
+                provider()
+
+
+@pytest.mark.parametrize(("consensus_enabled", "expected"), [
+    ("true", ConsensusIdentifier),
+    ("false", CircuitBreakerPlantIdentifier),  # só o Kindwise, protegido pelo breaker
+])
+def test_consensus_setting_picks_the_identifier(monkeypatch, consensus_enabled, expected):
+    monkeypatch.setenv("CONSENSUS_ENABLED", consensus_enabled)
+
+    identifier = Container().identification.plant_identifier()
+
+    assert type(identifier) is expected
 
 
 def test_ai_breakers_use_settings_thresholds(monkeypatch):
@@ -38,3 +56,21 @@ def test_ai_breakers_use_settings_thresholds(monkeypatch):
     for breaker in (container.adapters.kindwise_breaker(), container.adapters.plantnet_breaker()):
         assert breaker._failure_threshold == 2
         assert breaker._recovery_timeout == 7.5
+
+
+@pytest.mark.parametrize(("env", "sent_key"), [
+    ({"KINDWISE_API_KEY": "documented"}, "documented"),  # o nome do `.env.example` (antes ia vazio)
+    ({"PLANT_ID_API_KEY": "legacy"}, "legacy"),           # o nome antigo continua valendo
+    ({"KINDWISE_API_KEY": "documented", "PLANT_ID_API_KEY": "legacy"}, "documented"),
+])
+def test_kindwise_client_gets_the_documented_key(monkeypatch, env, sent_key):
+    for name in ("KINDWISE_API_KEY", "PLANT_ID_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    container = Container()
+    container.settings.override(providers.Object(Settings(_env_file=None)))
+
+    client = container.adapters.kindwise_client()
+
+    assert client._headers == {"Api-Key": sent_key}

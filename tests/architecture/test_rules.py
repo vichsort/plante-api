@@ -146,6 +146,12 @@ def test_barrels(tmp_path: Path) -> None:
             "from src.shared.domain import UserId\n"                        # ok: camada do shared
             "from src.shared.domain.exceptions import PlantEError\n"       # fura a camada do shared
         ),
+        "modules/health/tests/unit/test_x.py": (
+            "from src.modules.garden.tests.fakes import FakeLookup\n"     # ok: dublê publicado pelo dono
+            "from src.modules.garden.tests.unit.helpers import make\n"    # o resto dos testes de outro módulo, não
+            "from src.shared.tests.fakes import MarkingSanitizer\n"       # ok: dublê publicado pelo shared
+        ),
+        "modules/health/domain/fakes_user.py": "from src.modules.garden.tests.fakes import FakeLookup\n",  # só testes
         "bootstrap/container.py": (
             "from src.modules.garden.container import GardenContainer\n"   # ok: composição
             "from src.modules.garden.adapters import Repo\n"               # nem a composição
@@ -160,8 +166,10 @@ def test_barrels(tmp_path: Path) -> None:
     assert [v.split(": ", 1)[0] for v in violations] == [
         "src/bootstrap/container.py:2",
         "src/modules/garden/domain/entities.py:1",
+        "src/modules/health/domain/fakes_user.py:1",
         "src/modules/health/domain/use_case.py:2",
         "src/modules/health/domain/use_case.py:4",
+        "src/modules/health/tests/unit/test_x.py:2",
     ]
 
 

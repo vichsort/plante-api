@@ -19,15 +19,15 @@ from dependency_injector import providers
 from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.adapters.events.celery_publisher import (
-    SEND_VERIFICATION_EMAIL_TASK,
-    CeleryPublisher,
-)
-from src.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
 from src.bootstrap.container import Container
-from src.main import app, wire
-from src.shared.adapters import RedisClient
-from src.workers.notification_tasks import send_verification_email_task
+from src.bootstrap.wiring import wire
+from src.main import app
+from src.modules.identity.workers import (
+    SEND_VERIFICATION_EMAIL_TASK,
+    route_event,
+    send_verification_email_task,
+)
+from src.shared.adapters import CeleryPublisher, RedisClient
 from tests.e2e.doubles import (
     FakeEmailSender,
     FakeHealthAnalyzer,
@@ -77,16 +77,15 @@ def doubles(
     # A ligação das rotas é global: outro teste pode ter ligado outro container
     wire(container)
     overrides = {
-        # Toda transação (código antigo e módulos) na conexão do teste
+        # Toda transação (de todos os módulos) na conexão do teste
         container.infra.session_factory: providers.Object(session_factory),
-        container.infra.unit_of_work: providers.Factory(SqlAlchemyUnitOfWork, session_factory=session_factory),
         container.adapters.redis: providers.Object(redis_client),
-        container.adapters.plant_identifier: providers.Object(fakes.identifier),
-        container.adapters.health_analyzer: providers.Object(fakes.health_analyzer),
-        container.adapters.health_enricher: providers.Object(fakes.health_enricher),
+        container.identification.plant_identifier: providers.Object(fakes.identifier),
+        container.health.analyzer: providers.Object(fakes.health_analyzer),
+        container.health.enricher: providers.Object(fakes.health_enricher),
         container.adapters.image_storage: providers.Object(fakes.storage),
-        container.adapters.email_sender: providers.Object(fakes.email),
-        container.adapters.domain_publisher: providers.Object(CeleryPublisher(fakes.queue)),
+        container.identity.email_sender: providers.Object(fakes.email),
+        container.adapters.domain_publisher: providers.Object(CeleryPublisher(fakes.queue, routes=[route_event])),
     }
     # Singletons (repositórios de OTP e de refresh token) guardam o Redis do teste anterior,
     # preso a um event loop já fechado
@@ -107,11 +106,11 @@ class Api:
 
     async def run_queued_tasks(self) -> None:
         """Faz o papel do worker: executa as tasks que o publisher mandou para a fila."""
-        container: Container = app.state.container
+        # A task usa o container do app (ligado pelo `wire` da fixture `doubles`)
         while self.fakes.queue.tasks:
             task = self.fakes.queue.tasks.pop(0)
             assert task.name == SEND_VERIFICATION_EMAIL_TASK, f"unexpected task {task.name}"
-            await send_verification_email_task(**task.kwargs, container=container)
+            await send_verification_email_task(**task.kwargs)
 
     @staticmethod
     def user_id_of(headers: dict[str, str]) -> str:
