@@ -41,6 +41,7 @@ dependencies = [
     "aiofiles==25.1.0",
     # --- Imagens (remoção de EXIF antes de qualquer uso) ---
     "pillow==12.3.0",
+    "pillow-heif==1.8.1",  # HEIC (iPhone): só abre, a saída é sempre JPEG
     # --- Fusos (zoneinfo): imagem slim pode não ter o banco de fusos do sistema ---
     "tzdata==2026.2",
     # --- Logs ---
