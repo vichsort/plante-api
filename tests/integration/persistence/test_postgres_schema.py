@@ -220,7 +220,7 @@ async def test_feedback_targets_exactly_one_sample(db_session: AsyncSession) -> 
 # --- Chaves estrangeiras ---------------------------------------------------------------------
 
 # (tabela, coluna) -> (tabela referenciada, ação no DELETE). Mudar uma linha daqui exige
-# migration e uma decisão consciente; os efeitos problemáticos estão nos testes abaixo e no todo.
+# migration e uma decisão consciente; os efeitos problemáticos estão nos testes abaixo.
 _EXPECTED_FOREIGN_KEYS = {
     # Lado do usuário: tudo sai com o usuário (CASCADE)
     ("identifications", "user_id"): ("users", "CASCADE"),

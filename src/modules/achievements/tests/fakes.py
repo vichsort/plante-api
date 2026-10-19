@@ -24,7 +24,8 @@ class InMemoryAchievementRepository(IAchievementRepository):
         self.unlocked = unlocked or {}
 
     async def get_user_achievements_view(self, user_id: UserId) -> list[AchievementView]:
-        return list(self.unlocked.get(user_id, []))
+        achievements = sorted(self.unlocked.get(user_id, []), key=lambda a: a.badge_code)
+        return sorted(achievements, key=lambda a: a.unlocked_at, reverse=True)
 
 
 class FakeAchievementsUnitOfWork(IAchievementsUnitOfWork):

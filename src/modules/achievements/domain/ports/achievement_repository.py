@@ -18,5 +18,5 @@ class IAchievementRepository(ABC):
 
     @abstractmethod
     async def get_user_achievements_view(self, user_id: UserId) -> list[AchievementView]:
-        """Medalhas desbloqueadas pelo usuário."""
+        """Badges the user unlocked, most recent first (ties broken by `badge_code`)."""
         ...

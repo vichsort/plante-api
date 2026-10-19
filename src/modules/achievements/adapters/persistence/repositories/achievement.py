@@ -20,6 +20,10 @@ class AchievementRepository(IAchievementRepository):
         self._session = session
 
     async def get_user_achievements_view(self, user_id: UserId) -> list[AchievementView]:
-        stmt = select(AchievementModel).where(AchievementModel.user_id == user_id)
+        stmt = (
+            select(AchievementModel)
+            .where(AchievementModel.user_id == user_id)
+            .order_by(AchievementModel.unlocked_at.desc(), AchievementModel.badge_code)
+        )
         result = await self._session.execute(stmt)
         return [AchievementMapper.to_view(m) for m in result.scalars().all()]

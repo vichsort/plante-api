@@ -68,10 +68,31 @@ O dublê do recorder para testes fica em `tests/fakes.py`.
   - `tests/integration/test_training_tables.py`: colunas numa lista fechada, FKs só entre tabelas de
     treino, nenhum horário exato;
   - `tests/integration/test_recorder.py`: grava só com a transação de quem chama;
-  - `tests/unit/adapters/test_provider_fixtures.py` (raiz): respostas reais dos provedores não
-    vazam dados ecoados para os sinais;
+  - testes dos adapters de provedor (`identification/tests/unit/test_kindwise_identifier.py`,
+    `test_plantnet_identifier.py` e `health/tests/unit/test_kindwise_analyzer.py`): respostas reais
+    dos provedores não vazam dados ecoados para os sinais;
   - `tests/integration/test_user_and_training_flow.py` (raiz): depois de apagar o usuário, o treino
     fica inteiro e sem nada que aponte para ele.
+
+### Engine de confiança do rótulo (rascunho, ainda não implementada)
+
+No espírito da `ConsensusPolicy`: especializada, com pesos, exceções e hierarquia explícitos. Quando
+for implementada, ganha uma explicação completa aqui.
+
+1. **Vetos:** provedor diz que não é planta, ou o usuário diz que não é planta → a amostra fica
+   fora do treino.
+2. **Base, a evidência dos provedores:** acordo exato > acordo de gênero > um provedor só >
+   desacordo, ponderado pela confiança de cada um (reaproveitar a `ConsensusPolicy`).
+3. **Feedback explícito:** o negativo pesa mais que o positivo (quem discorda costuma se dar ao
+   trabalho de dizer; quem concorda, nem sempre). Feedbacks em conflito: vale o mais recente.
+4. **Sinais implícitos:** jardim, cuidado continuado, motivo da exclusão. Peso baixo; nunca
+   decidem sozinhos.
+5. **Exceções:** confiança baixa dos provedores + feedback positivo → "revisar", não "confiável".
+   Sugestão de espécie que diverge dos provedores → candidata, não rótulo.
+
+Saída: rótulo + peso + motivos (auditável). Calculada na exportação, a partir dos sinais brutos, e
+versionada: os pesos mudam sem migrar dados. A análise profunda (Gemini), se virar sinal, entra
+aqui também.
 
 ## Erros
 

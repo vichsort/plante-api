@@ -29,8 +29,8 @@ A composição monta o módulo por:
   concessão (e quem gera o ID da conquista) será desenhada na segunda entrega.
 - **`AchievementBadge` fica** como catálogo, mesmo sem uso no código: é a lista de medalhas que a
   regra de concessão vai usar. A rota devolve só o `badge_code` gravado.
-- **Hoje:** nada concede conquistas, então a lista sai sempre vazia (o e2e marca isso). A lista
-  não tem ordem definida (a consulta não ordena).
+- **Hoje:** nada concede conquistas, então a lista sai sempre vazia (o e2e marca isso).
+- **List order:** most recently unlocked first, ties broken by `badge_code`, so the order is stable.
 
 ## Erros
 
