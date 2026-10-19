@@ -26,8 +26,8 @@ async def test_region_comes_from_the_profile(session_factory: async_sessionmaker
     # Act
     region = await directory.region_of(user.id)
 
-    # Assert. Hoje: o `title()` do `UserLocation` transforma a sigla "RJ" em "Rj" (anotado no todo)
-    assert region == UserLocation(country="BR", state="Rj")
+    # Assert
+    assert region == UserLocation(country="BR", state="RJ")
 
 
 async def test_user_without_account_is_not_found(session_factory: async_sessionmaker[AsyncSession]) -> None:

@@ -18,7 +18,7 @@ Importa-se pela camada, nunca pela raiz nem por dentro dela (`tests/architecture
 | `src.shared.domain` | `UserId`, `LocalCalendar`, `JsonValue`/`JsonObject`, `DomainEvent`, `PlantEError` e os erros comuns, as portas `IImageStorage`, `IImageSanitizer`, `IDomainPublisher`, `IAccessTokenVerifier` |
 | `src.shared.adapters` | `CeleryPublisher`/`TaskCall`/`EventRoute` (eventos → tasks), `Base`/`AuditMixin`/`enum_values` (SQLAlchemy), `build_engine`/`build_session_factory`, `RedisClient`, `S3ImageStorage`, `PillowImageSanitizer`, `CircuitBreaker`, `GeminiClient`, `translate_provider_errors` e o parse de JSON dos provedores |
 | `src.shared.api` | `ApiResponse`/`MessageResponse`, `register_exception_handlers`, `error_responses`/`COMMON_ERROR_RESPONSES`, `CurrentUserId`/`install_authentication`, os middlewares (correlation, audit, rate limit, security headers) |
-| `src.shared.workers` | `run_async` (task do Celery que chama código assíncrono) |
+| `src.shared.workers` | `run_async` (task do Celery que chama código assíncrono) e `on_task_loop_end` (limpeza no fim da task, dentro do loop dela) |
 
 O domínio de um módulo só pode usar `src.shared.domain` (o import-linter barra frameworks no
 domínio, inclusive por caminho indireto).

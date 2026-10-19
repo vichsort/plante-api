@@ -1,5 +1,6 @@
 """O worker real: tasks seguidas, cada uma no próprio event loop, com o container ligado pela composição."""
 import asyncio
+import gc
 from collections.abc import Iterator
 from uuid import uuid4
 
@@ -36,9 +37,8 @@ async def _codes(redis_url: str, user_ids: list[str]) -> list[bytes | None]:
         await redis.aclose()
 
 
-# Hoje: o cliente descartado só é fechado pelo coletor de lixo, com o loop dele já fechado (aviso
-# ruidoso, sem efeito). A task antiga, com um `Container()` por chamada, fazia o mesmo; anotado no todo.
-@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
+# Um cliente fechado só pelo coletor de lixo, com o loop dele já fechado, gera "Event loop is closed"
+@pytest.mark.filterwarnings("error::pytest.PytestUnraisableExceptionWarning")
 def test_consecutive_tasks_each_get_a_fresh_redis_client(worker_on_test_redis: RecordingEmailSender, redis_url: str) -> None:
     # Arrange: `apply` roda a task aqui, com os sinais do Celery; cada chamada abre um event loop novo
     user_ids = [str(uuid4()), str(uuid4())]
@@ -46,6 +46,7 @@ def test_consecutive_tasks_each_get_a_fresh_redis_client(worker_on_test_redis: R
     # Act: sem recriar os singletons, a segunda usaria o cliente do Redis do loop já fechado
     for user_id in user_ids:
         send_verification_email_task.apply(kwargs={"user_id": user_id, "email": "worker@plante.org"}, throw=True)
+    gc.collect()  # antes, o coletor fechava aqui os clientes das tasks terminadas
 
     # Assert
     codes = asyncio.run(_codes(redis_url, user_ids))

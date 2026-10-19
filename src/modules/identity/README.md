@@ -59,9 +59,9 @@ portas em memória dos testes daqui.
 - **Tasks sem o container raiz.** A task recebe as dependências por wiring
   (`Provide[IdentityContainer.x]`); a composição liga o container (`src/bootstrap/wiring.py`), e os
   testes podem passá-las direto.
-- **Hoje:** o `UserLocation` aplica `title()` ao estado, então a sigla "SP" vira "Sp". Isso vale
-  também para a região que vai ao treino. Anotado para corrigir à parte; a migração manteve o
-  comportamento.
+- **Estado normalizado.** O `UserLocation` põe a sigla em maiúsculas ("sp" → "SP") e o nome com
+  inicial maiúscula, menos os conectivos ("rio grande do sul" → "Rio Grande do Sul"). Antes o
+  `title()` transformava "SP" em "Sp", inclusive na região que vai ao treino.
 
 ## Erros
 

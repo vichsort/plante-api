@@ -126,6 +126,7 @@ module = [
     "src.bootstrap.container",
     "src.bootstrap.wiring",
     "src.bootstrap.containers.*",
+    "src.bootstrap.connections",  # fecha o que os providers devolvem (Any)
     "src.bootstrap.settings",
     "src.bootstrap.models",  # metadata do SQLAlchemy
 ]
