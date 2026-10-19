@@ -55,7 +55,7 @@ class AdaptersContainer(containers.DeclarativeContainer):
     # Kindwise atende identificação e saúde: um cliente só, cada módulo com o próprio adapter
     kindwise_client = providers.Singleton(
         KindwiseClient,
-        api_key=settings.provided.plant_id_api_key,
+        api_key=settings.provided.kindwise_key,
     )
 
     health_analyzer = providers.Singleton(

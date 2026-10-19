@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     redis_connect_timeout_seconds: float = 0.5
 
     @property
+    def kindwise_key(self) -> str | None:
+        """`KINDWISE_API_KEY`, ou o nome antigo (`PLANT_ID_API_KEY`) para quem ainda o usa."""
+        return self.kindwise_api_key or self.plant_id_api_key
+
+    @property
     def redis_url(self) -> str:
         if self.redis_password:
             return f"redis://{self.redis_user}:{self.redis_password}@{self.redis_endpoint}:{self.redis_port}"
@@ -43,6 +48,8 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     kindwise_api_key: str | None = None
     plantnet_api_key: str | None = None
+    # Nome antigo da chave do Kindwise: o container lia só ele, e o `.env.example` e o README
+    # documentam `KINDWISE_API_KEY` (com o `.env` do exemplo, o Kindwise recebia a chave vazia)
     plant_id_api_key: str | None = None
     # Circuit breaker de cada provedor de IA (Kindwise, PlantNet)
     ai_breaker_failure_threshold: int = 5

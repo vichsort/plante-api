@@ -3,6 +3,7 @@ import pytest
 from dependency_injector import providers
 
 from src.bootstrap.container import Container
+from src.bootstrap.settings import Settings
 from src.bootstrap.wiring import wire
 from src.modules.identification.adapters.consensus.identifier import ConsensusIdentifier
 from src.modules.identification.adapters.resilience.circuit_breaker import (
@@ -55,3 +56,21 @@ def test_ai_breakers_use_settings_thresholds(monkeypatch):
     for breaker in (container.adapters.kindwise_breaker(), container.adapters.plantnet_breaker()):
         assert breaker._failure_threshold == 2
         assert breaker._recovery_timeout == 7.5
+
+
+@pytest.mark.parametrize(("env", "sent_key"), [
+    ({"KINDWISE_API_KEY": "documented"}, "documented"),  # o nome do `.env.example` (antes ia vazio)
+    ({"PLANT_ID_API_KEY": "legacy"}, "legacy"),           # o nome antigo continua valendo
+    ({"KINDWISE_API_KEY": "documented", "PLANT_ID_API_KEY": "legacy"}, "documented"),
+])
+def test_kindwise_client_gets_the_documented_key(monkeypatch, env, sent_key):
+    for name in ("KINDWISE_API_KEY", "PLANT_ID_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    container = Container()
+    container.settings.override(providers.Object(Settings(_env_file=None)))
+
+    client = container.adapters.kindwise_client()
+
+    assert client._headers == {"Api-Key": sent_key}
