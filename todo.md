@@ -27,6 +27,16 @@ READMEs dos módulos.
 
 ## Produto e dados
 
+- [ ] **Trocar o plano Pro por apoio** (decidido em 2026-10-19): o PlantE é educacional, aberto e sem
+  fins lucrativos, e o uso precisa ser não comercial sem dúvida (fontes NC, parcerias, licença de
+  pesquisa com o Kindwise). Doação **sem contrapartida de uso**, gastos públicos (ex.: Open
+  Collective), agradecimento simbólico (página de apoiadores, selo no perfil).
+  - Limites iguais para todos; sobem para todos conforme as doações cobrem os custos (meta
+    coletiva). Cota ampliada só por pedido (escola, pesquisa, ONG), de graça e caso a caso.
+  - No código: o módulo subscription vira só cota (sai pagamento e vencimento do Pro); planejar
+    antes de mexer.
+  - Antes de publicar: página "Sobre" (origem numa disciplina do técnico, sem fins lucrativos) e
+    e-mail do projeto para os contatos com provedores.
 - [ ] **Fotos privadas no S3:** hoje tudo é gravado com `ACL="public-read"` e quem tem a URL vê a
   foto. Servir URLs assinadas (com validade) onde a API devolve imagem (`image_url` do `/identify`,
   `primary_image_url` do jardim, foto do diagnóstico); imagens de referência podem continuar
