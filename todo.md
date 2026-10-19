@@ -34,8 +34,11 @@ READMEs dos módulos.
   `src/shared/README.md`). Junto: a foto do diagnóstico é gravada com `upload_identification_image`
   (prefixo das fotos de identificação; ver o README do health).
 - [ ] **Engine de confiança do rótulo** (desenho no README do training), nesta ordem:
-  1. Pesquisar os termos de uso: Kindwise e PlantNet permitem treinar com as imagens similares? E o
-     que GBIF, iNaturalist e Pl@ntNet-300K oferecem para treino (licença por imagem). Sem código.
+  1. ~~Pesquisar os termos de uso~~ (feito; resumo no README do training). Falta a resposta dos
+     provedores: perguntar ao Kindwise (support@FlowerChecker.com) se dá para treinar um modelo
+     próprio com as respostas como rótulo (17.3.3) e se há licença de pesquisa (17.6); perguntar ao
+     PlantNet (contact@plantnet-project.org) sobre treino com as imagens CC BY-SA e conferir os
+     termos do plano gratuito. Decidir também se o modelo é de pesquisa ou do produto pago.
   2. Guardar URL + licença de cada imagem de referência, por sugestão, nos sinais da amostra (hoje
      a licença é descartada e só a sugestão vencedora é guardada).
   3. v1: engine (só identificação, regras da tabela, N = 10), exportação versionada e relatório.
@@ -58,8 +61,9 @@ Contexto: primeiro num servidor caseiro (PC antigo), API usada pelo site pessoal
 pouquíssimas requisições por mês; AWS no futuro; possível projeto de pesquisa para a Latinoware.
 
 - [ ] **Consentimento para o treino (LGPD):** aceite dos termos registrado no cadastro (versão dos
-  termos e data), dizendo que as fotos viram dataset anônimo. Sem isso não se coleta dado de treino
-  em público.
+  termos e data), dizendo que as fotos viram dataset anônimo **e** que são enviadas a provedores de
+  identificação (o Kindwise pode usá-las para treinar e redistribuí-las em CC BY-SA 4.0, T&C 17.5).
+  Sem isso não se coleta dado de treino em público.
 - [ ] **Créditos do Kindwise:** a chave tem limite de 10 identificações por mês. Comprar créditos
   (menor pacote ~€50 / 1000) e ajustar o limite no painel. Cada `/identify` e `/diagnose` gasta 1.
 - [ ] **Captcha validado na API** (ao menos em `/auth/register`): captcha só no site não protege a
