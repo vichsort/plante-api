@@ -2,8 +2,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from src.bootstrap.connections import close_connections
 from src.bootstrap.container import Container
-from src.main import _close_connections
 
 
 @pytest.mark.asyncio
@@ -17,7 +17,7 @@ async def test_close_connections_closes_all_even_if_one_fails():
         container.infra.engine.override(engine),
         container.adapters.redis.override(redis),
     ):
-        await _close_connections(container)
+        await close_connections(container)
 
     engine.dispose.assert_awaited_once()
     redis.close.assert_awaited_once()

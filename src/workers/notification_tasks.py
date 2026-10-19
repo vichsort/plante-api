@@ -4,6 +4,7 @@ import structlog
 from pydantic import BaseModel, EmailStr
 
 from src.bootstrap.celery_config import celery_app
+from src.bootstrap.connections import task_container
 from src.bootstrap.container import Container
 from src.domain.value_objects.verification_code import VerificationCode
 from src.shared.domain import UserId
@@ -32,26 +33,25 @@ class _VerificationEmailPayload(BaseModel):
 @run_async
 async def send_verification_email_task(user_id: str, email: str, container: Container | None = None) -> None:
     payload = _VerificationEmailPayload(user_id=UUID(user_id), email=email)
-    cnt = container or Container()
+    async with task_container(container) as cnt:
+        otp_repo = cnt.adapters.otp_repository()
+        email_sender = cnt.adapters.email_sender()
 
-    otp_repo = cnt.adapters.otp_repository()
-    email_sender = cnt.adapters.email_sender()
+        user_id_typed = UserId(payload.user_id)
+        # Nova tentativa (ou a mesma task entregue de novo) reaproveita o código ainda válido: o
+        # e-mail que chegar tem sempre o código aceito
+        raw_code = await otp_repo.get_active_code_for_user(user_id_typed)
+        if raw_code is None:
+            raw_code = VerificationCode.generate().raw_code
+            await otp_repo.save_code(
+                user_id=user_id_typed,
+                code=raw_code,
+                expires_in_minutes=_OTP_EXPIRES_MINUTES,
+            )
 
-    user_id_typed = UserId(payload.user_id)
-    # Nova tentativa (ou a mesma task entregue de novo) reaproveita o código ainda válido: o
-    # e-mail que chegar tem sempre o código aceito
-    raw_code = await otp_repo.get_active_code_for_user(user_id_typed)
-    if raw_code is None:
-        raw_code = VerificationCode.generate().raw_code
-        await otp_repo.save_code(
-            user_id=user_id_typed,
+        await email_sender.send_verification_code(
+            to_email=payload.email,
             code=raw_code,
-            expires_in_minutes=_OTP_EXPIRES_MINUTES,
         )
-
-    await email_sender.send_verification_code(
-        to_email=payload.email,
-        code=raw_code,
-    )
 
     log.info("email.verification_sent", user_id=user_id)
