@@ -42,7 +42,8 @@ READMEs dos módulos.
   2. Guardar URL + licença de cada imagem de referência, por sugestão, nos sinais da amostra (hoje
      a licença é descartada e só a sugestão vencedora é guardada).
   3. v1: engine (só identificação, regras da tabela, N = 10), exportação versionada e relatório.
-  - A decidir: conjunto de referência revisado em planilha ou numa página de revisão.
+  4. Depois, quando houver ~200 amostras: página de revisão do conjunto de referência (foto, rótulo
+     e botões certo/errado/não sei; gera o arquivo de respostas). Serve de demonstração também.
 - [ ] **Análise profunda pela metade:** `ISpeciesEnricher.enrich_nutritional`, `PlantNutritional` e
   `IHealthEnricher.analyze_disease` existem sem uso. Decidir se a feature entra (rota, use case no
   módulo da tela, cobrança) ou se sai.
