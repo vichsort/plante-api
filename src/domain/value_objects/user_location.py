@@ -8,7 +8,10 @@ class UserLocation:
 
     def __post_init__(self) -> None:
         country = self.country.strip().upper()
-        state = self.state.strip().title()
+        # Sem title(): "SP" virava "Sp" e "Rio Grande do Sul" virava "Rio Grande Do Sul"
+        state = " ".join(self.state.split())
+        if len(state) == 2:
+            state = state.upper()  # sigla da UF
 
         object.__setattr__(self, "country", country)
         object.__setattr__(self, "state", state)
