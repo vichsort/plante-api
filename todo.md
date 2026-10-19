@@ -47,7 +47,7 @@ Leia esta seção primeiro. Ela substitui o "Próximo passo" antigo do fim da or
 Suíte: 352 testes (com os 33 ponta a ponta da `refactor/characterization-tests`). CI: `ruff`, `mypy`, `lint-imports`, `pytest`.
 
 **Falta validar a `v0.1.0`/`v0.1.1`/`v0.1.2` (depende das credenciais do usuário; não deu para testar em 2026-10-16):**
-- [ ] Testes de contrato contra as APIs reais: `uv run pytest -m contract` no PC de casa (~2 créditos do Kindwise). Os adapters mudaram (sinais tipados) depois da última rodada.
+- [ ] Testes de contrato contra as APIs reais: `uv run --env-file .env pytest -m contract` no PC de casa (~2 créditos do Kindwise). Os adapters mudaram (sinais tipados) depois da última rodada.
 - [ ] Um `/identify` real com as chaves e o S3 de verdade. Risco: bucket novo bloqueia `ACL="public-read"` por padrão, e o upload (inclusive a cópia de treino) pode falhar. Se falhar, corrigir numa `v0.1.3`.
 
 **Manutenção do CI (avisos do GitHub no primeiro run):**
@@ -401,6 +401,20 @@ shared
    - **Achados, corrigidos na `develop` em 2026-10-19** (a pedido do usuário, na `develop` e não na `main`) e descidos para subscription e identity por merge:
      - Estado do `UserLocation`: o `title()` fazia "SP" virar "Sp" (inclusive na região do treino) e "Rio Grande do Sul" virar "Rio Grande Do Sul". Agora: sigla em maiúsculas; nome com inicial maiúscula, menos os conectivos (de/da/do/das/dos/e).
      - Conexões do worker: Redis e banco são fechados no fim de cada task, dentro do loop dela. Na `develop`, as tasks antigas usam `task_container` (`src/bootstrap/connections.py`, que também recebeu o fechamento do `main.py`). Nos módulos, o `src/bootstrap/worker.py` registra a limpeza com `on_task_loop_end` (novo no `src.shared.workers`), que substituiu o reset no `task_postrun`. O teste do worker real falha com o aviso "Event loop is closed".
+
+   - **identification** ✅ (branch `refactor/module-identification-v2`, empilhada na do identity, sem push; o nome sem sufixo já era do piloto, PR #4). 2026-10-19.
+     - `Identification`, `ConfidenceScore`, `ConsensusResult`/`ConsensusPolicy`, portas, use cases identify e feedback, `PlantIdentifiedEvent`, erros 4011/4012 e `NotAPlantError`; adapters Kindwise (só `/identification`), PlantNet, consenso e breaker; persistência e rotas `/identify`.
+     - Para o garden, `IIdentificationLookup` (`get_for_user`, lança 4012); o `AddPlantToGardenUseCase` usa ele em vez de `uow.identifications`.
+     - Testes do módulo com AAA e fakes em memória (59 unitários + 8 de integração; 5 de contrato fora da execução padrão); OpenAPI idêntico ao da `develop`.
+   - **Decidido sem o usuário (vai no PR):**
+     - `KindwiseClient` no shared (URL, chave, erros); a saúde ficou com o próprio adapter (`KindwiseHealthAnalyzer`, ainda código antigo), com a cópia do contrato de resposta do endpoint dela. Era o previsto no plano (ISP).
+     - Escolha consenso × só Kindwise por `Callable` tipado em vez do `Selector` (que tipa como `Any` e comparava o bool como texto). Novo teste confere a escolha pelos dois valores de `CONSENSUS_ENABLED`.
+     - `PLANTE_4010_IDENTIFICATION_FAILED` aposentado: nunca era lançado nem aparecia no OpenAPI.
+     - Regra dos barrels: os **testes** de um módulo podem importar os dublês publicados por outro (`src.modules.<x>.tests.fakes`) e pelo shared (`src.shared.tests.fakes`, novo: `MarkingSanitizer`, `RecordingImageStorage`, `RecordingPublisher`). O plano já punha os fakes no dono da porta; o identification é o primeiro módulo cujos testes dependem de outros. Provada em `test_rules.py`; `ARCHITECTURE.md` atualizado.
+     - Teste de integração do lookup grava usuário, espécie e amostra de treino com SQL direto (as tabelas são de outros módulos; o teste só enxerga a API pública deles).
+     - Respostas reais dos provedores continuam em `tests/fixtures/providers` (catálogo único com as da saúde).
+     - Testes de contrato no módulo, com as chaves do ambiente: `uv run --env-file .env pytest -m contract` (o módulo não lê o `Settings`).
+   - **Achado (comportamento mantido, corrigir à parte):** o Kindwise de produção lê `PLANT_ID_API_KEY` (`settings.plant_id_api_key`), mas o `.env.example` e o teste de contrato usam `KINDWISE_API_KEY`. Com o `.env` do exemplo, o `/identify` real manda a chave vazia (401 → `ExternalServiceError`). Vale para a `v0.1.x`; candidato a fix na `develop` (e talvez `v0.1.3`). Também conferir antes da validação do `/identify` real.
 
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:
