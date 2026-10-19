@@ -42,7 +42,6 @@ READMEs dos módulos.
     nunca sobrescreve dado dos provedores); nomes populares unidos, provedores primeiro; falha →
     `FAILED` e sem cobrança.
 - [ ] **Conquistas:** regra de concessão (consumir os eventos que hoje ninguém consome).
-- [ ] **HEIC (iPhone):** aceito (aprovado). `pillow-heif` no sanitizador; sai em JPEG sem metadados.
 - [ ] **Motivo da exclusão da planta** (aprovado): `DELETE /garden/{id}?reason=died|gave_away|misidentified|other`,
   opcional. Só `misidentified` vira feedback implícito negativo (origem `removed_from_garden`); os
   outros ficam gravados, sem voto.
