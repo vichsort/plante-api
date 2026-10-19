@@ -37,9 +37,6 @@ from src.domain.use_cases.register_user_use_case import RegisterUserUseCase
 from src.domain.use_cases.update_location_fallback_use_case import (
     UpdateLocationFallbackUseCase,
 )
-from src.domain.use_cases.upgrade_subscription_use_case import (
-    UpgradeSubscriptionUseCase,
-)
 from src.domain.use_cases.verify_email_use_case import VerifyEmailUseCase
 from src.domain.use_cases.water_plant_use_case import WaterPlantUseCase
 from src.domain.value_objects.local_calendar import LocalCalendar
@@ -114,12 +111,6 @@ class UseCasesContainer(containers.DeclarativeContainer):
         VerifyEmailUseCase,
         uow=unit_of_work,
         otp_repo=otp_repository,
-    )
-
-    upgrade_subscription_use_case = providers.Factory(
-        UpgradeSubscriptionUseCase,
-        uow=unit_of_work,
-        publisher=domain_publisher,
     )
 
     update_location_fallback_use_case = providers.Factory(

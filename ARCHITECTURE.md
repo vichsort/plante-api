@@ -121,7 +121,7 @@ Embora o código viva em uma estrutura Hexagonal unificada, o domínio do **Plan
 * **Propósito**: Gerenciar dados cadastrais do usuário, troca de senha/e-mail, controle de limites de assinatura (`FREE` vs `PRO`) e concessão de conquistas (`Badges`).
 * **Entidades Principais**: `Achievement`, `SubscriptionTier`.
 * **Políticas**: `SubscriptionPolicy`.
-* **Entradas (Use Cases)**: `ChangeEmailUseCase`, `ChangePasswordUseCase`, `UpdateLocationFallbackUseCase`, `UpgradeSubscriptionUseCase`, `ListUserAchievementsUseCase`.
+* **Entradas (Use Cases)**: `ChangeEmailUseCase`, `ChangePasswordUseCase`, `UpdateLocationFallbackUseCase`, `ListUserAchievementsUseCase`.
 * **Ports Requeridos**: `IAchievementRepository`, `IUserRepository`.
 * **Regras de Negócio**:
   - O plano `PRO` desbloqueia até 50 plantas no jardim e consultas avançadas de saúde.
