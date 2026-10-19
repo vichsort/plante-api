@@ -66,9 +66,11 @@ sem detalhes sai com `details: null`.
 
 | Código | Erro | HTTP | Quando |
 | :--- | :--- | :---: | :--- |
-| `PLANTE_4000_VALIDATION_ERROR` | `InvalidRequestError` | 422 | Corpo/query/path inválidos (montado pelo handler; só `loc`/`msg`/`type` nos detalhes). |
+| `PLANTE_4000_VALIDATION_ERROR` | `InvalidRequestError` | 422 | Corpo/query/path inválidos (montado pelo handler; só `loc`/`msg`/`type` nos detalhes), ou outro 4xx do próprio framework (ex.: corpo ilegível). |
 | `PLANTE_4001_INVALID_IMAGE` | `InvalidImageError` | 400 | Imagem ilegível, formato não aceito (só JPEG/PNG/WebP), acima de 60 MP, ou sem planta (subclasses nos módulos, ex.: `NotAPlantError`). |
+| `PLANTE_4002_METHOD_NOT_ALLOWED` | `MethodNotAllowedError` | 405 | A rota existe, mas não com esse método (montado pelo handler; mantém o header `Allow`). |
 | `PLANTE_4010_UNAUTHORIZED` | `UnauthorizedError` | 401 | Token ausente, inválido ou expirado; login com credenciais erradas. |
+| `PLANTE_4030_ROUTE_NOT_FOUND` | `RouteNotFoundError` | 404 | Nenhuma rota com esse caminho (montado pelo handler). |
 | `PLANTE_4031_USER_NOT_FOUND` | `UserNotFoundError` | 404 | O usuário do token não tem conta. |
 | `PLANTE_4050_RATE_LIMIT_EXCEEDED` | `RateLimitExceededError` | 429 | Limite por minuto: 60 nas rotas gerais, 15 nas de IA e auth. Anônimas contam por IP; autenticadas, por usuário. |
 | `PLANTE_5000_INTERNAL_ERROR` | `InternalError` | 500 | Falha inesperada (montado pelo handler; detalhes só no log). |

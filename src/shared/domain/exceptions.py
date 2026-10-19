@@ -33,6 +33,24 @@ class InvalidRequestError(PlantEError):
         super().__init__(message=message, details=details)
 
 
+class MethodNotAllowedError(PlantEError):
+    """The route exists, but not for this HTTP method."""
+    code = "PLANTE_4002_METHOD_NOT_ALLOWED"
+    status_code = 405
+
+    def __init__(self, message: str = "Method not allowed for this route."):
+        super().__init__(message=message)
+
+
+class RouteNotFoundError(PlantEError):
+    """No route matches the requested path."""
+    code = "PLANTE_4030_ROUTE_NOT_FOUND"
+    status_code = 404
+
+    def __init__(self, message: str = "Route not found."):
+        super().__init__(message=message)
+
+
 class InternalError(PlantEError):
     """Unexpected failure; the details only go to the log."""
     code = "PLANTE_5000_INTERNAL_ERROR"

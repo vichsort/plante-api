@@ -66,6 +66,28 @@ def test_register_returns_the_pending_account(api: _App) -> None:
     assert response.json()["data"] == {"user_id": str(user.id), "email": "integration@plante.org", "status": "pending_verification"}
 
 
+@pytest.mark.parametrize(("path", "method", "location"), [
+    ("/auth/register", "post", {"country": "BRA", "state": "SP"}),
+    ("/auth/register", "post", {"country": "12", "state": "SP"}),
+    ("/auth/register", "post", {"country": "BR", "state": " S "}),
+    ("/profile/location", "patch", {"country": "BR", "state": "S" * 101}),
+])
+def test_an_invalid_location_is_refused_before_the_use_case(
+    api: _App, path: str, method: str, location: dict[str, str],
+) -> None:
+    # Arrange: before, the value object raised ValueError and the request answered 500
+    use_case = api.use_case(api.container.register_user_use_case)
+    api.use_case(api.container.update_location_use_case)
+    body = {"email": "integration@plante.org", "password": "SecretPassword123", **location}
+
+    # Act
+    response = api.client.request(method, path, json=body, headers=AUTH)
+
+    # Assert
+    assert (response.status_code, response.json()["error"]["code"]) == (422, "PLANTE_4000_VALIDATION_ERROR")
+    use_case.execute.assert_not_awaited()
+
+
 def test_verify_email_confirms(api: _App) -> None:
     # Arrange
     api.use_case(api.container.verify_email_use_case)
