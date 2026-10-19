@@ -90,6 +90,18 @@ for implementada, ganha uma explicação completa aqui.
 5. **Exceções:** confiança baixa dos provedores + feedback positivo → "revisar", não "confiável".
    Sugestão de espécie que diverge dos provedores → candidata, não rótulo.
 
+Proteções contra excluir ou incluir demais (discutidas em 2026-10-19):
+
+- a amostra bruta nunca é apagada: errar a mão só muda a faixa dela na próxima versão;
+- começa com faixas, sem pesos numéricos: `confiável`, `revisar`, `fora`, cada uma com os motivos.
+  O treino começa só com `confiável`;
+- cada exportação gera um relatório (*datasheet*): contagens por faixa, motivo, espécie e estado;
+- um conjunto de referência revisado à mão (~200 amostras) mede a precisão da faixa `confiável`
+  antes de afrouxar qualquer regra;
+- espécie com menos de N amostras fica na cauda longa, fora do treino;
+- o estado sai da grade de ~11 km com uma base offline de limites estaduais (sem geocodificação
+  em tempo de execução nem serviço de terceiros); sem GPS, vale o estado do perfil.
+
 Saída: rótulo + peso + motivos (auditável). Calculada na exportação, a partir dos sinais brutos, e
 versionada: os pesos mudam sem migrar dados. A análise profunda (Gemini), se virar sinal, entra
 aqui também.

@@ -45,7 +45,8 @@ portas em memória dos testes daqui.
   - Uma nova tentativa da task reaproveita o código ainda válido: o e-mail que chegar tem sempre o
     código aceito.
 - **Tokens:** access de 15 minutos, refresh de 30 dias, um refresh por usuário (login novo derruba a
-  sessão anterior).
+  sessão anterior). Uma sessão só é decisão, não limitação: sessões por aparelho foram descartadas
+  (2026-10-19).
   - O refresh **rotaciona**: cada uso devolve um refresh novo. Reusar um refresh já trocado revoga
     a sessão (sinal de roubo). Efeito aceito: um retry do app também derruba.
   - Todo token tem `jti`, então dois emitidos no mesmo segundo nunca são iguais.
