@@ -5,8 +5,8 @@ import pytest
 
 from src.modules.subscription.domain.entities.subscription import Subscription
 from src.modules.subscription.domain.exceptions import (
+    DailyQuotaExceededError,
     PlantLimitExceededError,
-    SubscriptionRequiredError,
 )
 from src.modules.subscription.domain.policies.subscription_policy import (
     SubscriptionPolicy,
@@ -60,7 +60,20 @@ def test_garden_limit_details_tell_the_count_and_the_limit_apart() -> None:
         SubscriptionPolicy.enforce_can_add_to_garden(_free(), plants_in_garden=4, now=NOW)
 
     # Assert
-    assert raised.value.details == {"current_count": 4, "max_allowed": 3}
+    assert raised.value.details == {"plan": "FREE", "current_count": 4, "max_allowed": 3}
+
+
+def test_daily_quota_tells_the_plan_and_does_not_assume_free() -> None:
+    # Arrange: before, a Pro user out of tokens was told to subscribe to Pro
+    subscription = _pro(tokens_used_today=30)
+
+    # Act
+    with pytest.raises(DailyQuotaExceededError) as raised:
+        SubscriptionPolicy.enforce_can_identify_plant(subscription, NOW, TODAY)
+
+    # Assert
+    assert raised.value.details == {"plan": "PRO", "used_today": 30, "daily_limit": 30}
+    assert "subscribe" not in raised.value.message.lower()
 
 
 def test_pro_user_garden_limit() -> None:
@@ -80,7 +93,7 @@ def test_expired_pro_has_free_limits() -> None:
     # Act & Assert
     with pytest.raises(PlantLimitExceededError):
         SubscriptionPolicy.enforce_can_add_to_garden(subscription, plants_in_garden=3, now=NOW)
-    with pytest.raises(SubscriptionRequiredError):
+    with pytest.raises(DailyQuotaExceededError):
         SubscriptionPolicy.enforce_can_identify_plant(subscription, NOW, TODAY)
 
 
@@ -89,9 +102,9 @@ def test_token_limit_enforcement() -> None:
     subscription = _free(tokens_used_today=3)
 
     # Act & Assert
-    with pytest.raises(SubscriptionRequiredError):
+    with pytest.raises(DailyQuotaExceededError):
         SubscriptionPolicy.enforce_can_identify_plant(subscription, NOW, TODAY)
-    with pytest.raises(SubscriptionRequiredError):
+    with pytest.raises(DailyQuotaExceededError):
         SubscriptionPolicy.enforce_can_diagnose(subscription, NOW, TODAY)
 
 

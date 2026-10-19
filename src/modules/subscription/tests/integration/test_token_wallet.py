@@ -10,8 +10,8 @@ from src.modules.subscription.adapters.persistence.unit_of_work import (
     SqlAlchemySubscriptionUnitOfWork,
 )
 from src.modules.subscription.domain.exceptions import (
+    DailyQuotaExceededError,
     PlantLimitExceededError,
-    SubscriptionRequiredError,
 )
 from src.modules.subscription.domain.services.garden_quota import GardenQuota
 from src.modules.subscription.domain.services.token_wallet import TokenWallet
@@ -54,7 +54,7 @@ async def test_charges_add_up_until_the_quota_is_spent(
         await _charge(session_factory, user_id, FeatureCost.IDENTIFY)
 
     # Assert
-    with pytest.raises(SubscriptionRequiredError):
+    with pytest.raises(DailyQuotaExceededError):
         await wallet.ensure_can_identify(user_id, NOW)
 
 

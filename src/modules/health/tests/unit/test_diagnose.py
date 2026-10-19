@@ -16,7 +16,7 @@ from src.modules.health.tests.fakes import (
     make_assessment,
 )
 from src.modules.identity.tests.fakes import FakeUserDirectory
-from src.modules.subscription import FeatureCost, SubscriptionRequiredError
+from src.modules.subscription import DailyQuotaExceededError, FeatureCost
 from src.modules.subscription.tests.fakes import FakeTokenWallet
 from src.modules.training import DiseaseSuggestion, HealthSeverity
 from src.modules.training.tests.fakes import FakeTrainingRecorder
@@ -163,7 +163,7 @@ async def test_diagnosis_without_tokens_is_refused_before_calling_providers() ->
     scenario = _Scenario(used_today=3)
 
     # Act & Assert
-    with pytest.raises(SubscriptionRequiredError):
+    with pytest.raises(DailyQuotaExceededError):
         await scenario.use_case().execute(scenario.dto())
     assert (scenario.analyzer.received, scenario.enricher.requests, scenario.storage.user_uploads) == ([], [], [])
     assert scenario.training.is_empty

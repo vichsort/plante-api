@@ -78,8 +78,8 @@ async def test_free_plan_allows_three_identifications(api: Api) -> None:
     fourth = await api.identify(headers)
 
     # Assert
-    assert fourth.status_code == 403
-    assert fourth.json()["error"]["code"] == "PLANTE_4220_SUBSCRIPTION_REQUIRED"
+    assert fourth.status_code == 429
+    assert fourth.json()["error"]["code"] == "PLANTE_4250_DAILY_QUOTA_EXCEEDED"
 
 
 async def test_quota_is_full_again_on_the_next_day(api: Api, db_session: AsyncSession) -> None:

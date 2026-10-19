@@ -103,7 +103,7 @@ def test_every_error_of_the_module_is_documented(tmp_path: Path) -> None:
     module = _module(tmp_path, {
         "domain/exceptions.py": (
             'class PlantNotFoundError(PlantEError):\n    code = "PLANTE_4530_PLANT_NOT_FOUND"\n'
-            'class PlantLimitExceededError(PlantEError):\n    code = "PLANTE_4221_FREE_TIER_PLANT_LIMIT"\n'
+            'class PlantLimitExceededError(PlantEError):\n    code = "PLANTE_4220_PLANT_LIMIT_REACHED"\n'
         ),
     })
 
@@ -111,7 +111,7 @@ def test_every_error_of_the_module_is_documented(tmp_path: Path) -> None:
     violations = rules.undocumented_errors(module)
 
     # Assert
-    assert violations == ["garden: PlantLimitExceededError (PLANTE_4221_FREE_TIER_PLANT_LIMIT) não aparece em '## Erros' do README"]
+    assert violations == ["garden: PlantLimitExceededError (PLANTE_4220_PLANT_LIMIT_REACHED) não aparece em '## Erros' do README"]
 
 
 def test_error_codes_are_unique_but_inheriting_a_code_is_fine(tmp_path: Path) -> None:

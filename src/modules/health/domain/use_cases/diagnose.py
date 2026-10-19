@@ -16,9 +16,9 @@ from src.modules.health.domain.value_objects.ids import HealthRecordId
 from src.modules.identification import NotAPlantError
 from src.modules.identity import IUserDirectory
 from src.modules.subscription import (
+    DailyQuotaExceededError,
     FeatureCost,
     ITokenWallet,
-    SubscriptionRequiredError,
 )
 from src.modules.training import (
     HealthSeverity,
@@ -81,7 +81,7 @@ class DiagnoseHealthUseCase:
         InvalidImageError,
         NotAPlantError,
         PlantNotFoundError,
-        SubscriptionRequiredError,
+        DailyQuotaExceededError,
         UserNotFoundError,
     )
 

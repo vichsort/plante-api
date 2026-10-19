@@ -62,7 +62,7 @@ memória e as fábricas de planta dos testes daqui.
 | `PLANTE_4540_NOT_READY_FOR_WATERING` | `PlantNotReadyForWateringError` | 400 | Rega antes da janela (vencimento − 1 dia) ou segunda rega no mesmo dia. |
 
 `PLANTE_4430_IDENTIFICATION_NOT_FOUND` (adicionar com identificação inexistente ou de outro usuário)
-é do identification; `PLANTE_4221_FREE_TIER_PLANT_LIMIT`, do subscription.
+é do identification; `PLANTE_4220_PLANT_LIMIT_REACHED`, do subscription.
 
 `PLANTE_4009_FORBIDDEN` (`ForbiddenError`) foi aposentado em 2026-10-19 (aprovado pelo usuário): a
 rega conferia o dono depois de uma busca que já filtrava por ele, então o 403 documentado nunca

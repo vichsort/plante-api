@@ -104,7 +104,7 @@ async def test_free_plan_garden_limit(api: Api, db_session: AsyncSession) -> Non
 
     # Assert
     assert response.status_code == 403
-    assert response.json()["error"]["code"] == "PLANTE_4221_FREE_TIER_PLANT_LIMIT"
+    assert response.json()["error"]["code"] == "PLANTE_4220_PLANT_LIMIT_REACHED"
 
 
 async def test_plants_of_another_user_are_not_found(api: Api) -> None:

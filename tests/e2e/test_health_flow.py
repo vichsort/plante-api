@@ -46,8 +46,8 @@ async def test_enriched_diagnosis_costs_two_tokens(api: Api) -> None:
     response = await api.identify(headers)
 
     # Assert
-    assert response.status_code == 403
-    assert response.json()["error"]["code"] == "PLANTE_4220_SUBSCRIPTION_REQUIRED"
+    assert response.status_code == 429
+    assert response.json()["error"]["code"] == "PLANTE_4250_DAILY_QUOTA_EXCEEDED"
 
 
 async def test_diagnosis_without_tokens_never_reaches_the_providers(api: Api) -> None:
@@ -62,8 +62,8 @@ async def test_diagnosis_without_tokens_never_reaches_the_providers(api: Api) ->
     response = await _diagnose(api, headers, plant_id)
 
     # Assert: antes o /diagnose não conferia o saldo e gastava créditos dos provedores
-    assert response.status_code == 403
-    assert response.json()["error"]["code"] == "PLANTE_4220_SUBSCRIPTION_REQUIRED"
+    assert response.status_code == 429
+    assert response.json()["error"]["code"] == "PLANTE_4250_DAILY_QUOTA_EXCEEDED"
     assert len(api.fakes.storage.uploads) == uploads_before
 
 
