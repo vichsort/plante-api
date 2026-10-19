@@ -23,6 +23,12 @@ class FeedbackVerdict(StrEnum):
 class FeedbackOrigin(StrEnum):
     EXPLICIT = "explicit"                # o usuário respondeu "acertou / errou / não sei"
     ADDED_TO_GARDEN = "added_to_garden"  # sinal implícito: adicionou a planta ao jardim
+    # Implicit, from taking the plant out of the garden. Only `removed_misidentified` votes (WRONG);
+    # the others come with UNSURE, meaning "an event with no vote on the label"
+    REMOVED_MISIDENTIFIED = "removed_misidentified"
+    REMOVED_DIED = "removed_died"
+    REMOVED_GAVE_AWAY = "removed_gave_away"
+    REMOVED_OTHER = "removed_other"
 
 
 @dataclass(frozen=True)

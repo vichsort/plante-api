@@ -2,7 +2,7 @@ from typing import Annotated
 from uuid import UUID
 
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from src.modules.garden.api.schemas import (
     AddPlantToGardenRequest,
@@ -32,6 +32,7 @@ from src.modules.garden.domain.use_cases.water_plant import (
     WaterPlantUseCase,
 )
 from src.modules.garden.domain.value_objects.ids import UserPlantId
+from src.modules.garden.domain.value_objects.removal_reason import RemovalReason
 from src.modules.identification import IdentificationId
 from src.shared.api import ApiResponse, CurrentUserId, MessageResponse, error_responses
 from src.shared.domain import UnauthorizedError
@@ -81,10 +82,15 @@ async def delete_user_plant(
     user_plant_id: UUID,
     use_case: Annotated[DeleteUserPlantUseCase, Depends(Provide[GardenContainer.delete_plant_use_case])],
     user_id: CurrentUserId,
+    reason: Annotated[
+        RemovalReason | None,
+        Query(description="Why the plant left the garden. `misidentified` tells us the species was wrong."),
+    ] = None,
 ) -> ApiResponse[MessageResponse]:
     await use_case.execute(DeleteUserPlantInputDTO(
         user_id=user_id,
         user_plant_id=UserPlantId(user_plant_id),
+        reason=reason,
     ))
     return ApiResponse.success(MessageResponse(message="Plant removed from garden successfully."))
 

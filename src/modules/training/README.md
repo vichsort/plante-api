@@ -48,7 +48,7 @@ O dublê do recorder para testes fica em `tests/fakes.py`.
 
   Os adapters dos provedores descartam esses campos ao montar os sinais.
 - **Feedback é sinal, não confirmação.** Eventos acumulados, explícitos (`correct | wrong |
-  unsure` + sugestão) ou implícitos (`added_to_garden`; no futuro, motivo da exclusão). A confiança
+  unsure` + sugestão) ou implícitos (`added_to_garden` e `removed_*`, o motivo da exclusão). A confiança
   do rótulo **não** é calculada na gravação: a engine vai pesar os sinais brutos na exportação, com
   versão, para os pesos mudarem sem migrar dados.
 - **Alvo tipado** (`FeedbackTarget = IdentificationLabel | HealthLabel`):

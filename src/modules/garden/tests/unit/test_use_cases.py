@@ -1,4 +1,3 @@
-import inspect
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
@@ -41,6 +40,7 @@ from src.modules.garden.domain.use_cases.water_plant import (
     WaterPlantUseCase,
 )
 from src.modules.garden.domain.value_objects.ids import UserPlantId
+from src.modules.garden.domain.value_objects.removal_reason import RemovalReason
 from src.modules.garden.domain.value_objects.streak import Streak
 from src.modules.garden.tests.fakes import (
     CALENDAR,
@@ -187,27 +187,80 @@ async def test_plant_source_follows_the_identification_origin(origin: Identifica
 
 # --- Tirar do jardim ----------------------------------------------------------------------------
 
-async def test_delete_takes_the_plant_out_of_the_garden() -> None:
+@dataclass
+class _Delete:
+    """The `DeleteUserPlantUseCase` with in-memory ports; the plant comes from an identification."""
+    identification: Identification = field(default_factory=lambda: make_identification(user_id=OWNER))
+    training: FakeTrainingRecorder = field(default_factory=FakeTrainingRecorder)
+    plant: UserPlant = field(init=False)
+    uow: FakeGardenUnitOfWork = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.plant = make_user_plant(user_id=OWNER, identification_id=self.identification.id)
+        self.uow = FakeGardenUnitOfWork(InMemoryUserPlantRepository(self.plant))
+
+    async def run(self, reason: RemovalReason | None = None, *identifications: Identification) -> None:
+        lookup = FakeIdentificationLookup(*(identifications or (self.identification,)))
+        use_case = DeleteUserPlantUseCase(self.uow, self.training, lookup)
+        await use_case.execute(DeleteUserPlantInputDTO(user_id=OWNER, user_plant_id=self.plant.id, reason=reason))
+
+
+async def test_delete_without_a_reason_leaves_the_dataset_alone() -> None:
     # Arrange
-    plant = make_user_plant(user_id=OWNER)
-    uow = FakeGardenUnitOfWork(InMemoryUserPlantRepository(plant))
+    delete = _Delete()
 
     # Act
-    await DeleteUserPlantUseCase(uow).execute(DeleteUserPlantInputDTO(user_id=OWNER, user_plant_id=plant.id))
+    await delete.run()
 
-    # Assert: só recebe a UoW do jardim (nem identificação nem dataset): apagar não é rejeição
-    assert await uow.user_plants.list_by_user(OWNER) == []
-    assert uow.commits == 1
-    assert list(inspect.signature(DeleteUserPlantUseCase).parameters) == ["uow"]
+    # Assert: the plant may have died or been given away; that says nothing about the species
+    assert await delete.uow.user_plants.list_by_user(OWNER) == []
+    assert delete.uow.commits == 1
+    assert delete.training.is_empty
+
+
+@pytest.mark.parametrize(("reason", "verdict", "origin"), [
+    (RemovalReason.MISIDENTIFIED, FeedbackVerdict.WRONG, FeedbackOrigin.REMOVED_MISIDENTIFIED),
+    (RemovalReason.DIED, FeedbackVerdict.UNSURE, FeedbackOrigin.REMOVED_DIED),
+    (RemovalReason.GAVE_AWAY, FeedbackVerdict.UNSURE, FeedbackOrigin.REMOVED_GAVE_AWAY),
+    (RemovalReason.OTHER, FeedbackVerdict.UNSURE, FeedbackOrigin.REMOVED_OTHER),
+])
+async def test_the_removal_reason_is_an_implicit_signal_and_only_misidentified_votes(
+    reason: RemovalReason, verdict: FeedbackVerdict, origin: FeedbackOrigin,
+) -> None:
+    # Arrange
+    delete = _Delete()
+
+    # Act
+    await delete.run(reason)
+
+    # Assert
+    (feedback,) = delete.training.feedback
+    assert feedback.target == IdentificationLabel(delete.identification.training_sample_id)
+    assert (feedback.verdict, feedback.origin) == (verdict, origin)
+    assert delete.uow.commits == 1
+
+
+async def test_a_reason_without_its_identification_still_removes_the_plant() -> None:
+    # Arrange: the lookup knows no identification for this plant
+    delete = _Delete()
+    other = make_identification(user_id=OWNER)
+
+    # Act
+    await delete.run(RemovalReason.MISIDENTIFIED, other)
+
+    # Assert
+    assert await delete.uow.user_plants.list_by_user(OWNER) == []
+    assert delete.training.is_empty
 
 
 async def test_deleting_a_missing_plant_is_not_found() -> None:
     # Arrange
     uow = FakeGardenUnitOfWork()
+    use_case = DeleteUserPlantUseCase(uow, FakeTrainingRecorder(), FakeIdentificationLookup())
 
     # Act & Assert
     with pytest.raises(PlantNotFoundError):
-        await DeleteUserPlantUseCase(uow).execute(DeleteUserPlantInputDTO(user_id=OWNER, user_plant_id=UserPlantId(uuid4())))
+        await use_case.execute(DeleteUserPlantInputDTO(user_id=OWNER, user_plant_id=UserPlantId(uuid4())))
 
 
 # --- Regar, listar e detalhar -------------------------------------------------------------------

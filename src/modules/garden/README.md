@@ -48,8 +48,14 @@ memória e as fábricas de planta dos testes daqui.
   plantas cuja janela passou inteira e publica `StreakBrokenEvent`. Rodar de novo no mesmo dia não
   quebra nada a mais. A task roda no container do worker (`src/bootstrap/worker.py`), que fecha as
   conexões no fim de cada task.
-- **Tirar do jardim é soft delete** e **não é rejeição da identificação** (a planta pode ter
-  morrido ou sido doada): identificação e dado de treino não mudam.
+- **Tirar do jardim é soft delete** e, por si só, **não é rejeição da identificação** (a planta
+  pode ter morrido ou sido doada). O motivo é opcional:
+  `DELETE /garden/{id}?reason=died|gave_away|misidentified|other`.
+  - Sem motivo, o dataset não muda.
+  - Com motivo, vira feedback implícito na amostra de identificação, na mesma transação. Só
+    `misidentified` vota (`WRONG`); os outros entram com `UNSURE`, que nessas origens quer dizer
+    "evento sem voto".
+  - Se a identificação não existir mais, a planta sai assim mesmo e o sinal é só logado.
 - **`/garden` e `/plants` no mesmo módulo e no mesmo router** (`router` inclui os dois, nessa
   ordem): o detalhe da planta é do jardim; o prefixo `/plants` só ficou por contrato da API.
 - **Planta de outro usuário é 404, nunca 403** (a API não distingue "não existe" de "não é sua").

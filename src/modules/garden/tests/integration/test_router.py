@@ -18,6 +18,7 @@ from src.modules.garden.domain.exceptions import (
     PlantNotReadyForWateringError,
 )
 from src.modules.garden.domain.use_cases.get_plant_details import PlantDetailsOutput
+from src.modules.garden.domain.value_objects.removal_reason import RemovalReason
 from src.modules.garden.tests.fakes import CALENDAR, make_user_plant
 from src.shared.api import install_authentication, register_exception_handlers
 from src.shared.domain import IAccessTokenVerifier, UnauthorizedError, UserId
@@ -120,7 +121,7 @@ def test_watering_too_early_is_refused(api: _App) -> None:
     assert response.json()["error"]["details"] == {"next_watering_on": "2026-10-22"}
 
 
-def test_delete_needs_no_body(api: _App) -> None:
+def test_delete_needs_no_body_and_the_reason_is_optional(api: _App) -> None:
     # Arrange
     plant_id = uuid4()
     use_case = api.use_case(api.container.delete_plant_use_case)
@@ -131,6 +132,31 @@ def test_delete_needs_no_body(api: _App) -> None:
     # Assert
     assert response.status_code == 200
     assert use_case.execute.call_args.args[0].user_plant_id == plant_id
+    assert use_case.execute.call_args.args[0].reason is None
+
+
+def test_delete_takes_the_reason_from_the_query(api: _App) -> None:
+    # Arrange
+    use_case = api.use_case(api.container.delete_plant_use_case)
+
+    # Act
+    response = api.client.delete(f"/garden/{uuid4()}?reason=misidentified", headers=AUTH)
+
+    # Assert
+    assert response.status_code == 200
+    assert use_case.execute.call_args.args[0].reason is RemovalReason.MISIDENTIFIED
+
+
+def test_delete_refuses_an_unknown_reason(api: _App) -> None:
+    # Arrange
+    use_case = api.use_case(api.container.delete_plant_use_case)
+
+    # Act
+    response = api.client.delete(f"/garden/{uuid4()}?reason=bored", headers=AUTH)
+
+    # Assert
+    assert (response.status_code, response.json()["error"]["code"]) == (422, "PLANTE_4000_VALIDATION_ERROR")
+    use_case.execute.assert_not_awaited()
 
 
 def test_plant_details_include_the_species(api: _App) -> None:
