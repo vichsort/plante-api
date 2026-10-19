@@ -43,7 +43,7 @@ READMEs dos módulos.
   (prefixo das fotos de identificação; ver o README do health).
 - [ ] **Engine de confiança do rótulo** (desenho no README do training), nesta ordem:
   1. ~~Pesquisar os termos de uso~~ (feito; resumo no README do training). Falta a resposta dos
-     provedores: perguntar ao Kindwise (support@FlowerChecker.com) se dá para treinar um modelo
+     provedores (perguntas, contatos e status em `docs/decisions/2026-10-19-provider-emails.md`): perguntar ao Kindwise (support@FlowerChecker.com) se dá para treinar um modelo
      próprio com as respostas como rótulo (17.3.3) e se há licença de pesquisa (17.6); perguntar ao
      PlantNet (contact@plantnet-project.org) sobre treino com as imagens CC BY-SA e conferir os
      termos do plano gratuito. Decidir também se o modelo é de pesquisa ou do produto pago.
