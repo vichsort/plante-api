@@ -42,9 +42,6 @@ READMEs dos módulos.
     nunca sobrescreve dado dos provedores); nomes populares unidos, provedores primeiro; falha →
     `FAILED` e sem cobrança.
 - [ ] **Conquistas:** regra de concessão (consumir os eventos que hoje ninguém consome).
-- [ ] **Motivo da exclusão da planta** (aprovado): `DELETE /garden/{id}?reason=died|gave_away|misidentified|other`,
-  opcional. Só `misidentified` vira feedback implícito negativo (origem `removed_from_garden`); os
-  outros ficam gravados, sem voto.
 - [ ] **Exclusão de conta** (aprovado): `DELETE /profile` confirmado com a senha; exclusão definitiva
   (as FKs `CASCADE` levam jardim, identificações e diagnósticos), fotos do usuário apagadas do S3,
   treino intacto. O e-mail fica livre na hora (resolve o reuso).
