@@ -131,6 +131,21 @@ de fontes abertas, abaixo). O treino começa com `confiável` + `referência`.
   diferencial é a foto real do usuário, no quintal, sob a luz do Brasil. Começa mais fraco que eles
   e ganha especificidade com o tempo; o que eles não são é aberto, simples e brasileiro.
 
+**Termos de uso (lidos em 2026-10-19; leitura nossa, não parecer jurídico):**
+
+| Fonte | O que diz | Para o dataset |
+| :--- | :--- | :--- |
+| Kindwise ([T&C da API, v3](https://www.kindwise.com/terms-and-conditions)) | 17.3.3: o cliente não pode usar os serviços para desenvolver sistema próprio "baseado no mesmo princípio". 17.4.1: fotos do `Output` (as similares) só para processar a resposta para o usuário final. 17.6: outros parâmetros de licença podem ser combinados. | Imagens similares **não** entram. Usar as respostas como rótulo para treinar um identificador próprio também esbarra no 17.3.3: **perguntar antes** (support@FlowerChecker.com). |
+| Kindwise, sobre as fotos que mandamos | 17.5: licença não exclusiva e irrevogável para usar as fotos dos nossos usuários em machine learning e redistribuí-las em CC BY-SA 4.0 (rostos borrados); 20.3/20.4: dados de terceiros anonimizados após 6 meses. | Entra no texto do consentimento: a foto vai para provedores que podem usá-la. |
+| PlantNet ([imagens da API](https://my.plantnet.org/doc/references/using-images), [contrato da API v4](https://my.plantnet.org/documents/agreement_PlantNet_API_english_v4.pdf)) | Imagens em CC BY, CC BY-SA ou domínio público; uso interno e comercial permitido com fonte e autor; outro uso exige consentimento escrito do CIRAD. Nada explícito sobre treino. | Candidatas, com licença e autor por imagem. ShareAlike em modelo treinado é zona cinzenta: **perguntar** (contact@plantnet-project.org). Conferir também os termos do plano gratuito que usamos. |
+| [Pl@ntNet-300K v2](https://zenodo.org/records/10419064) | Dataset de pesquisa; licença por imagem: CC BY-SA, CC BY-NC ou CC BY-NC-SA. | Bom para pesquisa (Latinoware); as NC não servem se o modelo for para o produto pago. |
+| [iNaturalist (AWS Open Data)](https://registry.opendata.aws/inaturalist-open-data) | Licença por foto (CC0 a CC BY-NC). Os termos do iNaturalist proíbem treinar IA **para fins comerciais** com os dados deles. | Só para pesquisa não comercial, salvo autorização. |
+| [GBIF](https://techdocs.gbif.org/en/data-publishing/multimedia-publishing) | Licença por mídia, definida por quem publica (CC0, CC BY, CC BY-NC…). | Filtrar CC0 e CC BY por imagem. |
+
+**Atenção:** o PlantE tem plano pago (Pro). Se o modelo treinado servir ao produto pago, o uso é
+comercial: fica de fora tudo que for NC e os dados do iNaturalist. Um modelo só de pesquisa
+(Latinoware) tem mais fontes à disposição.
+
 **Exportação:** o banco guarda a matéria-prima (amostras e eventos); o treino precisa de uma pasta
 pronta. A exportação é um comando (não uma rota), rodado quando for treinar, que:
 
