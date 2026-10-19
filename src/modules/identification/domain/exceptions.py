@@ -3,15 +3,6 @@ from uuid import UUID
 from src.shared.domain import InvalidImageError, PlantEError
 
 
-class PlantIdentificationError(PlantEError):
-    """A IA não conseguiu identificar a planta com confiança suficiente."""
-    code = "PLANTE_4010_IDENTIFICATION_FAILED"
-    status_code = 422
-
-    def __init__(self, message: str = "Could not identify any plant in this image."):
-        super().__init__(message=message)
-
-
 class LowConfidenceError(PlantEError):
     """A identificação retornou confiança abaixo do threshold aceitável."""
     code = "PLANTE_4011_LOW_CONFIDENCE"

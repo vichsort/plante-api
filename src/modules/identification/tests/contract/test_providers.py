@@ -1,17 +1,20 @@
 """
 Testes de contrato contra as APIs reais dos provedores (fora do CI e da execução padrão).
 
-Rodar com `pytest -m contract`. Cada rodada consome ~2 créditos do Kindwise e ~2 requisições da
+Rodar com `uv run --env-file .env pytest -m contract` (as chaves vêm do ambiente: o módulo não lê o
+`Settings` da composição). Cada rodada consome ~2 créditos do Kindwise e ~2 requisições da
 cota diária do PlantNet. Imagens: as mesmas de `tests/fixtures/providers/README.md`, baixadas na hora.
 Provedor sem chave configurada (`KINDWISE_API_KEY` / `PLANTNET_API_KEY`) é pulado.
 """
+import os
+
 import httpx
 import pytest
 
-from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
-from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
-from src.bootstrap.settings import Settings
-from src.domain.exceptions import NotAPlantError
+from src.modules.identification.adapters.kindwise.identifier import KindwiseIdentifier
+from src.modules.identification.adapters.plantnet.identifier import PlantNetIdentifier
+from src.modules.identification.domain.exceptions import NotAPlantError
+from src.shared.adapters import KindwiseClient
 from src.shared.domain import InvalidImageError
 
 pytestmark = pytest.mark.contract
@@ -43,23 +46,26 @@ def cat() -> bytes:
 
 
 @pytest.fixture(scope="module")
-def kindwise() -> KindwiseAdapter:
-    api_key = Settings().kindwise_api_key
+def kindwise() -> KindwiseIdentifier:
+    api_key = os.environ.get("KINDWISE_API_KEY")
     if not api_key:
         pytest.skip("KINDWISE_API_KEY não configurada")
-    return KindwiseAdapter(api_key=api_key)
+    return KindwiseIdentifier(KindwiseClient(api_key=api_key))
 
 
 @pytest.fixture(scope="module")
-def plantnet() -> PlantNetAdapter:
-    api_key = Settings().plantnet_api_key
+def plantnet() -> PlantNetIdentifier:
+    api_key = os.environ.get("PLANTNET_API_KEY")
     if not api_key:
         pytest.skip("PLANTNET_API_KEY não configurada")
-    return PlantNetAdapter(api_key=api_key)
+    return PlantNetIdentifier(api_key=api_key)
 
 
-async def test_kindwise_identifies_plant(kindwise: KindwiseAdapter, monstera: bytes) -> None:
+async def test_kindwise_identifies_plant(kindwise: KindwiseIdentifier, monstera: bytes) -> None:
+    # Act
     result = await kindwise.identify(monstera)
+
+    # Assert
     assert result.scientific_name == "Monstera deliciosa"
     assert result.similar_images
     (signals,) = result.signals
@@ -67,24 +73,30 @@ async def test_kindwise_identifies_plant(kindwise: KindwiseAdapter, monstera: by
     assert signals.suggestions[0].scientific_name == "Monstera deliciosa"
 
 
-async def test_kindwise_rejects_non_plant(kindwise: KindwiseAdapter, cat: bytes) -> None:
+async def test_kindwise_rejects_non_plant(kindwise: KindwiseIdentifier, cat: bytes) -> None:
+    # Act & Assert
     with pytest.raises(NotAPlantError):
         await kindwise.identify(cat)
 
 
-async def test_plantnet_identifies_plant(plantnet: PlantNetAdapter, monstera: bytes) -> None:
+async def test_plantnet_identifies_plant(plantnet: PlantNetIdentifier, monstera: bytes) -> None:
+    # Act
     result = await plantnet.identify(monstera)
+
+    # Assert
     assert result.scientific_name == "Monstera deliciosa"
     assert result.family == "Araceae"
     assert result.gbif_id
     assert result.similar_images
 
 
-async def test_plantnet_rejects_non_plant(plantnet: PlantNetAdapter, cat: bytes) -> None:
+async def test_plantnet_rejects_non_plant(plantnet: PlantNetIdentifier, cat: bytes) -> None:
+    # Act & Assert
     with pytest.raises(InvalidImageError):
         await plantnet.identify(cat)
 
 
-async def test_plantnet_rejects_non_image(plantnet: PlantNetAdapter) -> None:
+async def test_plantnet_rejects_non_image(plantnet: PlantNetIdentifier) -> None:
+    # Act & Assert
     with pytest.raises(InvalidImageError):
         await plantnet.identify(b"not an image")

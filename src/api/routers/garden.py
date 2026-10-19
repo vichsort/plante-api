@@ -26,7 +26,8 @@ from src.domain.use_cases.water_plant_use_case import (
     WaterPlantInputDTO,
     WaterPlantUseCase,
 )
-from src.domain.value_objects.ids import IdentificationId, UserPlantId
+from src.domain.value_objects.ids import UserPlantId
+from src.modules.identification import IdentificationId
 from src.shared.api import ApiResponse, CurrentUserId, MessageResponse, error_responses
 from src.shared.domain import UnauthorizedError
 

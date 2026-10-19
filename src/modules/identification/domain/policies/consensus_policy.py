@@ -1,6 +1,13 @@
-from src.domain.ports.plant_identifier import IdentificationResult
-from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.consensus_result import ConsensusReason, ConsensusResult
+from src.modules.identification.domain.ports.plant_identifier import (
+    IdentificationResult,
+)
+from src.modules.identification.domain.value_objects.confidence_score import (
+    ConfidenceScore,
+)
+from src.modules.identification.domain.value_objects.consensus_result import (
+    ConsensusReason,
+    ConsensusResult,
+)
 from src.modules.training import IdentificationProvider
 
 _KINDWISE_WEIGHT = 0.60

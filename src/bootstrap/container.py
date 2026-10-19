@@ -5,6 +5,7 @@ from src.bootstrap.containers.infra import InfraContainer
 from src.bootstrap.containers.use_cases import UseCasesContainer
 from src.bootstrap.settings import Settings
 from src.modules.catalog.container import CatalogContainer
+from src.modules.identification.container import IdentificationContainer
 from src.modules.identity.container import IdentityContainer
 from src.modules.subscription.container import SubscriptionContainer
 from src.modules.training.container import TrainingContainer
@@ -57,12 +58,28 @@ class Container(containers.DeclarativeContainer):
         publisher=adapters.domain_publisher,
     )
 
+    identification = providers.Container(
+        IdentificationContainer,
+        session_factory=infra.session_factory,
+        publisher=adapters.domain_publisher,
+        sanitizer=adapters.image_sanitizer,
+        storage=adapters.image_storage,
+        kindwise_client=adapters.kindwise_client,
+        kindwise_breaker=adapters.kindwise_breaker,
+        plantnet_breaker=adapters.plantnet_breaker,
+        plantnet_api_key=settings.provided.plantnet_api_key,
+        consensus_enabled=settings.provided.consensus_enabled,
+        users=identity.directory,
+        wallet=subscription.token_wallet,
+        training=training.recorder,
+        catalog=catalog.registry,
+    )
+
     use_cases = providers.Container(
         UseCasesContainer,
         settings=settings,
         unit_of_work=infra.unit_of_work,
         domain_publisher=adapters.domain_publisher,
-        plant_identifier=adapters.plant_identifier,
         health_analyzer=adapters.health_analyzer,
         health_enricher=adapters.health_enricher,
         species_registry=catalog.registry,
@@ -73,4 +90,5 @@ class Container(containers.DeclarativeContainer):
         garden_quota=subscription.garden_quota,
         local_calendar=calendar,
         user_directory=identity.directory,
+        identification_lookup=identification.lookup,
     )

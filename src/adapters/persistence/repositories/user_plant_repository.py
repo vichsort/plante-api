@@ -7,7 +7,8 @@ from src.adapters.persistence.mappers.user_plant_mapper import UserPlantMapper
 from src.adapters.persistence.models.user_plant_model import UserPlantModel
 from src.domain.entities.user_plant import UserPlant
 from src.domain.ports.user_plant_repository import IUserPlantRepository
-from src.domain.value_objects.ids import IdentificationId, UserPlantId
+from src.domain.value_objects.ids import UserPlantId
+from src.modules.identification import IdentificationId
 from src.shared.domain import UserId
 
 

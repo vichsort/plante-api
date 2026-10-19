@@ -1,150 +1,159 @@
-from unittest.mock import AsyncMock
+from dataclasses import dataclass, field
+from uuid import UUID
 
 import pytest
 
-from src.domain.entities.identification import Identification
-from src.domain.exceptions import LowConfidenceError
-from src.domain.ports.plant_identifier import IdentificationResult
-from src.domain.use_cases.identify_plant_use_case import (
+from src.modules.catalog.tests.fakes import FakeSpeciesRegistry
+from src.modules.identification.domain.events import PlantIdentifiedEvent
+from src.modules.identification.domain.exceptions import LowConfidenceError
+from src.modules.identification.domain.use_cases.identify_plant import (
     IdentifyPlantInputDTO,
     IdentifyPlantUseCase,
 )
-from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.modules.catalog.tests.fakes import FakeSpeciesRegistry
+from src.modules.identification.tests.fakes import (
+    FakeIdentificationUnitOfWork,
+    StubPlantIdentifier,
+    make_result,
+)
+from src.modules.identity import UserLocation
 from src.modules.identity.tests.fakes import FakeUserDirectory
 from src.modules.subscription import FeatureCost, SubscriptionRequiredError
 from src.modules.subscription.tests.fakes import FakeTokenWallet
-from src.modules.training import TrainingIdentificationSample
 from src.modules.training.tests.fakes import FakeTrainingRecorder
-from tests.factories import (
-    make_identification_signals,
-    make_species,
-    make_user,
+from src.shared.domain import UserId
+from src.shared.tests.fakes import (
+    MarkingSanitizer,
+    RecordingImageStorage,
+    RecordingPublisher,
 )
-from tests.fakes import FakeUnitOfWork, MarkingSanitizer
+
+USER = UserId(UUID(int=1))
 
 
-def _recorder(use_case: IdentifyPlantUseCase) -> FakeTrainingRecorder:
-    assert isinstance(use_case.training, FakeTrainingRecorder)
-    return use_case.training
+@dataclass
+class _Scenario:
+    """O use case com todas as portas em memória, para o teste olhar o estado de cada uma."""
+    confidence: float = 0.9
+    used_today: int = 0
+    uow: FakeIdentificationUnitOfWork = field(default_factory=FakeIdentificationUnitOfWork)
+    identifier: StubPlantIdentifier = field(init=False)
+    storage: RecordingImageStorage = field(default_factory=RecordingImageStorage)
+    publisher: RecordingPublisher = field(default_factory=RecordingPublisher)
+    wallet: FakeTokenWallet = field(init=False)
+    training: FakeTrainingRecorder = field(default_factory=FakeTrainingRecorder)
+    catalog: FakeSpeciesRegistry = field(default_factory=FakeSpeciesRegistry)
+    location: UserLocation = field(default_factory=lambda: UserLocation(country="BR", state="SP"))
+
+    def __post_init__(self) -> None:
+        self.identifier = StubPlantIdentifier(make_result(confidence=self.confidence))
+        self.wallet = FakeTokenWallet(used_today=self.used_today)
+
+    def use_case(self) -> IdentifyPlantUseCase:
+        return IdentifyPlantUseCase(
+            uow=self.uow,
+            sanitizer=MarkingSanitizer(),
+            plant_identifier=self.identifier,
+            storage=self.storage,
+            publisher=self.publisher,
+            users=FakeUserDirectory(location=self.location),
+            wallet=self.wallet,
+            training=self.training,
+            catalog=self.catalog,
+        )
 
 
-def _use_case(confidence: float = 0.9, used_today: int = 0):
-    user = make_user()
-    identifications = AsyncMock()
-    identifications.save.side_effect = lambda identification: identification
-    uow = FakeUnitOfWork(identifications=identifications)
+async def test_records_identification_and_anonymous_training_sample() -> None:
+    # Arrange
+    scenario = _Scenario()
+    dto = IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img", latitude=-23.5617, longitude=-46.6559)
 
-    identifier = AsyncMock()
-    identifier.identify.return_value = IdentificationResult(
-        scientific_name="Monstera deliciosa",
-        confidence=ConfidenceScore(confidence),
-        source="consensus",
-        family="Araceae",
-        signals=make_identification_signals(),
-    )
-    storage = AsyncMock()
-    storage.upload_identification_image.return_value = "identifications/user.jpg"
-    storage.upload_training_image.return_value = "training/identifications/copy.jpg"
+    # Act
+    output = await scenario.use_case().execute(dto)
 
-    use_case = IdentifyPlantUseCase(
-        uow=uow,
-        sanitizer=MarkingSanitizer(),
-        plant_identifier=identifier,
-        storage=storage,
-        publisher=AsyncMock(),
-        users=FakeUserDirectory(location=user.location),
-        wallet=FakeTokenWallet(used_today=used_today),
-        training=FakeTrainingRecorder(),
-        catalog=FakeSpeciesRegistry({"Monstera deliciosa": make_species()}),
-    )
-    return use_case, uow, user, identifier, storage
-
-
-@pytest.mark.asyncio
-async def test_records_identification_and_anonymous_training_sample():
-    use_case, uow, user, _, _ = _use_case()
-
-    output = await use_case.execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"img", latitude=-23.5617, longitude=-46.6559))
-
-    sample: TrainingIdentificationSample = _recorder(use_case).identification_samples[0]
-    identification: Identification = uow.identifications.save.call_args.args[0]
-
-    # Lado do usuário: dono, foto do usuário e vínculo de mão única para o treino
+    # Assert: lado do usuário com dono, foto dele e o vínculo de mão única para o treino
+    (identification,) = scenario.uow.identifications.by_id.values()
+    (sample,) = scenario.training.identification_samples
     assert output.identification_id == identification.id
-    assert identification.user_id == user.id
-    assert identification.image_key == "identifications/user.jpg"
+    assert identification.user_id == USER
+    assert identification.image_key == "identifications/1.jpg"
     assert identification.training_sample_id == sample.id
-
     # Treino: cópia própria da foto, sinais dos provedores, só o mês e GPS aproximado
-    assert sample.image_key == "training/identifications/copy.jpg"
-    assert sample.signals == make_identification_signals()
+    assert sample.image_key == "training/identifications/1.jpg"
+    assert sample.signals == scenario.identifier.result.signals
     assert sample.period.day == 1
     assert (sample.location.grid_latitude, sample.location.grid_longitude) == (-23.6, -46.7)
-    assert (sample.location.country, sample.location.state) == (user.location.country, user.location.state)
+    assert (sample.location.country, sample.location.state) == ("BR", "SP")
 
 
-@pytest.mark.asyncio
-async def test_identifying_does_not_create_a_garden_plant():
-    use_case, uow, user, _, _ = _use_case()
+async def test_without_coordinates_training_keeps_only_the_state() -> None:
+    # Arrange
+    scenario = _Scenario()
 
-    await use_case.execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"img"))
+    # Act
+    await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
 
-    uow.user_plants.save.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_without_coordinates_training_keeps_only_the_state():
-    use_case, uow, user, _, _ = _use_case()
-
-    await use_case.execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"img"))
-
-    location = _recorder(use_case).identification_samples[0].location
+    # Assert
+    location = scenario.training.identification_samples[0].location
     assert (location.grid_latitude, location.grid_longitude) == (None, None)
-    assert location.state == user.location.state
+    assert location.state == "SP"
 
 
-@pytest.mark.asyncio
-async def test_providers_and_storage_only_receive_the_sanitized_photo():
-    use_case, _, user, identifier, storage = _use_case()
+async def test_providers_and_storage_only_receive_the_sanitized_photo() -> None:
+    # Arrange
+    scenario = _Scenario()
 
-    await use_case.execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"img"))
+    # Act
+    await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
 
-    assert identifier.identify.call_args.kwargs["image_bytes"] == b"clean:img"
-    assert storage.upload_identification_image.call_args.kwargs["image_bytes"] == b"clean:img"
-    assert storage.upload_training_image.call_args.kwargs["image_bytes"] == b"clean:img"
-
-
-@pytest.mark.asyncio
-async def test_reads_and_writes_in_separate_transactions_and_charges_one_token():
-    use_case, uow, user, _, _ = _use_case()
-
-    await use_case.execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"img"))
-
-    # Nenhuma transação aberta durante a IA: as leituras são dos módulos; a escrita é uma só
-    assert uow.opened == 1
-    assert uow.commits == 1
-    assert isinstance(use_case.wallet, FakeTokenWallet)
-    assert use_case.wallet.charges == [(user.id, FeatureCost.IDENTIFY)]
+    # Assert
+    assert [image for image, _, _ in scenario.identifier.calls] == [b"clean:img"]
+    assert scenario.storage.user_uploads == [b"clean:img"]
+    assert scenario.storage.training_uploads == [b"clean:img"]
 
 
-@pytest.mark.asyncio
-async def test_identification_without_tokens_is_refused_before_calling_providers():
-    use_case, uow, user, identifier, _ = _use_case(used_today=3)
+async def test_writes_in_one_transaction_charges_one_token_and_publishes_after_commit() -> None:
+    # Arrange
+    scenario = _Scenario()
 
+    # Act
+    await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
+
+    # Assert: nenhuma transação aberta durante a IA; as leituras são dos outros módulos
+    assert (scenario.uow.opened, scenario.uow.commits) == (1, 1)
+    assert scenario.wallet.charges == [(USER, FeatureCost.IDENTIFY)]
+    assert [type(event) for event in scenario.publisher.events] == [PlantIdentifiedEvent]
+
+
+async def test_registers_the_species_in_the_catalog() -> None:
+    # Arrange
+    scenario = _Scenario()
+
+    # Act
+    await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
+
+    # Assert
+    (identification,) = scenario.uow.identifications.by_id.values()
+    assert scenario.catalog.species["Monstera deliciosa"].id == identification.species_id
+
+
+async def test_identification_without_tokens_is_refused_before_calling_providers() -> None:
+    # Arrange
+    scenario = _Scenario(used_today=3)
+
+    # Act & Assert
     with pytest.raises(SubscriptionRequiredError):
-        await use_case.execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"img"))
+        await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
+    assert scenario.identifier.calls == []
+    assert scenario.uow.commits == 0
 
-    identifier.identify.assert_not_called()
-    assert uow.commits == 0
 
+async def test_rejected_confidence_records_nothing() -> None:
+    # Arrange
+    scenario = _Scenario(confidence=0.3)
 
-@pytest.mark.asyncio
-async def test_rejected_confidence_records_nothing():
-    use_case, uow, user, _, _ = _use_case(confidence=0.3)
-
+    # Act & Assert
     with pytest.raises(LowConfidenceError):
-        await use_case.execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"img"))
-
-    assert uow.commits == 0
-    assert _recorder(use_case).is_empty
+        await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
+    assert scenario.uow.commits == 0
+    assert scenario.training.is_empty
+    assert scenario.storage.user_uploads == []

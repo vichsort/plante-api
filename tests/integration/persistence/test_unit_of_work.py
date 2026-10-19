@@ -10,6 +10,9 @@ from src.modules.catalog.adapters.persistence.unit_of_work import (
     SqlAlchemyCatalogUnitOfWork,
 )
 from src.modules.catalog.domain.services.species_registry import SpeciesRegistry
+from src.modules.identification.adapters.persistence.unit_of_work import (
+    SqlAlchemyIdentificationUnitOfWork,
+)
 from src.modules.identity.adapters.persistence.unit_of_work import (
     SqlAlchemyIdentityUnitOfWork,
 )
@@ -59,15 +62,16 @@ async def test_repositories_share_one_transaction(session_factory: async_session
     async with SqlAlchemyUnitOfWork(session_factory) as uow:
         # A cadeia de FKs (usuário → identificação → planta, espécie, amostra de treino) só é
         # satisfeita se todos os repositórios usam a mesma transação, inclusive os dos módulos
-        # (identity, catalog, training), que se juntam à transação aberta aqui
+        # (identity, catalog, training, identification), que se juntam à transação aberta aqui
         async with SqlAlchemyIdentityUnitOfWork(session_factory) as accounts:
             user = await accounts.users.save(make_user(email="shared@plante.org"))
         species = await SpeciesRegistry(SqlAlchemyCatalogUnitOfWork(session_factory)).save(make_species("Pilea peperomioides"))
         training = make_training_identification_sample("Pilea peperomioides")
         await TrainingRecorder(SqlAlchemyTrainingUnitOfWork(session_factory)).record_identification_sample(training)
-        identification = await uow.identifications.save(make_identification(
-            user_id=user.id, training_sample_id=training.id, species_id=species.id, scientific_name="Pilea peperomioides",
-        ))
+        async with SqlAlchemyIdentificationUnitOfWork(session_factory) as identifications:
+            identification = await identifications.identifications.save(make_identification(
+                user_id=user.id, training_sample_id=training.id, species_id=species.id, scientific_name="Pilea peperomioides",
+            ))
         plant = await uow.user_plants.save(make_user_plant(user_id=user.id, identification_id=identification.id))
         await uow.commit()
 

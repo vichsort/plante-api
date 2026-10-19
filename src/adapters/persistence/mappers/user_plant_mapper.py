@@ -4,8 +4,9 @@ from src.domain.entities.user_plant import (
     UserPlant,
 )
 from src.domain.value_objects.care_interval import CareInterval
-from src.domain.value_objects.ids import IdentificationId, UserPlantId
+from src.domain.value_objects.ids import UserPlantId
 from src.domain.value_objects.streak import Streak
+from src.modules.identification import IdentificationId
 from src.shared.domain import UserId
 
 

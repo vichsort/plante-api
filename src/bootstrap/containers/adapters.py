@@ -1,19 +1,15 @@
 from dependency_injector import containers, providers
 
-from src.adapters.ai.consensus.consensus_adapter import ConsensusIdentifier
 from src.adapters.ai.gemini.gemini_adapter import GeminiHealthEnricher
-from src.adapters.ai.kindwise.kindwise_adapter import KindwiseAdapter
-from src.adapters.ai.plantnet.plantnet_adapter import PlantNetAdapter
-from src.adapters.resilience import (
-    CircuitBreakerHealthAnalyzer,
-    CircuitBreakerPlantIdentifier,
-)
+from src.adapters.ai.kindwise.kindwise_adapter import KindwiseHealthAnalyzer
+from src.adapters.resilience import CircuitBreakerHealthAnalyzer
 from src.bootstrap.celery_config import celery_app
 from src.bootstrap.settings import Settings
 from src.modules.identity.workers import route_event as identity_events
 from src.shared.adapters import (
     CeleryPublisher,
     CircuitBreaker,
+    KindwiseClient,
     PillowImageSanitizer,
     RedisClient,
     S3ImageStorage,
@@ -56,44 +52,15 @@ class AdaptersContainer(containers.DeclarativeContainer):
         recovery_timeout_seconds=settings.provided.ai_breaker_recovery_timeout_seconds,
     )
 
-    kindwise_adapter = providers.Singleton(
-        KindwiseAdapter,
+    # Kindwise atende identificação e saúde: um cliente só, cada módulo com o próprio adapter
+    kindwise_client = providers.Singleton(
+        KindwiseClient,
         api_key=settings.provided.plant_id_api_key,
-    )
-
-    plantnet_adapter = providers.Singleton(
-        PlantNetAdapter,
-        api_key=settings.provided.plantnet_api_key,
-    )
-
-    kindwise_identifier = providers.Singleton(
-        CircuitBreakerPlantIdentifier,
-        inner=kindwise_adapter,
-        breaker=kindwise_breaker,
-    )
-
-    plantnet_identifier = providers.Singleton(
-        CircuitBreakerPlantIdentifier,
-        inner=plantnet_adapter,
-        breaker=plantnet_breaker,
-    )
-
-    consensus_identifier = providers.Singleton(
-        ConsensusIdentifier,
-        kindwise=kindwise_identifier,
-        plantnet=plantnet_identifier,
-    )
-
-    # Selector compara pela string do valor: o bool precisa virar "true"/"false"
-    plant_identifier = providers.Selector(
-        providers.Callable(lambda enabled: "true" if enabled else "false", settings.provided.consensus_enabled),
-        true=consensus_identifier,
-        false=kindwise_identifier,
     )
 
     health_analyzer = providers.Singleton(
         CircuitBreakerHealthAnalyzer,
-        inner=kindwise_adapter,
+        inner=providers.Singleton(KindwiseHealthAnalyzer, client=kindwise_client),
         breaker=kindwise_breaker,
     )
 

@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from src.domain.exceptions import IdentificationNotFoundError
-from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.ids import IdentificationId
+from src.modules.identification.domain.exceptions import IdentificationNotFoundError
+from src.modules.identification.domain.ports.unit_of_work import (
+    IIdentificationUnitOfWork,
+)
+from src.modules.identification.domain.value_objects.ids import IdentificationId
 from src.modules.training import (
     FeedbackOrigin,
     FeedbackVerdict,
@@ -30,7 +32,7 @@ class GiveIdentificationFeedbackUseCase:
 
     raises = (IdentificationNotFoundError,)
 
-    def __init__(self, uow: IUnitOfWork, training: ITrainingRecorder) -> None:
+    def __init__(self, uow: IIdentificationUnitOfWork, training: ITrainingRecorder) -> None:
         self.uow = uow
         self.training = training
 

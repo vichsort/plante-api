@@ -4,6 +4,10 @@ from dependency_injector import providers
 
 from src.bootstrap.container import Container
 from src.bootstrap.wiring import wire
+from src.modules.identification.adapters.consensus.identifier import ConsensusIdentifier
+from src.modules.identification.adapters.resilience.circuit_breaker import (
+    CircuitBreakerPlantIdentifier,
+)
 
 
 def test_container_wires_without_error():
@@ -26,9 +30,22 @@ def test_every_use_case_resolves(monkeypatch, consensus_enabled):
     monkeypatch.setenv("GEMINI_API_KEY", "test")
     monkeypatch.setenv("CONSENSUS_ENABLED", consensus_enabled)
     container = Container()
-    for provider in container.use_cases.container.providers.values():
-        if not isinstance(provider, providers.Dependency):
-            provider()
+    for sub in (container.use_cases, container.identification):
+        for provider in sub.container.providers.values():
+            if not isinstance(provider, providers.Dependency):
+                provider()
+
+
+@pytest.mark.parametrize(("consensus_enabled", "expected"), [
+    ("true", ConsensusIdentifier),
+    ("false", CircuitBreakerPlantIdentifier),  # só o Kindwise, protegido pelo breaker
+])
+def test_consensus_setting_picks_the_identifier(monkeypatch, consensus_enabled, expected):
+    monkeypatch.setenv("CONSENSUS_ENABLED", consensus_enabled)
+
+    identifier = Container().identification.plant_identifier()
+
+    assert type(identifier) is expected
 
 
 def test_ai_breakers_use_settings_thresholds(monkeypatch):

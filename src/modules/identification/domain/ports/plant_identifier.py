@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.modules.catalog import ImageSource
+from src.modules.identification.domain.value_objects.confidence_score import (
+    ConfidenceScore,
+)
 from src.modules.training import IdentificationOrigin, IdentificationSignals
 
 

@@ -1,6 +1,3 @@
-from .resilient_ai import CircuitBreakerHealthAnalyzer, CircuitBreakerPlantIdentifier
+from .resilient_ai import CircuitBreakerHealthAnalyzer
 
-__all__ = [
-    "CircuitBreakerHealthAnalyzer",
-    "CircuitBreakerPlantIdentifier",
-]
+__all__ = ["CircuitBreakerHealthAnalyzer"]

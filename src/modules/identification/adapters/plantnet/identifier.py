@@ -1,13 +1,15 @@
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.domain.ports.plant_identifier import (
+from src.modules.catalog import ImageSource
+from src.modules.identification.domain.ports.plant_identifier import (
     IdentificationResult,
     IPlantIdentifier,
     SimilarImage,
 )
-from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.modules.catalog import ImageSource
+from src.modules.identification.domain.value_objects.confidence_score import (
+    ConfidenceScore,
+)
 from src.modules.training import IdentificationSignals, SpeciesSuggestion
 from src.shared.adapters import (
     parse_contract,
@@ -75,7 +77,7 @@ class _IdentifyResponse(_Model):
     version: str | None = None
 
 
-class PlantNetAdapter(IPlantIdentifier):
+class PlantNetIdentifier(IPlantIdentifier):
     def __init__(self, api_key: str) -> None:
         self._api_key = api_key
 

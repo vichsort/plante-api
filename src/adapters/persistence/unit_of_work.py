@@ -6,9 +6,6 @@ from src.adapters.persistence.repositories.achievement_repository import (
 from src.adapters.persistence.repositories.health_record_repository import (
     HealthRecordRepository,
 )
-from src.adapters.persistence.repositories.identification_repository import (
-    IdentificationRepository,
-)
 from src.adapters.persistence.repositories.user_plant_repository import (
     UserPlantRepository,
 )
@@ -21,6 +18,5 @@ class SqlAlchemyUnitOfWork(BaseUnitOfWork, IUnitOfWork):
 
     def _bind(self, session: AsyncSession) -> None:
         self.user_plants = UserPlantRepository(session)
-        self.identifications = IdentificationRepository(session)
         self.health_records = HealthRecordRepository(session)
         self.achievements = AchievementRepository(session)

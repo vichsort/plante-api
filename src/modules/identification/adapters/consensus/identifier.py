@@ -2,9 +2,9 @@ import asyncio
 
 import structlog
 
-from src.domain.exceptions import NotAPlantError
-from src.domain.policies.consensus_policy import ConsensusPolicy
-from src.domain.ports.plant_identifier import (
+from src.modules.identification.domain.exceptions import NotAPlantError
+from src.modules.identification.domain.policies.consensus_policy import ConsensusPolicy
+from src.modules.identification.domain.ports.plant_identifier import (
     IdentificationResult,
     IPlantIdentifier,
 )

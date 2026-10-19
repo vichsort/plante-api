@@ -14,13 +14,15 @@ from src.domain.ports.health_enricher import (
     HealthDiagnosisEnrichment,
     IHealthEnricher,
 )
-from src.domain.ports.plant_identifier import (
+from src.modules.catalog import ImageSource
+from src.modules.identification.domain.ports.plant_identifier import (
     IdentificationResult,
     IPlantIdentifier,
     SimilarImage,
 )
-from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.modules.catalog import ImageSource
+from src.modules.identification.domain.value_objects.confidence_score import (
+    ConfidenceScore,
+)
 from src.modules.identity.domain.ports.email_sender import IEmailSender
 from src.modules.training import DiseaseSuggestion, HealthSignals
 from src.shared.domain import IImageStorage, UserId

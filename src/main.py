@@ -72,11 +72,11 @@ def create_app() -> FastAPI:
     from src.api.routers import (
         garden,
         health,
-        identification,
         plants,
         profile,
     )
     from src.bootstrap import probes
+    from src.modules.identification import api as identification
     from src.modules.identity import api as identity
     from src.modules.subscription import api as subscription
     for domain in (identity, identification, garden, plants, health, profile, subscription):

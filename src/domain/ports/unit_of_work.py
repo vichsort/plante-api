@@ -1,6 +1,5 @@
 from src.domain.ports.achievement_repository import IAchievementRepository
 from src.domain.ports.health_record_repository import IHealthRecordRepository
-from src.domain.ports.identification_repository import IIdentificationRepository
 from src.domain.ports.user_plant_repository import IUserPlantRepository
 from src.shared.domain import IUnitOfWork as SharedUnitOfWork
 
@@ -12,6 +11,5 @@ class IUnitOfWork(SharedUnitOfWork):
     """
 
     user_plants: IUserPlantRepository
-    identifications: IIdentificationRepository
     health_records: IHealthRecordRepository
     achievements: IAchievementRepository

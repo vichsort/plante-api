@@ -1,14 +1,18 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from src.domain.entities.identification import Identification
-from src.domain.events.domain_events import PlantIdentifiedEvent
-from src.domain.exceptions import LowConfidenceError
-from src.domain.ports.plant_identifier import IPlantIdentifier
-from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.confidence_score import ConfidenceScore
-from src.domain.value_objects.ids import IdentificationId
 from src.modules.catalog import ISpeciesRegistry
+from src.modules.identification.domain.entities.identification import Identification
+from src.modules.identification.domain.events import PlantIdentifiedEvent
+from src.modules.identification.domain.exceptions import LowConfidenceError
+from src.modules.identification.domain.ports.plant_identifier import IPlantIdentifier
+from src.modules.identification.domain.ports.unit_of_work import (
+    IIdentificationUnitOfWork,
+)
+from src.modules.identification.domain.value_objects.confidence_score import (
+    ConfidenceScore,
+)
+from src.modules.identification.domain.value_objects.ids import IdentificationId
 from src.modules.identity import IUserDirectory
 from src.modules.subscription import (
     FeatureCost,
@@ -69,7 +73,7 @@ class IdentifyPlantUseCase:
 
     def __init__(
         self,
-        uow: IUnitOfWork,
+        uow: IIdentificationUnitOfWork,
         sanitizer: IImageSanitizer,
         plant_identifier: IPlantIdentifier,
         storage: IImageStorage,

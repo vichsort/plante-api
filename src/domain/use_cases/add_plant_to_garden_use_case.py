@@ -10,10 +10,14 @@ from src.domain.entities.user_plant import (
     UserPlant,
 )
 from src.domain.events.domain_events import PlantAddedToGardenEvent
-from src.domain.exceptions import IdentificationNotFoundError
 from src.domain.ports.unit_of_work import IUnitOfWork
 from src.domain.value_objects.care_interval import CareInterval
-from src.domain.value_objects.ids import IdentificationId, UserPlantId
+from src.domain.value_objects.ids import UserPlantId
+from src.modules.identification import (
+    IdentificationId,
+    IdentificationNotFoundError,
+    IIdentificationLookup,
+)
 from src.modules.identity import IUserDirectory
 from src.modules.subscription import IGardenQuota, PlantLimitExceededError
 from src.modules.training import (
@@ -59,7 +63,9 @@ class AddPlantToGardenUseCase:
         users: IUserDirectory,
         quota: IGardenQuota,
         training: ITrainingRecorder,
+        identifications: IIdentificationLookup,
     ) -> None:
+        self.identifications = identifications
         self.users = users
         self.quota = quota
         self.uow = uow
@@ -74,9 +80,7 @@ class AddPlantToGardenUseCase:
         async with self.uow as uow:
             await self.users.ensure_exists(dto.user_id)
 
-            identification = await uow.identifications.get_for_user(dto.identification_id, dto.user_id)
-            if identification is None:
-                raise IdentificationNotFoundError(dto.identification_id)
+            identification = await self.identifications.get_for_user(dto.identification_id, dto.user_id)
 
             existing = await uow.user_plants.get_by_identification(identification.id, dto.user_id)
             if existing is not None:

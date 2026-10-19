@@ -5,37 +5,15 @@ Regras de negócio de cada subdomínio enquanto o código ainda está nas camada
 migrado**: a seção do subdomínio vai para o `README.md` do módulo (Propósito, Decisões, Erros) e
 sai daqui. Quando o último módulo migrar, o arquivo é apagado.
 
-Já migrados: `training`, `catalog`, `subscription` e `identity` (README de cada um em `src/modules/`).
+Já migrados: `training`, `catalog`, `subscription`, `identity` e `identification` (README de cada um em `src/modules/`).
 
 As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/shared/README.md`.
 
 | Seção | Vai para o módulo |
 | :--- | :--- |
-| Identificação Botânica & Consenso | `identification` (+ `catalog`) |
 | Gestão de Jardim & Cuidados | `garden` |
 | Diagnóstico de Saúde | `health` |
 | Gamificação | `achievements` |
-
----
-
-## Identificação Botânica & Consenso (`Botany Identification Context`)
-* **Propósito**: Processar imagens enviadas pelo usuário, consultar múltiplos provedores de visão computacional/IA (Kindwise, PlantNet) e determinar a identificação taxonômica exata ou por consenso.
-* **Entidades Principais**: `Identification` (histórico do usuário), `PlantSpecies`.
-* **Políticas**: `ConsensusPolicy` (calcula concordância exata, por gênero ou fallback).
-* **Entradas (Use Cases)**: `IdentifyPlantUseCase`, `GiveIdentificationFeedbackUseCase`.
-* **Ports Requeridos**: `IImageSanitizer`, `IPlantIdentifier` (Kindwise, PlantNet, consenso), `IImageStorage`, `IUnitOfWork` (`identifications`, `species`, `reference_images`, `training`).
-* **Regras de Negócio**:
-  - `POST /identify` **não cria planta no jardim**: grava a identificação (lado do usuário) e a amostra de treino anônima (`src/modules/training/README.md`). Verifica só os tokens do dia; o limite do jardim vale ao adicionar ao jardim.
-  - A foto é limpa antes de qualquer uso (`IImageSanitizer`, adapter Pillow): orientação aplicada, todos os metadados removidos (EXIF, GPS, aparelho, data), regravada em JPEG. Aceita JPEG/PNG/WebP; HEIC, arquivo que não é imagem ou imagem acima de 60 MP → `PLANTE_4013`.
-  - Feedback (`POST /identify/{id}/feedback`): `correct | wrong | unsure` + sugestão opcional de espécie. A qualquer momento, quantas vezes o usuário quiser; cada resposta é um evento na amostra de treino.
-  - **Consenso (`ConsensusIdentifier`, ativo com `CONSENSUS_ENABLED=true`)**: Kindwise e PlantNet são consultados em paralelo (timeout de 10s cada) e a `ConsensusPolicy` escolhe a espécie:
-    - Acordo exato → média ponderada (Kindwise 60%, PlantNet 40%), `source="consensus"`.
-    - Acordo de gênero → vence o maior score, `source="consensus_partial"`, sempre `low_confidence`.
-    - Desacordo total → vence o Kindwise, salvo se o PlantNet tiver 20 pontos percentuais a mais; sempre `low_confidence`.
-    - Um provedor falha → o outro decide sozinho (`source` = nome dele). Os dois falham → `InvalidImageError` prevalece sobre `ExternalServiceError`.
-    - **Veto**: se o Kindwise afirmar que a imagem não é planta (`is_plant.binary == false` → `NotAPlantError`), a requisição falha com `PLANTE_4013` mesmo que o PlantNet tenha devolvido uma espécie. Outras falhas do Kindwise (sugestões vazias, imagem ilegível) não vetam.
-    - As imagens de referência (`similar_images`) vêm do provedor cujos dados venceram (Kindwise no acordo exato) e são gravadas com a origem correta (`kindwise_similar` / `plantnet_similar`).
-    - Os sinais (`IdentificationResult.signals`) juntam o que cada provedor que respondeu disse (o que falhou fica de fora). Com o consenso desligado, só os do Kindwise.
 
 ---
 
@@ -43,7 +21,7 @@ As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/sh
 * **Propósito**: Manter a coleção de plantas do usuário (o "jardim"), controlar rotinas de rega, adubação e acompanhar a frequência de cuidados (`Streak`).
 * **Entidades Principais**: `UserPlant`, `CareSchedule`, `Streak`.
 * **Entradas (Use Cases)**: `AddPlantToGardenUseCase`, `WaterPlantUseCase`, `GetUserGardenUseCase`, `GetPlantDetailsUseCase`, `DeleteUserPlantUseCase`, `BreakStreakCronUseCase` (worker).
-* **Ports Requeridos**: `IUnitOfWork` (`user_plants`, `identifications`, `training`).
+* **Ports Requeridos**: `IUnitOfWork` (`user_plants`), `IIdentificationLookup` (identification), `ITrainingRecorder` (training).
 * **Regras de Negócio**:
   - Uma planta só entra no jardim a partir de uma identificação (`POST /garden` com `identification_id`): é aí que o `UserPlant` é criado. Repetir com a mesma identificação devolve a planta existente.
   - Limite do plano conta as plantas **ativas** no jardim (`count_by_user`; não há contador guardado), conferido pelo `IGardenQuota` do subscription.
@@ -58,7 +36,7 @@ As regras de arquitetura estão no `ARCHITECTURE.md`; o kernel comum, em `src/sh
 * **Propósito**: Analisar sintomas em folhas/caule enviados por foto, classificar a severidade (low, moderate, high, critical) e gerar um plano de recuperação botânica.
 * **Entidades Principais**: `HealthRecord` (histórico do usuário).
 * **Entradas (Use Cases)**: `DiagnoseHealthUseCase`, `GiveHealthFeedbackUseCase`, `GetHealthHistoryUseCase`.
-* **Ports Requeridos**: `IImageSanitizer`, `IHealthAnalyzer`, `IPlantEnricher`, `IImageStorage`, `IUnitOfWork` (`health_records`, `training`).
+* **Ports Requeridos**: `IImageSanitizer`, `IHealthAnalyzer` (adapter Kindwise sobre o `KindwiseClient` do shared), `IPlantEnricher`, `IImageStorage`, `IUnitOfWork` (`health_records`, `training`).
 * **Regras de Negócio**:
   - `POST /diagnose` grava o diagnóstico (lado do usuário, com `training_sample_id`) e a amostra de treino de saúde na hora, já com as imagens de referência das doenças rehospedadas. Aceita `latitude`/`longitude` opcionais (só a grade aproximada vai para o treino).
   - Feedback (`POST /diagnose/{id}/feedback`): `correct | wrong | unsure`, a qualquer momento. Substituiu a antiga confirmação (e a resposta pendente no Redis, que expirava).
@@ -82,23 +60,9 @@ Os erros comuns (`PLANTE_4000`, `4002`, `4006`, `4013`, `4029`, `5001`, `4220`, 
 | :--- | :--- | :--- | :---: |
 | `PLANTE_4001_PLANT_NOT_FOUND` | `PlantNotFoundError` | Planta não existe ou não pertence ao usuário. | 404 |
 | `PLANTE_4009_FORBIDDEN` | `ForbiddenError` | Autenticado, mas sem permissão sobre o recurso (ex.: planta de outro usuário). | 403 |
-| `PLANTE_4010_IDENTIFICATION_FAILED` | `PlantIdentificationError` | A IA não identificou a planta com confiança suficiente. | 422 |
-| `PLANTE_4011_LOW_CONFIDENCE` | `LowConfidenceError` | Confiança da identificação abaixo de 60% (`ConfidenceScore.is_rejected`). | 422 |
-| `PLANTE_4012_IDENTIFICATION_NOT_FOUND` | `IdentificationNotFoundError` | Identificação não existe ou não pertence ao usuário (feedback, adicionar ao jardim). | 404 |
 | `PLANTE_4016_NOT_READY_FOR_WATERING` | `PlantNotReadyForWateringError` | Rega antes da janela (vencimento − 1 dia) ou segunda rega no mesmo dia (`UserPlant.water()`). | 400 |
 | `PLANTE_4017_HEALTH_RECORD_NOT_FOUND` | `HealthRecordNotFoundError` | Diagnóstico não existe ou não pertence ao usuário. | 404 |
 
-**`PLANTE_4013` — quando um provedor de IA gera imagem inválida:**
-* Kindwise: `is_plant.binary == false` explícito → `NotAPlantError` (campo ausente segue o fluxo normal); lista de sugestões vazia → `InvalidImageError`; HTTP 400 → `InvalidImageError` **só** se o corpo contiver o marcador `Invalid image` (outros 400 são payload nosso malformado → `ExternalServiceError(retryable=False)` + log `provider.request_rejected`).
-* PlantNet: HTTP 400 com `Unsupported file type` ou 404 com `Species not found` → `InvalidImageError`; outros 400 (ex.: `organs` inválido) → `ExternalServiceError(retryable=False)`.
-* Consenso: `NotAPlantError` do Kindwise veta a resposta do PlantNet (ver "Identificação Botânica").
+**`PLANTE_4013`:** quando cada provedor de identificação gera imagem inválida está em `src/modules/identification/README.md`. A saúde segue a mesma regra do Kindwise (`is_plant.binary == false` → `NotAPlantError`; 400 só com `Invalid image`).
 
 ---
-
-## Extensão
-
-### Como Adicionar um Novo Provedor de IA Botânica (`IPlantIdentifier`)
-1. Crie o novo adapter em `src/adapters/ai/<nome_provedor>/<nome_provedor>_adapter.py`.
-2. Implemente a interface `IPlantIdentifier` definida em `src/domain/ports/plant_identifier.py`.
-3. Registre a nova classe no container `AdaptersContainer` em `src/bootstrap/containers/adapters.py`.
-4. Adicione os testes unitários correspondentes em `tests/unit/adapters/`.

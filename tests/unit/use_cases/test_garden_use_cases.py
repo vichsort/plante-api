@@ -1,3 +1,4 @@
+import inspect
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from unittest.mock import AsyncMock
@@ -5,9 +6,8 @@ from uuid import uuid4
 
 import pytest
 
-from src.domain.entities.identification import Identification
 from src.domain.entities.user_plant import IdentificationSource, UserPlant
-from src.domain.exceptions import IdentificationNotFoundError, PlantNotFoundError
+from src.domain.exceptions import PlantNotFoundError
 from src.domain.use_cases.add_plant_to_garden_use_case import (
     AddPlantToGardenInputDTO,
     AddPlantToGardenUseCase,
@@ -25,9 +25,15 @@ from src.domain.use_cases.water_plant_use_case import (
     WaterPlantInputDTO,
     WaterPlantUseCase,
 )
-from src.domain.value_objects.ids import IdentificationId, UserPlantId
+from src.domain.value_objects.ids import UserPlantId
 from src.domain.value_objects.streak import Streak
 from src.modules.catalog import PlantSpeciesId
+from src.modules.identification import (
+    Identification,
+    IdentificationId,
+    IdentificationNotFoundError,
+)
+from src.modules.identification.tests.fakes import FakeIdentificationLookup
 from src.modules.identity.tests.fakes import FakeUserDirectory
 from src.modules.subscription import PlantLimitExceededError
 from src.modules.subscription.tests.fakes import FakeGardenQuota
@@ -50,17 +56,16 @@ from tests.fakes import FakeUnitOfWork
 
 
 def _garden_use_case(identification: Identification | None, existing: UserPlant | None = None, plants_in_garden: int = 0):
-    identifications = AsyncMock()
-    identifications.get_for_user.return_value = identification
     user_plants = AsyncMock()
     user_plants.get_by_identification.return_value = existing
     user_plants.count_by_user.return_value = plants_in_garden
     user_plants.save.side_effect = lambda plant: plant
-    uow = FakeUnitOfWork(identifications=identifications, user_plants=user_plants)
+    uow = FakeUnitOfWork(user_plants=user_plants)
+    lookup = FakeIdentificationLookup(*([identification] if identification else []))
     publisher = AsyncMock()
     use_case = AddPlantToGardenUseCase(
         uow=uow, publisher=publisher, calendar=CALENDAR, users=FakeUserDirectory(), quota=FakeGardenQuota(),
-        training=FakeTrainingRecorder(),
+        training=FakeTrainingRecorder(), identifications=lookup,
     )
     return use_case, uow, publisher
 
@@ -162,9 +167,10 @@ async def test_deleting_plant_does_not_touch_identification_or_training():
 
     await DeleteUserPlantUseCase(uow=uow).execute(DeleteUserPlantInputDTO(user_id=UserId(uuid4()), user_plant_id=UserPlantId(uuid4())))
 
+    # Só recebe a UoW do jardim (nem a identificação nem o gravador do dataset): apagar planta
+    # não é rejeição da identificação
     assert uow.committed
-    # Nem recebe o gravador do dataset: apagar planta não é rejeição da identificação
-    assert uow.identifications.mock_calls == []
+    assert list(inspect.signature(DeleteUserPlantUseCase).parameters) == ["uow"]
 
 
 @pytest.mark.asyncio

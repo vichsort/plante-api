@@ -20,6 +20,7 @@ from src.shared.adapters.providers.json_body import (
     parse_contract_json,
     parse_json_object,
 )
+from src.shared.adapters.providers.kindwise_client import KindwiseClient
 from src.shared.adapters.redis.client import RedisClient
 from src.shared.adapters.resilience.circuit_breaker import (
     CircuitBreaker,
@@ -37,6 +38,7 @@ __all__ = [
     "CircuitState",
     "EventRoute",
     "GeminiClient",
+    "KindwiseClient",
     "PillowImageSanitizer",
     "RedisClient",
     "S3ImageStorage",

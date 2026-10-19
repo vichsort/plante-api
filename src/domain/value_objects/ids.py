@@ -10,6 +10,5 @@ from typing import NewType
 from uuid import UUID
 
 UserPlantId = NewType("UserPlantId", UUID)
-IdentificationId = NewType("IdentificationId", UUID)
 HealthRecordId = NewType("HealthRecordId", UUID)
 AchievementId = NewType("AchievementId", UUID)

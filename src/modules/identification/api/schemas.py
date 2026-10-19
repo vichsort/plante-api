@@ -2,7 +2,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from src.domain.use_cases.identify_plant_use_case import IdentifyPlantOutput
+from src.modules.identification.domain.use_cases.identify_plant import (
+    IdentifyPlantOutput,
+)
 from src.modules.training import FeedbackVerdict
 
 

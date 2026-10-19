@@ -2,7 +2,6 @@ from src.shared.adapters import Base
 
 from .achievement_model import AchievementModel
 from .health_record_model import HealthRecordModel
-from .identification_model import IdentificationModel
 from .user_plant_model import UserPlantModel
 
 # obs: models/care_model.py (para o CareSchedule) é completamente achatado em
@@ -13,7 +12,6 @@ from .user_plant_model import UserPlantModel
 __all__ = [
     "Base",
     "UserPlantModel",
-    "IdentificationModel",
     "HealthRecordModel",
     'AchievementModel'
 ]

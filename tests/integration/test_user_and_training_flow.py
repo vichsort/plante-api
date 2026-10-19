@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
 from src.domain.ports.health_analyzer import DiseaseHint, HealthAssessmentResult
-from src.domain.ports.plant_identifier import IdentificationResult
 from src.domain.use_cases.add_plant_to_garden_use_case import (
     AddPlantToGardenInputDTO,
     AddPlantToGardenUseCase,
@@ -28,23 +27,34 @@ from src.domain.use_cases.give_health_feedback_use_case import (
     GiveHealthFeedbackInputDTO,
     GiveHealthFeedbackUseCase,
 )
-from src.domain.use_cases.give_identification_feedback_use_case import (
-    GiveIdentificationFeedbackInputDTO,
-    GiveIdentificationFeedbackUseCase,
-)
-from src.domain.use_cases.identify_plant_use_case import (
-    IdentifyPlantInputDTO,
-    IdentifyPlantUseCase,
-)
 from src.domain.use_cases.water_plant_use_case import (
     WaterPlantInputDTO,
     WaterPlantUseCase,
 )
-from src.domain.value_objects.confidence_score import ConfidenceScore
 from src.modules.catalog.adapters.persistence.unit_of_work import (
     SqlAlchemyCatalogUnitOfWork,
 )
 from src.modules.catalog.domain.services.species_registry import SpeciesRegistry
+from src.modules.identification.adapters.persistence.unit_of_work import (
+    SqlAlchemyIdentificationUnitOfWork,
+)
+from src.modules.identification.domain.ports.plant_identifier import (
+    IdentificationResult,
+)
+from src.modules.identification.domain.services.identification_lookup import (
+    IdentificationLookup,
+)
+from src.modules.identification.domain.use_cases.give_feedback import (
+    GiveIdentificationFeedbackInputDTO,
+    GiveIdentificationFeedbackUseCase,
+)
+from src.modules.identification.domain.use_cases.identify_plant import (
+    IdentifyPlantInputDTO,
+    IdentifyPlantUseCase,
+)
+from src.modules.identification.domain.value_objects.confidence_score import (
+    ConfidenceScore,
+)
 from src.modules.identity.adapters.persistence.unit_of_work import (
     SqlAlchemyIdentityUnitOfWork,
 )
@@ -112,6 +122,9 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     def uow() -> SqlAlchemyUnitOfWork:
         return SqlAlchemyUnitOfWork(session_factory)
 
+    def identifications() -> SqlAlchemyIdentificationUnitOfWork:
+        return SqlAlchemyIdentificationUnitOfWork(session_factory)
+
     def training() -> TrainingRecorder:
         return TrainingRecorder(SqlAlchemyTrainingUnitOfWork(session_factory))
 
@@ -129,11 +142,11 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
 
     # 1. Identificar (com GPS) e dar feedback
     identified = await IdentifyPlantUseCase(
-        uow=uow(), sanitizer=MarkingSanitizer(), plant_identifier=_identifier(), storage=storage, publisher=AsyncMock(),
+        uow=identifications(), sanitizer=MarkingSanitizer(), plant_identifier=_identifier(), storage=storage, publisher=AsyncMock(),
         users=users, wallet=wallet(), training=training(), catalog=SpeciesRegistry(SqlAlchemyCatalogUnitOfWork(session_factory)),
     ).execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"photo", latitude=-23.5617, longitude=-46.6559))
 
-    await GiveIdentificationFeedbackUseCase(uow=uow(), training=training()).execute(GiveIdentificationFeedbackInputDTO(
+    await GiveIdentificationFeedbackUseCase(uow=identifications(), training=training()).execute(GiveIdentificationFeedbackInputDTO(
         user_id=user.id, identification_id=identified.identification_id,
         verdict=FeedbackVerdict.WRONG, suggested_name="Monstera adansonii",
     ))
@@ -142,6 +155,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     quota = GardenQuota(SqlAlchemySubscriptionUnitOfWork(session_factory))
     plant = (await AddPlantToGardenUseCase(
         uow=uow(), publisher=AsyncMock(), calendar=CALENDAR, users=users, quota=quota, training=training(),
+        identifications=IdentificationLookup(identifications()),
     ).execute(
         AddPlantToGardenInputDTO(user_id=user.id, identification_id=identified.identification_id)
     )).plant
@@ -159,9 +173,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
         user_id=user.id, health_record_id=diagnosis.record.id, verdict=FeedbackVerdict.CORRECT,
     ))
 
-    async with uow() as check:
-        identification = await check.identifications.get_for_user(identified.identification_id, user.id)
-        assert identification is not None
+    identification = await IdentificationLookup(identifications()).get_for_user(identified.identification_id, user.id)
     async with SqlAlchemyTrainingUnitOfWork(session_factory) as dataset:
         feedback = await dataset.training.list_feedback(identification.training_sample_id)
         assert {(f.verdict, f.origin) for f in feedback} == {

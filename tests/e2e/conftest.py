@@ -82,7 +82,7 @@ def doubles(
         container.infra.session_factory: providers.Object(session_factory),
         container.infra.unit_of_work: providers.Factory(SqlAlchemyUnitOfWork, session_factory=session_factory),
         container.adapters.redis: providers.Object(redis_client),
-        container.adapters.plant_identifier: providers.Object(fakes.identifier),
+        container.identification.plant_identifier: providers.Object(fakes.identifier),
         container.adapters.health_analyzer: providers.Object(fakes.health_analyzer),
         container.adapters.health_enricher: providers.Object(fakes.health_enricher),
         container.adapters.image_storage: providers.Object(fakes.storage),

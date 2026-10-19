@@ -1,11 +1,17 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.adapters.persistence.mappers.identification_mapper import IdentificationMapper
-from src.adapters.persistence.models import IdentificationModel
-from src.domain.entities.identification import Identification
-from src.domain.ports.identification_repository import IIdentificationRepository
-from src.domain.value_objects.ids import IdentificationId
+from src.modules.identification.adapters.persistence.mappers.identification import (
+    IdentificationMapper,
+)
+from src.modules.identification.adapters.persistence.models.identification import (
+    IdentificationModel,
+)
+from src.modules.identification.domain.entities.identification import Identification
+from src.modules.identification.domain.ports.identification_repository import (
+    IIdentificationRepository,
+)
+from src.modules.identification.domain.value_objects.ids import IdentificationId
 from src.shared.domain import UserId
 
 

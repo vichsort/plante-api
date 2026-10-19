@@ -4,20 +4,20 @@ from uuid import UUID
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 
-from src.api.schemas.identification import (
+from src.modules.identification.api.schemas import (
     IdentificationFeedbackRequest,
     IdentifyPlantResponse,
 )
-from src.bootstrap.container import Container
-from src.domain.use_cases.give_identification_feedback_use_case import (
+from src.modules.identification.container import IdentificationContainer
+from src.modules.identification.domain.use_cases.give_feedback import (
     GiveIdentificationFeedbackInputDTO,
     GiveIdentificationFeedbackUseCase,
 )
-from src.domain.use_cases.identify_plant_use_case import (
+from src.modules.identification.domain.use_cases.identify_plant import (
     IdentifyPlantInputDTO,
     IdentifyPlantUseCase,
 )
-from src.domain.value_objects.ids import IdentificationId
+from src.modules.identification.domain.value_objects.ids import IdentificationId
 from src.shared.api import ApiResponse, CurrentUserId, MessageResponse, error_responses
 from src.shared.domain import UnauthorizedError
 
@@ -33,7 +33,7 @@ router = APIRouter(prefix="/identify", tags=["identification"], responses=error_
 @inject
 async def identify_plant(
     image: Annotated[UploadFile, File()],
-    use_case: Annotated[IdentifyPlantUseCase, Depends(Provide[Container.use_cases.identify_plant_use_case])],
+    use_case: Annotated[IdentifyPlantUseCase, Depends(Provide[IdentificationContainer.identify_plant_use_case])],
     user_id: CurrentUserId,
     latitude: Annotated[float | None, Form(ge=-90, le=90)] = None,
     longitude: Annotated[float | None, Form(ge=-180, le=180)] = None,
@@ -59,7 +59,7 @@ async def give_identification_feedback(
     body: IdentificationFeedbackRequest,
     use_case: Annotated[
         GiveIdentificationFeedbackUseCase,
-        Depends(Provide[Container.use_cases.give_identification_feedback_use_case]),
+        Depends(Provide[IdentificationContainer.give_feedback_use_case]),
     ],
     user_id: CurrentUserId,
 ) -> ApiResponse[MessageResponse]:
