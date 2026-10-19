@@ -72,6 +72,13 @@ class Settings(BaseSettings):
     local_timezone: str = "America/Sao_Paulo"
     consensus_enabled: bool = True
 
+    # Quota (docs/decisions/2026-10-19-funding-and-quota.md): `standard` is everyone's and goes up as
+    # donations cover the costs; `extended` is granted by the maintainer, by request
+    quota_standard_max_plants: int = 3
+    quota_standard_daily_tokens: int = 3
+    quota_extended_max_plants: int = 10
+    quota_extended_daily_tokens: int = 10
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()

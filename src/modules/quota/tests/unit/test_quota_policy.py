@@ -9,7 +9,13 @@ from src.modules.quota.domain.exceptions import (
     PlantLimitExceededError,
 )
 from src.modules.quota.domain.policies.quota_policy import QuotaPolicy
-from src.modules.quota.domain.value_objects.level import FeatureCost, QuotaLevel
+from src.modules.quota.domain.value_objects.level import (
+    FeatureCost,
+    LevelLimits,
+    QuotaLevel,
+    QuotaLimits,
+)
+from src.modules.quota.tests.fakes import POLICY
 from src.shared.domain import UserId
 
 NOW = datetime(2026, 10, 16, 15, 0, tzinfo=UTC)
@@ -46,19 +52,19 @@ def test_standard_has_no_expiration_date() -> None:
 
 def test_standard_user_can_add_up_to_limit() -> None:
     # Act & Assert: 2 plantas no jardim, a 3ª ainda cabe
-    QuotaPolicy.enforce_can_add_to_garden(_standard(), plants_in_garden=2, now=NOW)
+    POLICY.enforce_can_add_to_garden(_standard(), plants_in_garden=2, now=NOW)
 
 
 def test_standard_user_exceeds_garden_limit_raises() -> None:
     # Act & Assert
     with pytest.raises(PlantLimitExceededError):
-        QuotaPolicy.enforce_can_add_to_garden(_standard(), plants_in_garden=3, now=NOW)
+        POLICY.enforce_can_add_to_garden(_standard(), plants_in_garden=3, now=NOW)
 
 
 def test_garden_limit_details_tell_the_count_and_the_limit_apart() -> None:
     # Act: before, both fields carried the limit, as text
     with pytest.raises(PlantLimitExceededError) as raised:
-        QuotaPolicy.enforce_can_add_to_garden(_standard(), plants_in_garden=4, now=NOW)
+        POLICY.enforce_can_add_to_garden(_standard(), plants_in_garden=4, now=NOW)
 
     # Assert
     assert raised.value.details == {"quota": "standard", "current_count": 4, "max_allowed": 3}
@@ -71,7 +77,7 @@ def test_daily_quota_tells_the_level_and_does_not_assume_standard() -> None:
 
     # Act
     with pytest.raises(DailyQuotaExceededError) as raised:
-        QuotaPolicy.enforce_can_identify_plant(quota, NOW, TODAY)
+        POLICY.enforce_can_identify_plant(quota, NOW, TODAY)
 
     # Assert
     assert raised.value.details == {"quota": "extended", "used_today": 10, "daily_limit": 10}
@@ -84,9 +90,9 @@ def test_extended_user_garden_limit() -> None:
     quota = _extended()
 
     # Act & Assert
-    QuotaPolicy.enforce_can_add_to_garden(quota, plants_in_garden=9, now=NOW)
+    POLICY.enforce_can_add_to_garden(quota, plants_in_garden=9, now=NOW)
     with pytest.raises(PlantLimitExceededError):
-        QuotaPolicy.enforce_can_add_to_garden(quota, plants_in_garden=10, now=NOW)
+        POLICY.enforce_can_add_to_garden(quota, plants_in_garden=10, now=NOW)
 
 
 def test_expired_extended_has_standard_limits() -> None:
@@ -95,9 +101,9 @@ def test_expired_extended_has_standard_limits() -> None:
 
     # Act & Assert
     with pytest.raises(PlantLimitExceededError):
-        QuotaPolicy.enforce_can_add_to_garden(quota, plants_in_garden=3, now=NOW)
+        POLICY.enforce_can_add_to_garden(quota, plants_in_garden=3, now=NOW)
     with pytest.raises(DailyQuotaExceededError):
-        QuotaPolicy.enforce_can_identify_plant(quota, NOW, TODAY)
+        POLICY.enforce_can_identify_plant(quota, NOW, TODAY)
 
 
 def test_token_limit_enforcement() -> None:
@@ -106,9 +112,9 @@ def test_token_limit_enforcement() -> None:
 
     # Act & Assert
     with pytest.raises(DailyQuotaExceededError):
-        QuotaPolicy.enforce_can_identify_plant(quota, NOW, TODAY)
+        POLICY.enforce_can_identify_plant(quota, NOW, TODAY)
     with pytest.raises(DailyQuotaExceededError):
-        QuotaPolicy.enforce_can_diagnose(quota, NOW, TODAY)
+        POLICY.enforce_can_diagnose(quota, NOW, TODAY)
 
 
 def test_quota_is_full_again_on_the_next_day() -> None:
@@ -116,7 +122,7 @@ def test_quota_is_full_again_on_the_next_day() -> None:
     quota = _standard(tokens_used_today=3, tokens_day=TODAY - timedelta(days=1))
 
     # Act & Assert
-    QuotaPolicy.enforce_can_identify_plant(quota, NOW, TODAY)
+    POLICY.enforce_can_identify_plant(quota, NOW, TODAY)
     assert quota.tokens_used_on(TODAY) == 0
 
 
@@ -148,9 +154,33 @@ def test_diagnosis_enrichment_only_when_both_tokens_fit(used: int, can_enrich: b
     quota = _standard(tokens_used_today=used)
 
     # Act & Assert
-    assert QuotaPolicy.can_enrich_diagnosis(quota, NOW, TODAY) is can_enrich
+    assert POLICY.can_enrich_diagnosis(quota, NOW, TODAY) is can_enrich
 
 
 def test_identifying_does_not_depend_on_garden_size() -> None:
     # Act & Assert: identificar não adiciona planta ao jardim, então jardim cheio não bloqueia
-    QuotaPolicy.enforce_can_identify_plant(_standard(), NOW, TODAY)
+    POLICY.enforce_can_identify_plant(_standard(), NOW, TODAY)
+
+
+def test_the_limits_are_the_configured_ones() -> None:
+    # Arrange: the collective goal raised the standard quota
+    policy = QuotaPolicy(LevelLimits(standard=QuotaLimits(5, 6), extended=QuotaLimits(20, 40)))
+
+    # Act & Assert
+    policy.enforce_can_add_to_garden(_standard(), plants_in_garden=4, now=NOW)
+    policy.enforce_can_identify_plant(_standard(tokens_used_today=5), NOW, TODAY)
+    with pytest.raises(DailyQuotaExceededError):
+        policy.enforce_can_identify_plant(_standard(tokens_used_today=6), NOW, TODAY)
+
+
+@pytest.mark.parametrize("extended", [QuotaLimits(2, 10), QuotaLimits(10, 2)])
+def test_extended_cannot_be_below_standard(extended: QuotaLimits) -> None:
+    # Act & Assert
+    with pytest.raises(ValueError, match="extended"):
+        LevelLimits(standard=QuotaLimits(3, 3), extended=extended)
+
+
+def test_limits_cannot_be_negative() -> None:
+    # Act & Assert
+    with pytest.raises(ValueError, match="negative"):
+        QuotaLimits(max_plants=-1, daily_tokens=3)

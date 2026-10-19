@@ -40,15 +40,15 @@ class QuotaLimits:
 
 @dataclass(frozen=True, slots=True)
 class LevelLimits:
-    """The limits of each level."""
+    """The limits of each level (from configuration, so the collective goal raises them without code)."""
     standard: QuotaLimits
     extended: QuotaLimits
+
+    def __post_init__(self) -> None:
+        if (self.extended.max_plants < self.standard.max_plants
+                or self.extended.daily_tokens < self.standard.daily_tokens):
+            raise ValueError("The extended quota cannot be below the standard one.")
 
     def of(self, level: QuotaLevel) -> QuotaLimits:
         return self.extended if level is QuotaLevel.EXTENDED else self.standard
 
-
-DEFAULT_LIMITS = LevelLimits(
-    standard=QuotaLimits(max_plants=3, daily_tokens=3),
-    extended=QuotaLimits(max_plants=10, daily_tokens=10),
-)

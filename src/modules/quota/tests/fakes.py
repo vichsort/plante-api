@@ -6,8 +6,17 @@ from src.modules.quota.domain.entities.quota import Quota
 from src.modules.quota.domain.policies.quota_policy import QuotaPolicy
 from src.modules.quota.domain.services.garden_quota import IGardenQuota
 from src.modules.quota.domain.services.token_wallet import ITokenWallet
-from src.modules.quota.domain.value_objects.level import FeatureCost, QuotaLevel
+from src.modules.quota.domain.value_objects.level import (
+    FeatureCost,
+    LevelLimits,
+    QuotaLevel,
+    QuotaLimits,
+)
 from src.shared.domain import UserId
+
+# The settings defaults: standard 3 plants and 3 tokens a day, extended 10 and 10
+LIMITS = LevelLimits(standard=QuotaLimits(max_plants=3, daily_tokens=3), extended=QuotaLimits(max_plants=10, daily_tokens=10))
+POLICY = QuotaPolicy(LIMITS)
 
 
 @dataclass
@@ -23,13 +32,13 @@ class FakeTokenWallet(ITokenWallet):
         return Quota(user_id, QuotaLevel.STANDARD, tokens_used_today=self.used_today, tokens_day=now.date())
 
     async def ensure_can_identify(self, user_id: UserId, now: datetime) -> None:
-        QuotaPolicy.enforce_can_identify_plant(self._quota(user_id, now), now, now.date())
+        POLICY.enforce_can_identify_plant(self._quota(user_id, now), now, now.date())
 
     async def ensure_can_diagnose(self, user_id: UserId, now: datetime) -> None:
-        QuotaPolicy.enforce_can_diagnose(self._quota(user_id, now), now, now.date())
+        POLICY.enforce_can_diagnose(self._quota(user_id, now), now, now.date())
 
     async def can_enrich_diagnosis(self, user_id: UserId, now: datetime) -> bool:
-        return QuotaPolicy.can_enrich_diagnosis(self._quota(user_id, now), now, now.date())
+        return POLICY.can_enrich_diagnosis(self._quota(user_id, now), now, now.date())
 
     async def charge(self, user_id: UserId, cost: FeatureCost, now: datetime) -> None:
         self.used_today += cost.value
@@ -47,4 +56,4 @@ class FakeGardenQuota(IGardenQuota):
 
     async def ensure_can_add_plant(self, user_id: UserId, plants_in_garden: int, now: datetime) -> None:
         expires_at = datetime.max.replace(tzinfo=now.tzinfo) if self.level is QuotaLevel.EXTENDED else None
-        QuotaPolicy.enforce_can_add_to_garden(Quota(user_id, self.level, expires_at), plants_in_garden, now)
+        POLICY.enforce_can_add_to_garden(Quota(user_id, self.level, expires_at), plants_in_garden, now)

@@ -11,7 +11,9 @@ from src.modules.quota.domain.services.garden_quota import IGardenQuota
 from src.modules.quota.domain.services.token_wallet import ITokenWallet
 from src.modules.quota.domain.value_objects.level import (
     FeatureCost,
+    LevelLimits,
     QuotaLevel,
+    QuotaLimits,
 )
 
 __all__ = [
@@ -21,5 +23,7 @@ __all__ = [
     "PlantLimitExceededError",
     "Quota",
     "DailyQuotaExceededError",
+    "LevelLimits",
     "QuotaLevel",
+    "QuotaLimits",
 ]

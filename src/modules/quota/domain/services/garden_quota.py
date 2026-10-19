@@ -19,10 +19,11 @@ class IGardenQuota(ABC):
 
 
 class GardenQuota(IGardenQuota):
-    def __init__(self, uow: IQuotaUnitOfWork) -> None:
+    def __init__(self, uow: IQuotaUnitOfWork, policy: QuotaPolicy) -> None:
         self.uow = uow
+        self.policy = policy
 
     async def ensure_can_add_plant(self, user_id: UserId, plants_in_garden: int, now: datetime) -> None:
         async with self.uow as uow:
             quota = await uow.quotas.get(user_id) or Quota.standard_for(user_id)
-        QuotaPolicy.enforce_can_add_to_garden(quota, plants_in_garden, now)
+        self.policy.enforce_can_add_to_garden(quota, plants_in_garden, now)

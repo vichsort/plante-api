@@ -16,6 +16,7 @@ from src.modules.quota.domain.exceptions import (
 from src.modules.quota.domain.services.garden_quota import GardenQuota
 from src.modules.quota.domain.services.token_wallet import TokenWallet
 from src.modules.quota.domain.value_objects.level import FeatureCost
+from src.modules.quota.tests.fakes import POLICY
 from src.shared.domain import LocalCalendar, UserId, UserNotFoundError
 
 NOW = datetime(2026, 10, 16, 15, 0, tzinfo=UTC)
@@ -30,13 +31,13 @@ def _uow(factory: async_sessionmaker[AsyncSession]) -> SqlAlchemyQuotaUnitOfWork
 async def _charge(factory: async_sessionmaker[AsyncSession], user_id: UserId, cost: FeatureCost) -> None:
     caller = _uow(factory)  # qualquer UoW serve de dono da transação
     async with caller:
-        await TokenWallet(_uow(factory), CALENDAR).charge(user_id, cost, NOW)
+        await TokenWallet(_uow(factory), CALENDAR, POLICY).charge(user_id, cost, NOW)
         await caller.commit()
 
 
 async def test_user_without_a_row_has_the_standard_quota(session_factory: async_sessionmaker[AsyncSession]) -> None:
     # Arrange
-    wallet = TokenWallet(_uow(session_factory), CALENDAR)
+    wallet = TokenWallet(_uow(session_factory), CALENDAR, POLICY)
 
     # Act & Assert: nada gravado, e mesmo assim cabe uma identificação
     await wallet.ensure_can_identify(UserId(uuid4()), NOW)
@@ -47,7 +48,7 @@ async def test_charges_add_up_until_the_quota_is_spent(
 ) -> None:
     # Arrange
     user_id = await account()
-    wallet = TokenWallet(_uow(session_factory), CALENDAR)
+    wallet = TokenWallet(_uow(session_factory), CALENDAR, POLICY)
 
     # Act
     for _ in range(3):
@@ -67,7 +68,7 @@ async def test_callers_rollback_takes_the_charge_with_it(
 
     # Act: a identificação falhou depois da cobrança; nada pode ficar cobrado
     async with caller:
-        await TokenWallet(_uow(session_factory), CALENDAR).charge(user_id, FeatureCost.IDENTIFY, NOW)
+        await TokenWallet(_uow(session_factory), CALENDAR, POLICY).charge(user_id, FeatureCost.IDENTIFY, NOW)
 
     # Assert
     async with _uow(session_factory) as uow:
@@ -76,7 +77,7 @@ async def test_callers_rollback_takes_the_charge_with_it(
 
 async def test_charging_outside_a_transaction_fails_loudly(session_factory: async_sessionmaker[AsyncSession]) -> None:
     # Arrange
-    wallet = TokenWallet(_uow(session_factory), CALENDAR)
+    wallet = TokenWallet(_uow(session_factory), CALENDAR, POLICY)
 
     # Act & Assert: sem dono, ninguém confirmaria a cobrança
     with pytest.raises(RuntimeError, match="inside the caller's unit of work"):
@@ -91,7 +92,7 @@ async def test_charging_a_user_without_account_is_not_found(session_factory: asy
 
 async def test_garden_quota_follows_the_level(session_factory: async_sessionmaker[AsyncSession]) -> None:
     # Arrange
-    quota = GardenQuota(_uow(session_factory))
+    quota = GardenQuota(_uow(session_factory), POLICY)
     user_id = UserId(uuid4())
 
     # Act & Assert: standard (sem linha) até 3

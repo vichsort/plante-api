@@ -74,6 +74,7 @@ from src.modules.quota.adapters.persistence.unit_of_work import (
 )
 from src.modules.quota.domain.services.garden_quota import GardenQuota
 from src.modules.quota.domain.services.token_wallet import TokenWallet
+from src.modules.quota.tests.fakes import POLICY
 from src.modules.training import (
     DiseaseSuggestion,
     FeedbackOrigin,
@@ -142,7 +143,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
         return TrainingRecorder(SqlAlchemyTrainingUnitOfWork(session_factory))
 
     def wallet() -> TokenWallet:
-        return TokenWallet(SqlAlchemyQuotaUnitOfWork(session_factory), CALENDAR)
+        return TokenWallet(SqlAlchemyQuotaUnitOfWork(session_factory), CALENDAR, POLICY)
 
     async with SqlAlchemyIdentityUnitOfWork(session_factory) as setup:
         user = await setup.users.save(make_user(email="flow@plante.org"))
@@ -165,7 +166,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     ))
 
     # 2. Adicionar ao jardim (sinal implícito) e regar
-    quota = GardenQuota(SqlAlchemyQuotaUnitOfWork(session_factory))
+    quota = GardenQuota(SqlAlchemyQuotaUnitOfWork(session_factory), POLICY)
     plant = (await AddPlantToGardenUseCase(
         uow=garden(), publisher=AsyncMock(), calendar=CALENDAR, users=users, quota=quota, training=training(),
         identifications=IdentificationLookup(identifications()),

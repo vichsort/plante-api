@@ -42,18 +42,19 @@ class ITokenWallet(ABC):
 
 
 class TokenWallet(ITokenWallet):
-    def __init__(self, uow: IQuotaUnitOfWork, calendar: LocalCalendar) -> None:
+    def __init__(self, uow: IQuotaUnitOfWork, calendar: LocalCalendar, policy: QuotaPolicy) -> None:
         self.uow = uow
         self.calendar = calendar
+        self.policy = policy
 
     async def ensure_can_identify(self, user_id: UserId, now: datetime) -> None:
-        QuotaPolicy.enforce_can_identify_plant(await self._current(user_id), now, self.calendar.date_of(now))
+        self.policy.enforce_can_identify_plant(await self._current(user_id), now, self.calendar.date_of(now))
 
     async def ensure_can_diagnose(self, user_id: UserId, now: datetime) -> None:
-        QuotaPolicy.enforce_can_diagnose(await self._current(user_id), now, self.calendar.date_of(now))
+        self.policy.enforce_can_diagnose(await self._current(user_id), now, self.calendar.date_of(now))
 
     async def can_enrich_diagnosis(self, user_id: UserId, now: datetime) -> bool:
-        return QuotaPolicy.can_enrich_diagnosis(await self._current(user_id), now, self.calendar.date_of(now))
+        return self.policy.can_enrich_diagnosis(await self._current(user_id), now, self.calendar.date_of(now))
 
     async def charge(self, user_id: UserId, cost: FeatureCost, now: datetime) -> None:
         async with self.uow as uow:
