@@ -343,6 +343,7 @@ Leia antes de começar o próximo. Cada item já custou tempo uma vez.
    - Precisa de linha em tabela de outro módulo por causa de FK? SQL direto no teste (ex.: `identification/tests/integration/test_identification_lookup.py`).
    - Módulo não lê o `Settings` (é da composição): teste de contrato lê as chaves do ambiente.
    - Os testes da raiz (`tests/`) podem importar qualquer coisa: são o código antigo até o fim.
+   - Ajudante de teste que não é dublê de porta (ex.: `provider_responses.py`) não atravessa módulos: copie ou suba para o shared se for de verdade comum.
 9. **Testes do módulo:** AAA em todos (`# Arrange`, `# Act`, `# Assert`; `# Act & Assert` com `pytest.raises`); fakes em memória que guardam estado, não `AsyncMock` com `assert_called`. Rotas testadas num app mínimo (molde: `identity/tests/integration/test_router.py`).
 10. **Overrides que mudam de lugar:** `tests/e2e/conftest.py` (providers do container), testes de rota antigos (`client.app.state.container.use_cases.x`), `tests/test_container_wiring.py` (incluir o container do módulo no laço que resolve os providers).
 11. **Docs:** README do módulo (Propósito, API pública, Decisões, Erros; todo erro com `code` próprio documentado), tirar a seção do `docs/domain-map.md`, `ARCHITECTURE.md` só se uma regra mudar.
@@ -448,6 +449,18 @@ Leia antes de começar o próximo. Cada item já custou tempo uma vez.
      - O teste do agendamento no beat foi para `tests/unit/workers/test_celery_app.py` (é da composição); o do módulo roda a task com a dependência injetada.
      - O container dos use cases antigos ficou só com saúde e conquistas, e só com as dependências que eles usam (saíram `settings`, `domain_publisher`, `species_registry`, `garden_quota`, `local_calendar`, `identification_lookup`).
    - **Mudança de contrato aprovada pelo usuário (2026-10-19):** o `WaterPlantUseCase` conferia o dono depois de uma busca que já filtrava por ele, então o `PLANTE_4009_FORBIDDEN` nunca saía. O erro foi aposentado (não reutilizar o número) e a rota de rega não documenta mais o 403. Único diff do OpenAPI contra a `develop` desde o início do item 8.
+
+   - **health** ✅ (branch `refactor/module-health`, empilhada na do garden, sem push). 2026-10-19.
+     - `HealthRecord`, `HealthRecordId`, portas `IHealthAnalyzer`/`IHealthEnricher`/repositório, use cases diagnose, feedback e history, erro 4017; adapters Kindwise (só `/health_assessment`, sobre o `KindwiseClient` do shared), Gemini e o breaker; persistência; rotas `/diagnose`.
+     - O `HealthContainer` recebe da raiz o `KindwiseClient` e o breaker do Kindwise (os mesmos da identificação) e a chave do Gemini; o `AdaptersContainer` não conhece mais a saúde.
+     - Testes do módulo com AAA e fakes em memória (36 unitários + 10 de integração); suíte inteira com 459 testes; OpenAPI idêntico ao do garden (só o diff aprovado da rega contra a `develop`).
+   - **Decidido sem o usuário (vai no PR):**
+     - Saíram `get_latest_by_plant` (repositório) e `HealthRecord.needs_attention`: ninguém usava. `IHealthEnricher.analyze_disease` ficou, sem uso, porque o plano o nomeia (base da análise profunda).
+     - O Gemini da saúde cria o próprio `GeminiClient` a partir da chave, como o do catalog: sem breaker e sem estado compartilhado, um cliente único na composição não traria nada.
+     - Os testes dos adapters (Kindwise e Gemini) vieram de `tests/unit/adapters` para o módulo; lá ficaram só os de `translate_provider_errors` (shared). O ajudante `provider_responses.py` é uma cópia do do identification: teste de módulo só importa de outro o `tests.fakes`, e o ajudante não é dublê de porta.
+     - `tests/fakes.py` (o `FakeUnitOfWork` do código antigo, com `AsyncMock`) saiu: o diagnóstico era o último usuário.
+     - Teste de integração do repositório grava usuário, planta e amostras com SQL direto (como o do garden).
+   - **Achado (mantido, "Hoje:" no README):** a foto do diagnóstico é gravada com `upload_identification_image` (prefixo das fotos de identificação, com a vitalidade no lugar da confiança). Não muda o contrato; rever com a política de imagens privadas (URL assinada).
 
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:
