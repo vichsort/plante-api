@@ -56,7 +56,7 @@ Suíte: 352 testes (com os 33 ponta a ponta da `refactor/characterization-tests`
 
 **Ordem combinada com o usuário:**
 1. ~~**Plano C: separar dados do usuário e dados de treino + anonimização**~~ ✅ (2026-10-15). Pendências que sobraram, na seção do plano: HEIC, motivo da exclusão como sinal, engine de confiança, geocodificação reversa.
-2. **Item 8: monólito modular.** Decidido em 2026-10-16; a seção "Item 8 — decisões" abaixo é a fonte. A `develop` saiu da `v0.1.1`. O milestone 0 (testes de caracterização) roda em `refactor/characterization-tests`. **É o próximo passo.** As validações acima não bloqueiam o item 8: um bug achado nelas vira fix na `main` e desce para a `develop`.
+2. **Item 8: monólito modular.** Código concluído em 2026-10-19 (branches empilhadas, sem push; ver o fim de "Milestones"). Decidido em 2026-10-16; a seção "Item 8 — decisões" abaixo é a fonte. A `develop` saiu da `v0.1.1`. O milestone 0 (testes de caracterização) roda em `refactor/characterization-tests`. **É o próximo passo.** As validações acima não bloqueiam o item 8: um bug achado nelas vira fix na `main` e desce para a `develop`.
 3. Depois:
    - fotos públicas no S3 (URLs assinadas);
    - engine de confiança do rótulo;
@@ -461,6 +461,19 @@ Leia antes de começar o próximo. Cada item já custou tempo uma vez.
      - `tests/fakes.py` (o `FakeUnitOfWork` do código antigo, com `AsyncMock`) saiu: o diagnóstico era o último usuário.
      - Teste de integração do repositório grava usuário, planta e amostras com SQL direto (como o do garden).
    - **Achado (mantido, "Hoje:" no README):** a foto do diagnóstico é gravada com `upload_identification_image` (prefixo das fotos de identificação, com a vitalidade no lugar da confiança). Não muda o contrato; rever com a política de imagens privadas (URL assinada).
+
+   - **achievements** ✅ (branch `refactor/module-achievements`, empilhada na do health, sem push). 2026-10-19.
+     - Listagem das conquistas (`ListUserAchievementsUseCase`, rota `/profile/achievements`), `AchievementBadge` como catálogo, persistência própria. A regra de concessão continua para a segunda entrega.
+     - Testes do módulo com AAA e fakes em memória (5 unitários + 4 de integração).
+   - **Camadas antigas removidas** (mesma branch): `src/domain`, `src/adapters` e `src/api` não têm mais arquivos; saíram o UoW antigo, o `UseCasesContainer`, o `unit_of_work` do `InfraContainer`, o `docs/domain-map.md` e as entradas de cola do mypy para o código antigo. `src/workers` ficou só como entrada do Celery (`celery -A src.workers`).
+     - import-linter: camadas globais `main` → `workers` → `bootstrap` → `modules` → `shared`; `ARCHITECTURE.md` sem a seção de transição.
+     - `test_declared_errors.py` passou a olhar só os use cases dos módulos.
+     - Suíte inteira: 467 testes (conferida também num checkout limpo); OpenAPI só com o diff aprovado da rega contra a `develop`.
+   - **Decidido sem o usuário (vai no PR):**
+     - O `grant_badge` do repositório saiu (ninguém usava); a concessão, e quem gera o ID da conquista, fica para a segunda entrega. O `AchievementBadge` ficou, sem uso, como catálogo das medalhas.
+     - Os testes da composição em `tests/` (fora do `e2e/`) continuam sem a exigência de AAA (registrado no `ARCHITECTURE.md`).
+   - **Achado (mantido, "Hoje:" no README):** nada concede conquistas (a lista sai sempre vazia) e a consulta não ordena a lista.
+   - **Item 8 concluído em código.** Falta: push das branches empilhadas (subscription → identity → identification-v2 → garden → health → achievements) e um PR por módulo, cada um com base no anterior, com o "Decidido sem o usuário" de cada um. Push e PRs só com o aval do usuário.
 
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:
