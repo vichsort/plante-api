@@ -42,9 +42,10 @@ READMEs dos módulos.
     nunca sobrescreve dado dos provedores); nomes populares unidos, provedores primeiro; falha →
     `FAILED` e sem cobrança.
 - [ ] **Conquistas:** regra de concessão (consumir os eventos que hoje ninguém consome).
-- [ ] **Exclusão de conta** (aprovado): `DELETE /profile` confirmado com a senha; exclusão definitiva
-  (as FKs `CASCADE` levam jardim, identificações e diagnósticos), fotos do usuário apagadas do S3,
-  treino intacto. O e-mail fica livre na hora (resolve o reuso).
+- [ ] **Imagem de referência `user_confirmed` e a exclusão de conta:** a FK `user_id` é `SET NULL`,
+  mas a entidade exige `user_id` nesse tipo; excluir a conta deixaria uma linha que quebra ao ser
+  lida. Hoje nada cria `user_confirmed`. Decidir antes de criar (apagar junto, ou anonimizar e
+  relaxar a regra).
 
 ## Antes de publicar
 
