@@ -9,10 +9,12 @@ from src.domain.value_objects.user_location import UserLocation
         ("SP", "SP"),
         (" sp ", "SP"),
         ("Rio Grande do Sul", "Rio Grande do Sul"),
-        ("  Santa   Catarina ", "Santa Catarina"),
+        ("RIO DE JANEIRO", "Rio de Janeiro"),
+        ("  santa   catarina ", "Santa Catarina"),
+        ("espírito santo", "Espírito Santo"),
     ],
 )
-def test_state_keeps_the_typed_case_and_uppercases_abbreviations(typed: str, stored: str) -> None:
+def test_state_is_normalized_without_breaking_abbreviations_or_connectives(typed: str, stored: str) -> None:
     # Arrange
     country = "br"
 
