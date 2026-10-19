@@ -327,6 +327,28 @@ shared
   - Resultado: training expõe `ITrainingRecorder.record_feedback(target, verdict, origin)`, e identification, health e garden ficam com uma cola fina (dono → alvo tipado → porta).
   - Alinhar health a `health_records.get_for_user` (hoje confere o dono à mão).
 
+### Como migrar um módulo (checklist, escrito em 2026-10-19 depois de subscription, identity e identification)
+
+Leia antes de começar o próximo. Cada item já custou tempo uma vez.
+
+1. **Branch:** `refactor/module-<x>` sai da branch do módulo anterior (empilhada). Se o nome já existir (ex.: o piloto usou `refactor/module-identification`), use um sufixo e registre.
+2. **OpenAPI de referência antes de mexer:** gere o JSON (`app.openapi()`, `sort_keys=True`) aqui e na `develop` (worktree temporário no scratchpad) e confira que são iguais. No fim, tem que sair idêntico; diferença = mudança de contrato = parar e perguntar.
+3. **Levantamento:** `grep` no código antigo (`src/domain`, `src/adapters`, `src/api`, `src/workers`) e em `tests/` por tudo do subdomínio, inclusive quem usa de fora (outros use cases, routers, eventos, mappers, `tests/e2e/conftest.py`, `tests/factories.py`, `tests/integration/persistence/seed.py`).
+4. **Mover com `git mv`** (preserva o histórico) e trocar os imports em massa; depois revisar arquivo por arquivo. Tirar o que saiu dos barrels antigos (`src/adapters/persistence/{models,mappers,repositories}/__init__.py`, `src/domain/exceptions/__init__.py`, `src/domain/value_objects/ids.py`, `src/domain/events/domain_events.py`) e do `IUnitOfWork`/`SqlAlchemyUnitOfWork` antigos. Pacote antigo que ficou vazio: `git rm` do `__init__.py`.
+5. **Módulo:** template da seção acima; todo pacote com `__init__.py` (vazio, menos a raiz e `api/`). Raiz exporta só domínio. UoW próprio (`I<X>UnitOfWork` + `SqlAlchemy<X>UnitOfWork`). Service para outros módulos lê "dentro da transação de quem chama" (o UoW compartilhado cuida disso).
+6. **Composição:** container do módulo em `src/bootstrap/container.py` (antes do `use_cases`, que pode depender dele), `wire` em `src/bootstrap/wiring.py` (router e tasks), `include_router` no `main.py` **na mesma posição** da rota antiga (a ordem muda o OpenAPI), modelo registrado em `src/bootstrap/models.py`. Tasks: no `include` do `celery_app` e com `Provide[<X>Container.y]` (o módulo não importa o container raiz).
+7. **mypy estrito:** `providers.Selector` e `providers.Singleton(...)` aninhado como argumento tipam como `Any` num container de módulo (só os de `src/bootstrap` estão na lista de cola). Use providers nomeados e `providers.Callable` com função tipada.
+8. **Fronteiras dos testes:**
+   - Teste de módulo só importa de outro módulo a raiz e o `tests.fakes` dele; do shared, as camadas e `src.shared.tests.fakes` (sanitizer, storage, publisher).
+   - Precisa de linha em tabela de outro módulo por causa de FK? SQL direto no teste (ex.: `identification/tests/integration/test_identification_lookup.py`).
+   - Módulo não lê o `Settings` (é da composição): teste de contrato lê as chaves do ambiente.
+   - Os testes da raiz (`tests/`) podem importar qualquer coisa: são o código antigo até o fim.
+9. **Testes do módulo:** AAA em todos (`# Arrange`, `# Act`, `# Assert`; `# Act & Assert` com `pytest.raises`); fakes em memória que guardam estado, não `AsyncMock` com `assert_called`. Rotas testadas num app mínimo (molde: `identity/tests/integration/test_router.py`).
+10. **Overrides que mudam de lugar:** `tests/e2e/conftest.py` (providers do container), testes de rota antigos (`client.app.state.container.use_cases.x`), `tests/test_container_wiring.py` (incluir o container do módulo no laço que resolve os providers).
+11. **Docs:** README do módulo (Propósito, API pública, Decisões, Erros; todo erro com `code` próprio documentado), tirar a seção do `docs/domain-map.md`, `ARCHITECTURE.md` só se uma regra mudar.
+12. **Verificação final:** `ruff check src tests migrations conftest.py`, `mypy`, `lint-imports`, `pytest` (com Docker para os testcontainers) e o diff do OpenAPI. Pastas só com `__pycache__` que sobram de outra branch fazem o teste de layout falhar localmente: não são do commit.
+13. **Commits:** por tema, uma linha, sem co-autor (`test:` para regra/infra de teste, `refactor:` para o módulo, `docs:` só para o `todo.md`). Registrar aqui o módulo e o "Decidido sem o usuário".
+
 ### Milestones
 0. ~~**Testes de caracterização ponta a ponta**~~ ✅ (2026-10-16, branch `refactor/characterization-tests`).
    - O que existe: `tests/e2e/`, 33 testes. A requisição HTTP passa pelo app real (middlewares, rotas, use cases, UoW) e grava em Postgres e Redis reais.
