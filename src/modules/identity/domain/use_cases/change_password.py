@@ -43,7 +43,7 @@ class ChangePasswordUseCase:
             PasswordPolicy.enforce_strong(dto.new_password)
 
             if self.hasher.verify(dto.new_password, user.hashed_password):
-                raise WeakPasswordError("A nova senha não pode ser igual à atual.")
+                raise WeakPasswordError("The new password must differ from the current one.")
 
             new_hash = self.hasher.hash(dto.new_password)
             user.change_password(new_hashed_password=new_hash)

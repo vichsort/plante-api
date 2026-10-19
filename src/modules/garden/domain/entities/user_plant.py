@@ -65,7 +65,7 @@ class UserPlant:
         today = calendar.date_of(action_time)
         earliest = self.next_watering_on(calendar)
         if earliest is not None and today < earliest:
-            raise PlantNotReadyForWateringError(next_date=earliest.strftime("%d/%m/%Y"))
+            raise PlantNotReadyForWateringError(next_date=earliest)
 
         on_time = not self.care_schedule.is_missed(today)
         self.watering_streak = self.watering_streak.register_action(action_time, on_time=on_time)

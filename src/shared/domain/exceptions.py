@@ -1,4 +1,4 @@
-"""Exceções que qualquer módulo usa. As específicas moram em `domain/exceptions.py` de cada módulo."""
+"""Errors any module uses. Module-specific ones live in each module's `domain/exceptions.py`."""
 from typing import ClassVar
 from uuid import UUID
 
@@ -18,7 +18,7 @@ class PlantEError(Exception):
         if not hasattr(type(self), "code"):
             # A bug, not a client error: the generic handler answers 500
             raise TypeError(f"{type(self).__name__} has no error code; raise a subclass of it")
-        # Sem mensagem, a docstring da classe descreve o erro
+        # Without a message, the class docstring describes the error
         self.message = message or (type(self).__doc__ or self.code).strip()
         self.details = details or {}
         super().__init__(self.message)
@@ -70,7 +70,7 @@ class ServiceUnavailableError(PlantEError):
 
 
 class ExternalServiceError(PlantEError):
-    """Uma API externa (Kindwise, PlantNet, Gemini, AWS) falhou."""
+    """An external provider (Kindwise, PlantNet, Gemini, AWS) failed."""
     code = "PLANTE_5010_EXTERNAL_SERVICE_ERROR"
     status_code = 502
 
@@ -88,7 +88,7 @@ class ExternalServiceError(PlantEError):
 
 
 class RateLimitExceededError(PlantEError):
-    """Cliente excedeu o limite de requisições da janela atual."""
+    """The client went over the request limit of the current window."""
     code = "PLANTE_4050_RATE_LIMIT_EXCEEDED"
     status_code = 429
 
@@ -100,7 +100,7 @@ class RateLimitExceededError(PlantEError):
 
 
 class UnauthorizedError(PlantEError):
-    """Token inválido, expirado ou ausente."""
+    """Access token missing, invalid or expired: renew it or sign in again."""
     code = "PLANTE_4010_UNAUTHORIZED"
     status_code = 401
 
@@ -109,7 +109,7 @@ class UnauthorizedError(PlantEError):
 
 
 class UserNotFoundError(PlantEError):
-    """Usuário não encontrado."""
+    """The user does not exist."""
     code = "PLANTE_4031_USER_NOT_FOUND"
     status_code = 404
 
@@ -120,7 +120,7 @@ class UserNotFoundError(PlantEError):
 
 
 class InvalidImageError(PlantEError):
-    """A imagem enviada é inválida ou não contém uma planta."""
+    """The image is unreadable, in an unsupported format or too large."""
     code = "PLANTE_4001_INVALID_IMAGE"
     status_code = 400
 

@@ -2,11 +2,11 @@ from src.shared.domain import PlantEError
 
 
 class InvalidCredentialsError(PlantEError):
-    """Dados de autenticação incorretos."""
+    """Wrong email or password (the session, if any, is still valid)."""
     code = "PLANTE_4102_WRONG_CREDENTIALS"
     status_code = 400
 
-    def __init__(self, message: str = "Wrong credentials inserted."):
+    def __init__(self, message: str = "Wrong email or password."):
         super().__init__(message=message)
 
 
@@ -20,7 +20,7 @@ class EmailNotVerifiedError(PlantEError):
 
 
 class EmailAlreadyInUseError(PlantEError):
-    """O email já está em uso por outro usuário."""
+    """The email is already used by another account."""
     code = "PLANTE_4140_EMAIL_ALREADY_IN_USE"
     status_code = 409
 
@@ -29,7 +29,7 @@ class EmailAlreadyInUseError(PlantEError):
 
 
 class WeakPasswordError(PlantEError):
-    """Senha fraca ou inválida."""
+    """The password does not meet the password policy."""
     code = "PLANTE_4100_WEAK_PASSWORD"
     status_code = 400
 
@@ -38,7 +38,7 @@ class WeakPasswordError(PlantEError):
 
 
 class InvalidVerificationCodeError(PlantEError):
-    """Código OTP inválido ou expirado."""
+    """The verification code is malformed, expired or not the one sent."""
     code = "PLANTE_4101_INVALID_VERIFICATION_CODE"
     status_code = 400
 

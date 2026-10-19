@@ -1,10 +1,11 @@
+from datetime import date
 from uuid import UUID
 
 from src.shared.domain import PlantEError
 
 
 class PlantNotFoundError(PlantEError):
-    """A planta solicitada não existe ou não pertence ao usuário."""
+    """The plant does not exist or belongs to another user."""
     code = "PLANTE_4530_PLANT_NOT_FOUND"
     status_code = 404
 
@@ -15,11 +16,12 @@ class PlantNotFoundError(PlantEError):
 
 
 class PlantNotReadyForWateringError(PlantEError):
-    """Usuário tentou regar a planta antes do tempo ou no mesmo dia."""
+    """The plant was watered before its watering window opened."""
     code = "PLANTE_4540_NOT_READY_FOR_WATERING"
     status_code = 409
 
-    def __init__(self, next_date: str):
+    def __init__(self, next_date: date):
         super().__init__(
-            message=f"Your plant is well hydrated! Your next watering date is: {next_date}.",
+            message=f"Your plant is well hydrated! Next watering on {next_date.isoformat()}.",
+            details={"next_watering_on": next_date.isoformat()},
         )

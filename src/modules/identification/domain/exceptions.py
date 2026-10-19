@@ -4,18 +4,18 @@ from src.shared.domain import PlantEError
 
 
 class LowConfidenceError(PlantEError):
-    """A identificação retornou confiança abaixo do threshold aceitável."""
+    """The identification confidence is below the acceptance threshold."""
     code = "PLANTE_4400_LOW_CONFIDENCE"
     status_code = 422
 
     def __init__(self, confidence: float):
         super().__init__(
-            message=f"Confidence too low on this image ({confidence:.0%}). Try one more clear image.",
+            message=f"Confidence too low on this image ({confidence:.0%}). Try a clearer photo.",
         )
 
 
 class IdentificationNotFoundError(PlantEError):
-    """A identificação solicitada não existe ou não pertence ao usuário."""
+    """The identification does not exist or belongs to another user."""
     code = "PLANTE_4430_IDENTIFICATION_NOT_FOUND"
     status_code = 404
 

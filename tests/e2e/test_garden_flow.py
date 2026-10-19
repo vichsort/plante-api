@@ -62,8 +62,8 @@ async def test_watering_sets_next_due_day_and_blocks_a_second_watering(api: Api)
     assert watered.json()["data"]["next_due_on"] == (today + timedelta(days=7)).isoformat()
     assert again.status_code == 409
     assert again.json()["error"]["code"] == "PLANTE_4540_NOT_READY_FOR_WATERING"
-    window_opens = (today + timedelta(days=6)).strftime("%d/%m/%Y")
-    assert window_opens in again.json()["error"]["message"]
+    window_opens = (today + timedelta(days=6)).isoformat()
+    assert again.json()["error"]["details"] == {"next_watering_on": window_opens}
 
 
 async def test_removing_a_plant_keeps_the_identification(api: Api) -> None:

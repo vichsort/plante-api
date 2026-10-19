@@ -54,7 +54,7 @@ def test_watering_before_the_window_is_rejected() -> None:
     plant = _plant_with_streak(3)
 
     # Act & Assert
-    with pytest.raises(PlantNotReadyForWateringError, match="09/10/2026"):
+    with pytest.raises(PlantNotReadyForWateringError, match="2026-10-09"):
         plant.water(_at(date(2026, 10, 8)), CALENDAR)
     assert plant.watering_streak.current_count == 3
 
@@ -91,7 +91,7 @@ def test_only_one_watering_per_day_even_with_daily_interval() -> None:
     plant.water(_at(date(2026, 10, 1), hour=8), CALENDAR)
 
     # Act & Assert
-    with pytest.raises(PlantNotReadyForWateringError, match="02/10/2026"):
+    with pytest.raises(PlantNotReadyForWateringError, match="2026-10-02"):
         plant.water(_at(date(2026, 10, 1), hour=20), CALENDAR)
 
 
