@@ -22,7 +22,8 @@ from src.domain.use_cases.give_health_feedback_use_case import (
     GiveHealthFeedbackInputDTO,
     GiveHealthFeedbackUseCase,
 )
-from src.domain.value_objects.ids import HealthRecordId, UserPlantId
+from src.domain.value_objects.ids import HealthRecordId
+from src.modules.garden import UserPlantId
 from src.shared.api import ApiResponse, CurrentUserId, MessageResponse, error_responses
 from src.shared.domain import UnauthorizedError
 

@@ -70,16 +70,15 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
 
     from src.api.routers import (
-        garden,
         health,
-        plants,
         profile,
     )
     from src.bootstrap import probes
+    from src.modules.garden import api as garden
     from src.modules.identification import api as identification
     from src.modules.identity import api as identity
     from src.modules.subscription import api as subscription
-    for domain in (identity, identification, garden, plants, health, profile, subscription):
+    for domain in (identity, identification, garden, health, profile, subscription):
         app.include_router(domain.router, responses=COMMON_ERROR_RESPONSES)
     # Probes ficam fora do rate limit, então não documentam os erros comuns (ex.: 429)
     app.include_router(probes.router)

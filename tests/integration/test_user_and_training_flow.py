@@ -11,14 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
 from src.domain.ports.health_analyzer import DiseaseHint, HealthAssessmentResult
-from src.domain.use_cases.add_plant_to_garden_use_case import (
-    AddPlantToGardenInputDTO,
-    AddPlantToGardenUseCase,
-)
-from src.domain.use_cases.delete_user_plant_use_case import (
-    DeleteUserPlantInputDTO,
-    DeleteUserPlantUseCase,
-)
 from src.domain.use_cases.diagnose_health_use_case import (
     DiagnoseHealthInputDTO,
     DiagnoseHealthUseCase,
@@ -27,14 +19,26 @@ from src.domain.use_cases.give_health_feedback_use_case import (
     GiveHealthFeedbackInputDTO,
     GiveHealthFeedbackUseCase,
 )
-from src.domain.use_cases.water_plant_use_case import (
-    WaterPlantInputDTO,
-    WaterPlantUseCase,
-)
 from src.modules.catalog.adapters.persistence.unit_of_work import (
     SqlAlchemyCatalogUnitOfWork,
 )
 from src.modules.catalog.domain.services.species_registry import SpeciesRegistry
+from src.modules.garden.adapters.persistence.unit_of_work import (
+    SqlAlchemyGardenUnitOfWork,
+)
+from src.modules.garden.domain.services.plant_lookup import PlantLookup
+from src.modules.garden.domain.use_cases.add_plant import (
+    AddPlantToGardenInputDTO,
+    AddPlantToGardenUseCase,
+)
+from src.modules.garden.domain.use_cases.delete_plant import (
+    DeleteUserPlantInputDTO,
+    DeleteUserPlantUseCase,
+)
+from src.modules.garden.domain.use_cases.water_plant import (
+    WaterPlantInputDTO,
+    WaterPlantUseCase,
+)
 from src.modules.identification.adapters.persistence.unit_of_work import (
     SqlAlchemyIdentificationUnitOfWork,
 )
@@ -122,6 +126,9 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     def uow() -> SqlAlchemyUnitOfWork:
         return SqlAlchemyUnitOfWork(session_factory)
 
+    def garden() -> SqlAlchemyGardenUnitOfWork:
+        return SqlAlchemyGardenUnitOfWork(session_factory)
+
     def identifications() -> SqlAlchemyIdentificationUnitOfWork:
         return SqlAlchemyIdentificationUnitOfWork(session_factory)
 
@@ -154,19 +161,19 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     # 2. Adicionar ao jardim (sinal implícito) e regar
     quota = GardenQuota(SqlAlchemySubscriptionUnitOfWork(session_factory))
     plant = (await AddPlantToGardenUseCase(
-        uow=uow(), publisher=AsyncMock(), calendar=CALENDAR, users=users, quota=quota, training=training(),
+        uow=garden(), publisher=AsyncMock(), calendar=CALENDAR, users=users, quota=quota, training=training(),
         identifications=IdentificationLookup(identifications()),
     ).execute(
         AddPlantToGardenInputDTO(user_id=user.id, identification_id=identified.identification_id)
     )).plant
-    await WaterPlantUseCase(uow=uow(), publisher=AsyncMock(), calendar=CALENDAR).execute(
+    await WaterPlantUseCase(uow=garden(), publisher=AsyncMock(), calendar=CALENDAR).execute(
         WaterPlantInputDTO(user_id=user.id, user_plant_id=plant.id)
     )
 
     # 3. Diagnosticar e dar feedback
     diagnosis = await DiagnoseHealthUseCase(
         uow=uow(), sanitizer=MarkingSanitizer(), health_analyzer=_analyzer(), plant_enricher=enricher, storage=storage,
-        users=users, wallet=wallet(), training=training(),
+        users=users, wallet=wallet(), training=training(), plants=PlantLookup(garden()),
     ).execute(DiagnoseHealthInputDTO(user_id=user.id, user_plant_id=plant.id, image_bytes=b"leaf"))
 
     await GiveHealthFeedbackUseCase(uow=uow(), training=training()).execute(GiveHealthFeedbackInputDTO(
@@ -185,7 +192,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
         assert (sample.location.grid_latitude, sample.location.grid_longitude) == (-23.6, -46.7)
 
     # 4. Apagar a planta (soft delete) e depois o usuário (hard delete, como uma exclusão de conta)
-    await DeleteUserPlantUseCase(uow=uow()).execute(DeleteUserPlantInputDTO(user_id=user.id, user_plant_id=plant.id))
+    await DeleteUserPlantUseCase(uow=garden()).execute(DeleteUserPlantInputDTO(user_id=user.id, user_plant_id=plant.id))
     await db_session.execute(text("DELETE FROM users WHERE id = :id"), {"id": user.id})
 
     for table in ("identifications", "user_plants", "health_records", "subscriptions"):

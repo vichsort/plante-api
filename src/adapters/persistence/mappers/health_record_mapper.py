@@ -1,6 +1,7 @@
 from src.adapters.persistence.models.health_record_model import HealthRecordModel
 from src.domain.entities.health_record import HealthRecord
-from src.domain.value_objects.ids import HealthRecordId, UserPlantId
+from src.domain.value_objects.ids import HealthRecordId
+from src.modules.garden import UserPlantId
 from src.modules.training import TrainingHealthSampleId, parse_health_source
 from src.shared.domain import UserId
 

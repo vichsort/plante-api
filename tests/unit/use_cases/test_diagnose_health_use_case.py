@@ -9,7 +9,7 @@ from src.domain.use_cases.diagnose_health_use_case import (
     DiagnoseHealthInputDTO,
     DiagnoseHealthUseCase,
 )
-from src.domain.value_objects.ids import UserPlantId
+from src.modules.garden import UserPlantId
 from src.modules.identity.domain.entities.user import User
 from src.modules.identity.tests.fakes import FakeUserDirectory
 from src.modules.subscription import SubscriptionRequiredError
@@ -24,8 +24,8 @@ from tests.fakes import FakeUnitOfWork, MarkingSanitizer
 def _use_case(enricher: AsyncMock, used_today: int = 0) -> tuple[DiagnoseHealthUseCase, User, FakeUnitOfWork]:
     user = make_user()
 
-    user_plant_repo = AsyncMock()
-    user_plant_repo.get_by_id.return_value = make_user_plant(user_id=user.id)
+    plants = AsyncMock()
+    plants.get_for_user.return_value = make_user_plant(user_id=user.id)
 
     health_repo = AsyncMock()
     health_repo.save.side_effect = lambda record: record
@@ -42,7 +42,7 @@ def _use_case(enricher: AsyncMock, used_today: int = 0) -> tuple[DiagnoseHealthU
     storage.upload_identification_image.return_value = "health/key.jpg"
     storage.upload_training_image.return_value = "training/identifications/health.jpg"
     storage.download_and_rehost.return_value = "species/references/ref.jpg"
-    uow = FakeUnitOfWork(user_plants=user_plant_repo, health_records=health_repo)
+    uow = FakeUnitOfWork(health_records=health_repo)
 
     use_case = DiagnoseHealthUseCase(
         sanitizer=MarkingSanitizer(),
@@ -53,6 +53,7 @@ def _use_case(enricher: AsyncMock, used_today: int = 0) -> tuple[DiagnoseHealthU
         users=FakeUserDirectory(location=user.location),
         wallet=FakeTokenWallet(used_today=used_today),
         training=FakeTrainingRecorder(),
+        plants=plants,
     )
     return use_case, user, uow
 

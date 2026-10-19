@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from src.domain.value_objects.ids import HealthRecordId, UserPlantId
+from src.domain.value_objects.ids import HealthRecordId
+from src.modules.garden import UserPlantId
 from src.modules.training import HealthSeverity, HealthSource, TrainingHealthSampleId
 from src.shared.domain import UserId
 

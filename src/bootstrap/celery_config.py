@@ -20,7 +20,7 @@ celery_app = Celery(
     include=[
         "src.bootstrap.worker",
         "src.modules.identity.workers.tasks",
-        "src.workers.garden_tasks",
+        "src.modules.garden.workers.tasks",
     ],
 )
 

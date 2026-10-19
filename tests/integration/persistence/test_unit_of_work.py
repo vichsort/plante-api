@@ -10,6 +10,9 @@ from src.modules.catalog.adapters.persistence.unit_of_work import (
     SqlAlchemyCatalogUnitOfWork,
 )
 from src.modules.catalog.domain.services.species_registry import SpeciesRegistry
+from src.modules.garden.adapters.persistence.unit_of_work import (
+    SqlAlchemyGardenUnitOfWork,
+)
 from src.modules.identification.adapters.persistence.unit_of_work import (
     SqlAlchemyIdentificationUnitOfWork,
 )
@@ -62,7 +65,7 @@ async def test_repositories_share_one_transaction(session_factory: async_session
     async with SqlAlchemyUnitOfWork(session_factory) as uow:
         # A cadeia de FKs (usuário → identificação → planta, espécie, amostra de treino) só é
         # satisfeita se todos os repositórios usam a mesma transação, inclusive os dos módulos
-        # (identity, catalog, training, identification), que se juntam à transação aberta aqui
+        # (identity, catalog, training, identification, garden), que se juntam à transação aberta aqui
         async with SqlAlchemyIdentityUnitOfWork(session_factory) as accounts:
             user = await accounts.users.save(make_user(email="shared@plante.org"))
         species = await SpeciesRegistry(SqlAlchemyCatalogUnitOfWork(session_factory)).save(make_species("Pilea peperomioides"))
@@ -72,11 +75,12 @@ async def test_repositories_share_one_transaction(session_factory: async_session
             identification = await identifications.identifications.save(make_identification(
                 user_id=user.id, training_sample_id=training.id, species_id=species.id, scientific_name="Pilea peperomioides",
             ))
-        plant = await uow.user_plants.save(make_user_plant(user_id=user.id, identification_id=identification.id))
+        async with SqlAlchemyGardenUnitOfWork(session_factory) as garden:
+            plant = await garden.user_plants.save(make_user_plant(user_id=user.id, identification_id=identification.id))
         await uow.commit()
 
-    async with SqlAlchemyUnitOfWork(session_factory) as uow:
-        assert await uow.user_plants.get_by_id(plant.id) is not None
+    async with SqlAlchemyGardenUnitOfWork(session_factory) as garden:
+        assert await garden.user_plants.get_by_id(plant.id) is not None
 
 
 async def test_can_be_reopened_and_rejects_nesting(session_factory: async_sessionmaker[AsyncSession]) -> None:

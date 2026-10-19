@@ -5,11 +5,11 @@ from uuid import uuid4
 import structlog
 
 from src.domain.entities.health_record import HealthRecord
-from src.domain.exceptions import PlantNotFoundError
 from src.domain.ports.health_analyzer import IHealthAnalyzer
 from src.domain.ports.health_enricher import HealthDiagnosisEnrichment, IHealthEnricher
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.domain.value_objects.ids import HealthRecordId, UserPlantId
+from src.domain.value_objects.ids import HealthRecordId
+from src.modules.garden import IPlantLookup, PlantNotFoundError, UserPlantId
 from src.modules.identity import IUserDirectory
 from src.modules.subscription import (
     FeatureCost,
@@ -84,7 +84,9 @@ class DiagnoseHealthUseCase:
         users: IUserDirectory,
         wallet: ITokenWallet,
         training: ITrainingRecorder,
+        plants: IPlantLookup,
     ) -> None:
+        self._plants = plants
         self._training = training
         self._users = users
         self._wallet = wallet
@@ -101,9 +103,7 @@ class DiagnoseHealthUseCase:
         async with self._uow as uow:
             region = await self._users.region_of(dto.user_id)
 
-            user_plant = await uow.user_plants.get_by_id(dto.user_plant_id, dto.user_id)
-            if not user_plant:
-                raise PlantNotFoundError(dto.user_plant_id)
+            user_plant = await self._plants.get_for_user(dto.user_plant_id, dto.user_id)
 
             await self._wallet.ensure_can_diagnose(dto.user_id, now)
             can_enrich = await self._wallet.can_enrich_diagnosis(dto.user_id, now)

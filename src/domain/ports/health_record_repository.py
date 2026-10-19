@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 
 from src.domain.entities.health_record import HealthRecord
-from src.domain.value_objects.ids import HealthRecordId, UserPlantId
+from src.domain.value_objects.ids import HealthRecordId
+from src.modules.garden import UserPlantId
 from src.shared.domain import UserId
 
 

@@ -6,8 +6,6 @@ from src.bootstrap.container import Container
 
 # Entradas do código antigo, ligadas ao container raiz
 _LEGACY_ENTRYPOINTS = [
-    "src.api.routers.garden",
-    "src.api.routers.plants",
     "src.api.routers.health",
     "src.api.routers.profile",
     "src.bootstrap.probes",
@@ -20,3 +18,4 @@ def wire(container: Container) -> None:
     container.identity().wire(modules=["src.modules.identity.api.router", "src.modules.identity.workers.tasks"])
     container.subscription().wire(modules=["src.modules.subscription.api.router"])
     container.identification().wire(modules=["src.modules.identification.api.router"])
+    container.garden().wire(modules=["src.modules.garden.api.router", "src.modules.garden.workers.tasks"])

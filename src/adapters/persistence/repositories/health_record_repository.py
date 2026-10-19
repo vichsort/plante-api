@@ -5,7 +5,8 @@ from src.adapters.persistence.mappers.health_record_mapper import HealthRecordMa
 from src.adapters.persistence.models.health_record_model import HealthRecordModel
 from src.domain.entities.health_record import HealthRecord
 from src.domain.ports.health_record_repository import IHealthRecordRepository
-from src.domain.value_objects.ids import HealthRecordId, UserPlantId
+from src.domain.value_objects.ids import HealthRecordId
+from src.modules.garden import UserPlantId
 from src.shared.domain import UserId
 
 

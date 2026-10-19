@@ -5,6 +5,7 @@ from src.bootstrap.containers.infra import InfraContainer
 from src.bootstrap.containers.use_cases import UseCasesContainer
 from src.bootstrap.settings import Settings
 from src.modules.catalog.container import CatalogContainer
+from src.modules.garden.container import GardenContainer
 from src.modules.identification.container import IdentificationContainer
 from src.modules.identity.container import IdentityContainer
 from src.modules.subscription.container import SubscriptionContainer
@@ -75,20 +76,27 @@ class Container(containers.DeclarativeContainer):
         catalog=catalog.registry,
     )
 
+    garden = providers.Container(
+        GardenContainer,
+        session_factory=infra.session_factory,
+        publisher=adapters.domain_publisher,
+        calendar=calendar,
+        users=identity.directory,
+        quota=subscription.garden_quota,
+        training=training.recorder,
+        identifications=identification.lookup,
+        catalog=catalog.registry,
+    )
+
     use_cases = providers.Container(
         UseCasesContainer,
-        settings=settings,
         unit_of_work=infra.unit_of_work,
-        domain_publisher=adapters.domain_publisher,
         health_analyzer=adapters.health_analyzer,
         health_enricher=adapters.health_enricher,
-        species_registry=catalog.registry,
         image_storage=adapters.image_storage,
         image_sanitizer=adapters.image_sanitizer,
         training_recorder=training.recorder,
         token_wallet=subscription.token_wallet,
-        garden_quota=subscription.garden_quota,
-        local_calendar=calendar,
         user_directory=identity.directory,
-        identification_lookup=identification.lookup,
+        plant_lookup=garden.lookup,
     )
