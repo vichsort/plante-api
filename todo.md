@@ -33,8 +33,13 @@ READMEs dos módulos.
   públicas. Política por módulo, mecanismo no shared (critério do módulo `media` no
   `src/shared/README.md`). Junto: a foto do diagnóstico é gravada com `upload_identification_image`
   (prefixo das fotos de identificação; ver o README do health).
-- [ ] **Engine de confiança do rótulo**, junto com a exportação do dataset e um relatório por
-  exportação (rascunho e proteções no README do training). Depois dos itens aprovados abaixo.
+- [ ] **Engine de confiança do rótulo** (desenho no README do training), nesta ordem:
+  1. Pesquisar os termos de uso: Kindwise e PlantNet permitem treinar com as imagens similares? E o
+     que GBIF, iNaturalist e Pl@ntNet-300K oferecem para treino (licença por imagem). Sem código.
+  2. Guardar URL + licença de cada imagem de referência, por sugestão, nos sinais da amostra (hoje
+     a licença é descartada e só a sugestão vencedora é guardada).
+  3. v1: engine (só identificação, regras da tabela, N = 10), exportação versionada e relatório.
+  - A decidir: conjunto de referência revisado em planilha ou numa página de revisão.
 - [ ] **Análise profunda pela metade:** `ISpeciesEnricher.enrich_nutritional`, `PlantNutritional` e
   `IHealthEnricher.analyze_disease` existem sem uso. Decidir se a feature entra (rota, use case no
   módulo da tela, cobrança) ou se sai.
