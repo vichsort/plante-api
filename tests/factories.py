@@ -98,7 +98,7 @@ def make_species(scientific_name: str = "Monstera deliciosa") -> PlantSpecies:
 
 
 MONTH = NOW.date().replace(day=1)
-LOCATION = TrainingLocation(country="BR", state="Sp", grid_latitude=-23.5, grid_longitude=-46.6)
+LOCATION = TrainingLocation(country="BR", state="SP", grid_latitude=-23.5, grid_longitude=-46.6)
 
 
 def make_identification_signals() -> tuple[IdentificationSignals, ...]:

@@ -6,6 +6,7 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 
+from src.bootstrap.connections import close_connections
 from src.bootstrap.container import Container
 from src.domain.exceptions import UnauthorizedError
 from src.domain.ports.token_service import ITokenService, TokenKind
@@ -35,22 +36,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     if inspect.isawaitable(result := container.shutdown_resources()):
         await result
-    await _close_connections(container)
+    await close_connections(container)
 
     log.info("plante.shutdown")
-
-
-async def _close_connections(container: Container) -> None:
-    """Fecha pools e clientes de rede; uma falha não impede o fechamento dos demais."""
-    closers = {
-        "database": container.infra.engine().dispose,
-        "redis": container.adapters.redis().close,
-    }
-    for name, close in closers.items():
-        try:
-            await close()
-        except Exception as exc:
-            log.warning("plante.shutdown_failed", resource=name, error=str(exc))
 
 
 def _access_token_owner(container: Container) -> Callable[[str], UserId | None]:
