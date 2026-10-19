@@ -16,11 +16,6 @@ READMEs dos módulos.
 - A `main` (`v0.1.x`) lê a chave do Kindwise de `PLANT_ID_API_KEY`; a `develop` lê
   `KINDWISE_API_KEY` (com `PLANT_ID_API_KEY` como nome antigo).
 
-## Manutenção
-
-- [ ] CI: `actions/checkout@v4` e `astral-sh/setup-uv@v6` usam Node 20 (descontinuado). Atualizar
-  as versões no `.github/workflows/ci.yml`.
-
 ## Até a `v1.0.0`
 
 - [ ] **Inglês em tudo:** comentários, docstrings, READMEs, `ARCHITECTURE.md`. Aos poucos, sem
@@ -41,8 +36,7 @@ READMEs dos módulos.
   - Regra proposta, a avaliar: `PlantSpecies.apply_enrichment` só preenche campos vazios (o Gemini
     nunca sobrescreve dado dos provedores); nomes populares unidos, provedores primeiro; falha →
     `FAILED` e sem cobrança.
-- [ ] **Conquistas:** regra de concessão (consumir os eventos que hoje ninguém consome) e ordem da
-  lista (hoje a consulta não ordena).
+- [ ] **Conquistas:** regra de concessão (consumir os eventos que hoje ninguém consome).
 - [ ] **HEIC (iPhone):** hoje rejeitado com 4013; avaliar `pillow-heif`.
 - [ ] **Motivo da exclusão da planta** como sinal de treino.
 - [ ] **Geocodificação reversa** (estado a partir do GPS; hoje vem do perfil). Sem serviço que mande
