@@ -17,7 +17,7 @@ from src.modules.identification.domain.value_objects.confidence_score import (
 )
 from src.modules.identification.domain.value_objects.ids import IdentificationId
 from src.modules.identity import IUserDirectory
-from src.modules.subscription import (
+from src.modules.quota import (
     DailyQuotaExceededError,
     FeatureCost,
     ITokenWallet,

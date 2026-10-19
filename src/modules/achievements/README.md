@@ -8,7 +8,7 @@ ele desbloqueou (`GET /profile/achievements`).
 Fica de fora, por enquanto: a **regra de concessão**. Ela é da segunda entrega e vai consumir os
 eventos que os outros módulos já publicam (`PlantAddedToGardenEvent`, `PlantWateredEvent`,
 `StreakBrokenEvent`, `PlantIdentifiedEvent`…), que hoje ninguém consome. Conta e perfil são do
-identity; plano e cota de tokens, do subscription.
+identity; cota de tokens, do quota.
 
 ## API pública
 
@@ -24,7 +24,7 @@ A composição monta o módulo por:
 
 - **Módulo próprio, não parte do identity:** para o identity não virar o módulo-deus do `User`.
 - **`/profile` é só prefixo de URL** (a tela "Meu perfil" do app): a rota daqui fica sob ele, com
-  a tag `profile`, como as do identity e do subscription. Não existe módulo "profile".
+  a tag `profile`, como as do identity. Não existe módulo "profile".
 - **Só leitura por enquanto:** o repositório só lista. O antigo `grant_badge` saiu sem uso; a
   concessão (e quem gera o ID da conquista) será desenhada na segunda entrega.
 - **`AchievementBadge` fica** como catálogo, mesmo sem uso no código: é a lista de medalhas que a

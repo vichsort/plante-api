@@ -16,8 +16,8 @@ from src.modules.health.tests.fakes import (
     make_assessment,
 )
 from src.modules.identity.tests.fakes import FakeUserDirectory
-from src.modules.subscription import DailyQuotaExceededError, FeatureCost
-from src.modules.subscription.tests.fakes import FakeTokenWallet
+from src.modules.quota import DailyQuotaExceededError, FeatureCost
+from src.modules.quota.tests.fakes import FakeTokenWallet
 from src.modules.training import DiseaseSuggestion, HealthSeverity
 from src.modules.training.tests.fakes import FakeTrainingRecorder
 from src.shared.domain import ExternalServiceError, UserId, UserNotFoundError

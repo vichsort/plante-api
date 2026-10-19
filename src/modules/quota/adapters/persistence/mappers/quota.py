@@ -1,14 +1,14 @@
-from src.modules.subscription.adapters.persistence.models.subscription import (
-    SubscriptionModel,
+from src.modules.quota.adapters.persistence.models.quota import (
+    QuotaModel,
 )
-from src.modules.subscription.domain.entities.subscription import Subscription
+from src.modules.quota.domain.entities.quota import Quota
 from src.shared.domain import UserId
 
 
-class SubscriptionMapper:
+class QuotaMapper:
     @staticmethod
-    def to_domain(model: SubscriptionModel) -> Subscription:
-        return Subscription(
+    def to_domain(model: QuotaModel) -> Quota:
+        return Quota(
             user_id=UserId(model.user_id),
             tier=model.tier,
             expires_at=model.expires_at,
@@ -17,8 +17,8 @@ class SubscriptionMapper:
         )
 
     @staticmethod
-    def to_model(entity: Subscription) -> SubscriptionModel:
-        return SubscriptionModel(
+    def to_model(entity: Quota) -> QuotaModel:
+        return QuotaModel(
             user_id=entity.user_id,
             tier=entity.tier,
             expires_at=entity.expires_at,

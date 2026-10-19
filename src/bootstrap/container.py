@@ -9,7 +9,7 @@ from src.modules.garden.container import GardenContainer
 from src.modules.health.container import HealthContainer
 from src.modules.identification.container import IdentificationContainer
 from src.modules.identity.container import IdentityContainer
-from src.modules.subscription.container import SubscriptionContainer
+from src.modules.quota.container import QuotaContainer
 from src.modules.training.container import TrainingContainer
 from src.shared.domain import LocalCalendar
 
@@ -54,8 +54,8 @@ class Container(containers.DeclarativeContainer):
         ses_sender_email=settings.provided.ses_sender_email,
     )
 
-    subscription = providers.Container(
-        SubscriptionContainer,
+    quota = providers.Container(
+        QuotaContainer,
         session_factory=infra.session_factory,
         calendar=calendar,
     )
@@ -72,7 +72,7 @@ class Container(containers.DeclarativeContainer):
         plantnet_api_key=settings.provided.plantnet_api_key,
         consensus_enabled=settings.provided.consensus_enabled,
         users=identity.directory,
-        wallet=subscription.token_wallet,
+        wallet=quota.token_wallet,
         training=training.recorder,
         catalog=catalog.registry,
     )
@@ -83,7 +83,7 @@ class Container(containers.DeclarativeContainer):
         publisher=adapters.domain_publisher,
         calendar=calendar,
         users=identity.directory,
-        quota=subscription.garden_quota,
+        quota=quota.garden_quota,
         training=training.recorder,
         identifications=identification.lookup,
         catalog=catalog.registry,
@@ -98,7 +98,7 @@ class Container(containers.DeclarativeContainer):
         kindwise_breaker=adapters.kindwise_breaker,
         gemini_api_key=settings.provided.gemini_api_key,
         users=identity.directory,
-        wallet=subscription.token_wallet,
+        wallet=quota.token_wallet,
         training=training.recorder,
         plants=garden.lookup,
     )

@@ -157,7 +157,7 @@ def duplicated_error_codes(exception_files: list[Path]) -> list[str]:
 # `PLANTE_ABCD_NAME`: A = family (4 client, 5 server), B = owning module, C = kind, D = sequence
 ERROR_CODE = re.compile(r"PLANTE_([45])(\d)(\d)(\d)_[A-Z0-9]+(?:_[A-Z0-9]+)*")
 MODULE_DIGITS = {
-    "shared": 0, "identity": 1, "subscription": 2, "catalog": 3, "identification": 4,
+    "shared": 0, "identity": 1, "quota": 2, "catalog": 3, "identification": 4,
     "garden": 5, "health": 6, "achievements": 7, "training": 8,
 }
 # (A, C) -> the HTTP statuses that kind of error may answer with

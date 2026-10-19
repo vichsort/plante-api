@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-from src.modules.subscription.domain.entities.subscription import Subscription
-from src.modules.subscription.domain.policies.subscription_policy import (
-    SubscriptionPolicy,
+from src.modules.quota.domain.entities.quota import Quota
+from src.modules.quota.domain.policies.quota_policy import (
+    QuotaPolicy,
 )
-from src.modules.subscription.domain.ports.unit_of_work import ISubscriptionUnitOfWork
-from src.modules.subscription.domain.value_objects.tier import FeatureCost
+from src.modules.quota.domain.ports.unit_of_work import IQuotaUnitOfWork
+from src.modules.quota.domain.value_objects.tier import FeatureCost
 from src.shared.domain import LocalCalendar, UserId
 
 
@@ -42,28 +42,28 @@ class ITokenWallet(ABC):
 
 
 class TokenWallet(ITokenWallet):
-    def __init__(self, uow: ISubscriptionUnitOfWork, calendar: LocalCalendar) -> None:
+    def __init__(self, uow: IQuotaUnitOfWork, calendar: LocalCalendar) -> None:
         self.uow = uow
         self.calendar = calendar
 
     async def ensure_can_identify(self, user_id: UserId, now: datetime) -> None:
-        SubscriptionPolicy.enforce_can_identify_plant(await self._current(user_id), now, self.calendar.date_of(now))
+        QuotaPolicy.enforce_can_identify_plant(await self._current(user_id), now, self.calendar.date_of(now))
 
     async def ensure_can_diagnose(self, user_id: UserId, now: datetime) -> None:
-        SubscriptionPolicy.enforce_can_diagnose(await self._current(user_id), now, self.calendar.date_of(now))
+        QuotaPolicy.enforce_can_diagnose(await self._current(user_id), now, self.calendar.date_of(now))
 
     async def can_enrich_diagnosis(self, user_id: UserId, now: datetime) -> bool:
-        return SubscriptionPolicy.can_enrich_diagnosis(await self._current(user_id), now, self.calendar.date_of(now))
+        return QuotaPolicy.can_enrich_diagnosis(await self._current(user_id), now, self.calendar.date_of(now))
 
     async def charge(self, user_id: UserId, cost: FeatureCost, now: datetime) -> None:
         async with self.uow as uow:
             # Service não faz commit: fora de uma transação de quem chama, a cobrança se perderia
             if not uow.joined:
                 raise RuntimeError("TokenWallet.charge must be called inside the caller's unit of work.")
-            subscription = await uow.subscriptions.lock(user_id)
-            subscription.consume_tokens(cost, self.calendar.date_of(now))
-            await uow.subscriptions.save(subscription)
+            quota = await uow.quotas.lock(user_id)
+            quota.consume_tokens(cost, self.calendar.date_of(now))
+            await uow.quotas.save(quota)
 
-    async def _current(self, user_id: UserId) -> Subscription:
+    async def _current(self, user_id: UserId) -> Quota:
         async with self.uow as uow:
-            return await uow.subscriptions.get(user_id) or Subscription.free_for(user_id)
+            return await uow.quotas.get(user_id) or Quota.free_for(user_id)

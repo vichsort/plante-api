@@ -26,7 +26,7 @@ class DeleteAccountUseCase:
     """
     Deletes the account for good, confirmed with the password (LGPD: no personal data is kept).
 
-    - The user row goes, and the database takes garden, identifications, diagnoses, subscription
+    - The user row goes, and the database takes garden, identifications, diagnoses, quota
       and achievements along (`CASCADE`). The training data has no link to the user and stays.
     - The email is free right away for a new account.
     - The refresh token is revoked; the access token dies on its own within minutes (and finds no

@@ -6,16 +6,16 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.modules.subscription.adapters.persistence.unit_of_work import (
-    SqlAlchemySubscriptionUnitOfWork,
+from src.modules.quota.adapters.persistence.unit_of_work import (
+    SqlAlchemyQuotaUnitOfWork,
 )
-from src.modules.subscription.domain.exceptions import (
+from src.modules.quota.domain.exceptions import (
     DailyQuotaExceededError,
     PlantLimitExceededError,
 )
-from src.modules.subscription.domain.services.garden_quota import GardenQuota
-from src.modules.subscription.domain.services.token_wallet import TokenWallet
-from src.modules.subscription.domain.value_objects.tier import FeatureCost
+from src.modules.quota.domain.services.garden_quota import GardenQuota
+from src.modules.quota.domain.services.token_wallet import TokenWallet
+from src.modules.quota.domain.value_objects.tier import FeatureCost
 from src.shared.domain import LocalCalendar, UserId, UserNotFoundError
 
 NOW = datetime(2026, 10, 16, 15, 0, tzinfo=UTC)
@@ -23,8 +23,8 @@ CALENDAR = LocalCalendar.from_name("America/Sao_Paulo")
 Account = Callable[[], Awaitable[UserId]]
 
 
-def _uow(factory: async_sessionmaker[AsyncSession]) -> SqlAlchemySubscriptionUnitOfWork:
-    return SqlAlchemySubscriptionUnitOfWork(factory)
+def _uow(factory: async_sessionmaker[AsyncSession]) -> SqlAlchemyQuotaUnitOfWork:
+    return SqlAlchemyQuotaUnitOfWork(factory)
 
 
 async def _charge(factory: async_sessionmaker[AsyncSession], user_id: UserId, cost: FeatureCost) -> None:
@@ -71,7 +71,7 @@ async def test_callers_rollback_takes_the_charge_with_it(
 
     # Assert
     async with _uow(session_factory) as uow:
-        assert await uow.subscriptions.get(user_id) is None
+        assert await uow.quotas.get(user_id) is None
 
 
 async def test_charging_outside_a_transaction_fails_loudly(session_factory: async_sessionmaker[AsyncSession]) -> None:

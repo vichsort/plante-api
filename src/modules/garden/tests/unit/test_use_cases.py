@@ -59,8 +59,8 @@ from src.modules.identification.tests.fakes import (
     make_identification,
 )
 from src.modules.identity.tests.fakes import FakeUserDirectory
-from src.modules.subscription import PlantLimitExceededError
-from src.modules.subscription.tests.fakes import FakeGardenQuota
+from src.modules.quota import PlantLimitExceededError
+from src.modules.quota.tests.fakes import FakeGardenQuota
 from src.modules.training import (
     FeedbackOrigin,
     FeedbackVerdict,

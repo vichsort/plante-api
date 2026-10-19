@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from src.modules.subscription.domain.value_objects.tier import (
+from src.modules.quota.domain.value_objects.tier import (
     FeatureCost,
     SubscriptionTier,
 )
@@ -11,7 +11,7 @@ from src.shared.domain import UserId
 
 
 @dataclass(slots=True)
-class Subscription:
+class Quota:
     """
     Plano e cota diária de tokens de um usuário. Quem nunca teve linha gravada é FREE com a cota
     cheia (`free_for`): o cadastro não precisa criar nada aqui.
@@ -28,10 +28,10 @@ class Subscription:
         if self.tokens_used_today < 0:
             raise ValueError("tokens_used_today cannot be negative.")
         if self.tier == SubscriptionTier.PRO and self.expires_at is None:
-            raise ValueError("PRO subscription requires an expiration date.")
+            raise ValueError("PRO quota requires an expiration date.")
 
     @classmethod
-    def free_for(cls, user_id: UserId) -> Subscription:
+    def free_for(cls, user_id: UserId) -> Quota:
         return cls(user_id=user_id, tier=SubscriptionTier.FREE)
 
     def tokens_used_on(self, today: date) -> int:

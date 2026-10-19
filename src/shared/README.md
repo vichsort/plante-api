@@ -53,9 +53,9 @@ domínio, inclusive por caminho indireto).
   `src/main.py`. As rotas sensíveis e anônimas ainda são uma lista de caminhos no middleware; se
   crescer, passa a vir de cada módulo na composição.
 - **`UserNotFoundError` mora com o `UserId`.** Todo módulo guarda IDs de usuário, e um módulo base
-  (ex.: subscription) pode descobrir que a conta não existe sem poder importar o identity.
+  (ex.: quota) pode descobrir que a conta não existe sem poder importar o identity.
 - **`LocalCalendar` (que dia é para o usuário)** serve à rega (garden) e à cota diária
-  (subscription); o fuso vem de `LOCAL_TIMEZONE`.
+  (quota); o fuso vem de `LOCAL_TIMEZONE`.
 - **Eventos viram tasks pelas rotas dos módulos.** O `CeleryPublisher` não conhece evento nenhum:
   cada módulo com tasks entrega uma `EventRoute` (evento → `TaskCall`, pelo nome da task), e a
   composição as junta. Evento sem rota só é logado.

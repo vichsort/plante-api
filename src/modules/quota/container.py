@@ -1,18 +1,18 @@
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.modules.subscription.adapters.persistence.unit_of_work import (
-    SqlAlchemySubscriptionUnitOfWork,
+from src.modules.quota.adapters.persistence.unit_of_work import (
+    SqlAlchemyQuotaUnitOfWork,
 )
-from src.modules.subscription.domain.services.garden_quota import GardenQuota
-from src.modules.subscription.domain.services.token_wallet import TokenWallet
+from src.modules.quota.domain.services.garden_quota import GardenQuota
+from src.modules.quota.domain.services.token_wallet import TokenWallet
 from src.shared.domain import LocalCalendar
 
 
-class SubscriptionContainer(containers.DeclarativeContainer):
+class QuotaContainer(containers.DeclarativeContainer):
     session_factory: providers.Dependency[async_sessionmaker[AsyncSession]] = providers.Dependency()
     calendar: providers.Dependency[LocalCalendar] = providers.Dependency()
 
-    unit_of_work = providers.Factory(SqlAlchemySubscriptionUnitOfWork, session_factory=session_factory)
+    unit_of_work = providers.Factory(SqlAlchemyQuotaUnitOfWork, session_factory=session_factory)
     token_wallet = providers.Factory(TokenWallet, uow=unit_of_work, calendar=calendar)
     garden_quota = providers.Factory(GardenQuota, uow=unit_of_work)

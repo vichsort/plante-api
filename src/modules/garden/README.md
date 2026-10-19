@@ -7,7 +7,7 @@ detalhar, regar, acompanhar a sequência de regas no prazo e tirar do jardim.
 
 Fica de fora:
 - o que a planta é (identification) e a espécie (catalog, pelo `ISpeciesRegistry`);
-- o limite de plantas do plano (subscription, pelo `IGardenQuota`);
+- o limite de plantas do plano (quota, pelo `IGardenQuota`);
 - a saúde da planta (health), que lê a planta pelo `IPlantLookup`.
 
 ## API pública
@@ -68,4 +68,4 @@ memória e as fábricas de planta dos testes daqui.
 | `PLANTE_4540_NOT_READY_FOR_WATERING` | `PlantNotReadyForWateringError` | 409 | Rega antes da janela (vencimento − 1 dia) ou segunda rega no mesmo dia. `details`: `next_watering_on` (ISO). |
 
 `PLANTE_4430_IDENTIFICATION_NOT_FOUND` (adicionar com identificação inexistente ou de outro usuário)
-é do identification; `PLANTE_4220_PLANT_LIMIT_REACHED`, do subscription.
+é do identification; `PLANTE_4220_PLANT_LIMIT_REACHED`, do quota.

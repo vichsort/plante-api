@@ -1,4 +1,4 @@
-# subscription
+# quota
 
 ## Propósito
 
@@ -12,7 +12,7 @@ identity, e aqui só existe a FK para `users`.
 
 ## API pública
 
-`src.modules.subscription` exporta só domínio:
+`src.modules.quota` exporta só domínio:
 
 - **`ITokenWallet`**: a cota, para quem consome IA (identificação, diagnóstico). O uso esperado:
   1. conferir o saldo antes das chamadas caras (`ensure_can_identify`, `ensure_can_diagnose`,
@@ -24,7 +24,7 @@ identity, e aqui só existe a FK para `users`.
 - **`IGardenQuota`**: o limite de plantas no jardim pelo plano ativo.
 - **Tipos:** `Subscription`, `SubscriptionTier`, `FeatureCost` e os erros abaixo.
 
-O módulo não tem rotas. A composição o monta por `src.modules.subscription.container`. Os
+O módulo não tem rotas. A composição o monta por `src.modules.quota.container`. Os
 dublês do wallet e da quota para testes ficam em `tests/fakes.py`, com as regras de verdade.
 
 ## Decisões

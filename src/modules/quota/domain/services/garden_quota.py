@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-from src.modules.subscription.domain.entities.subscription import Subscription
-from src.modules.subscription.domain.policies.subscription_policy import (
-    SubscriptionPolicy,
+from src.modules.quota.domain.entities.quota import Quota
+from src.modules.quota.domain.policies.quota_policy import (
+    QuotaPolicy,
 )
-from src.modules.subscription.domain.ports.unit_of_work import ISubscriptionUnitOfWork
+from src.modules.quota.domain.ports.unit_of_work import IQuotaUnitOfWork
 from src.shared.domain import UserId
 
 
@@ -19,10 +19,10 @@ class IGardenQuota(ABC):
 
 
 class GardenQuota(IGardenQuota):
-    def __init__(self, uow: ISubscriptionUnitOfWork) -> None:
+    def __init__(self, uow: IQuotaUnitOfWork) -> None:
         self.uow = uow
 
     async def ensure_can_add_plant(self, user_id: UserId, plants_in_garden: int, now: datetime) -> None:
         async with self.uow as uow:
-            subscription = await uow.subscriptions.get(user_id) or Subscription.free_for(user_id)
-        SubscriptionPolicy.enforce_can_add_to_garden(subscription, plants_in_garden, now)
+            quota = await uow.quotas.get(user_id) or Quota.free_for(user_id)
+        QuotaPolicy.enforce_can_add_to_garden(quota, plants_in_garden, now)

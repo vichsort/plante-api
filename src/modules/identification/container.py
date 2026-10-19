@@ -22,7 +22,7 @@ from src.modules.identification.domain.use_cases.identify_plant import (
     IdentifyPlantUseCase,
 )
 from src.modules.identity import IUserDirectory
-from src.modules.subscription import ITokenWallet
+from src.modules.quota import ITokenWallet
 from src.modules.training import ITrainingRecorder
 from src.shared.adapters import CircuitBreaker, KindwiseClient
 from src.shared.domain import IDomainPublisher, IImageSanitizer, IImageStorage

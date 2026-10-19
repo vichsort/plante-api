@@ -6,7 +6,7 @@ Quem é o usuário e como ele entra: cadastro, verificação do e-mail por códi
 troca de e-mail e de senha, e a localização do perfil.
 
 Fica de fora:
-- plano e cota de tokens (subscription);
+- cota de tokens (quota);
 - conquistas (achievements);
 - a autenticação das rotas dos outros módulos (`CurrentUserId`, no shared). O identity só emite e
   valida os tokens; o kernel pergunta o dono pela porta `IAccessTokenVerifier`, que o

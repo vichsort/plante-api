@@ -4,37 +4,37 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.modules.subscription.adapters.persistence.mappers.subscription import (
-    SubscriptionMapper,
+from src.modules.quota.adapters.persistence.mappers.quota import (
+    QuotaMapper,
 )
-from src.modules.subscription.adapters.persistence.models.subscription import (
-    SubscriptionModel,
+from src.modules.quota.adapters.persistence.models.quota import (
+    QuotaModel,
 )
-from src.modules.subscription.domain.entities.subscription import Subscription
-from src.modules.subscription.domain.ports.repository import ISubscriptionRepository
-from src.modules.subscription.domain.value_objects.tier import SubscriptionTier
+from src.modules.quota.domain.entities.quota import Quota
+from src.modules.quota.domain.ports.repository import IQuotaRepository
+from src.modules.quota.domain.value_objects.tier import SubscriptionTier
 from src.shared.adapters import utcnow
 from src.shared.domain import UserId, UserNotFoundError
 
 
-class SubscriptionRepository(ISubscriptionRepository):
+class QuotaRepository(IQuotaRepository):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get(self, user_id: UserId) -> Subscription | None:
-        model = await self._session.get(SubscriptionModel, user_id)
-        return SubscriptionMapper.to_domain(model) if model else None
+    async def get(self, user_id: UserId) -> Quota | None:
+        model = await self._session.get(QuotaModel, user_id)
+        return QuotaMapper.to_domain(model) if model else None
 
-    async def lock(self, user_id: UserId) -> Subscription:
+    async def lock(self, user_id: UserId) -> Quota:
         now = utcnow()
         # Garante a linha (sem corrida entre duas primeiras cobranças) e só então trava
-        ensure_row = insert(SubscriptionModel).values(
+        ensure_row = insert(QuotaModel).values(
             user_id=user_id,
             tier=SubscriptionTier.FREE,
             tokens_used_today=0,
             created_at=now,
             updated_at=now,
-        ).on_conflict_do_nothing(index_elements=[SubscriptionModel.user_id])
+        ).on_conflict_do_nothing(index_elements=[QuotaModel.user_id])
         try:
             await self._session.execute(ensure_row)
         except IntegrityError as exc:
@@ -44,14 +44,14 @@ class SubscriptionRepository(ISubscriptionRepository):
             raise
 
         stmt = (
-            select(SubscriptionModel)
-            .where(SubscriptionModel.user_id == user_id)
+            select(QuotaModel)
+            .where(QuotaModel.user_id == user_id)
             .with_for_update()
             .execution_options(populate_existing=True)
         )
         model = (await self._session.execute(stmt)).scalar_one()
-        return SubscriptionMapper.to_domain(model)
+        return QuotaMapper.to_domain(model)
 
-    async def save(self, subscription: Subscription) -> None:
-        await self._session.merge(SubscriptionMapper.to_model(subscription))
+    async def save(self, quota: Quota) -> None:
+        await self._session.merge(QuotaMapper.to_model(quota))
         await self._session.flush()

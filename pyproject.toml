@@ -240,7 +240,7 @@ layers = [
     "health | achievements",
     "garden",
     "identification",
-    "identity | subscription | catalog | training",
+    "identity | quota | catalog | training",
 ]
 exhaustive = true
 
