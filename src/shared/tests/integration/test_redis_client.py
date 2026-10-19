@@ -3,9 +3,10 @@ import socket
 
 import pytest
 from redis.asyncio import Redis
+from structlog.testing import capture_logs
 
 from src.shared.adapters import RedisClient
-from src.shared.domain import ExternalServiceError
+from src.shared.domain import InternalError, ServiceUnavailableError
 
 
 async def test_get_missing_key_returns_none(redis_client: RedisClient) -> None:
@@ -73,14 +74,15 @@ async def test_increment_with_expiry_restarts_after_key_expires(redis_client: Re
     assert count == 1
 
 
-async def test_rejected_command_is_not_retryable(redis_client: RedisClient, raw_redis: Redis) -> None:
+async def test_rejected_command_is_an_internal_error(redis_client: RedisClient, raw_redis: Redis) -> None:
     # Arrange
     await raw_redis.rpush("list", "a")
 
-    # Act & Assert: WRONGTYPE, o servidor recusou o comando e tentar de novo não resolve
-    with pytest.raises(ExternalServiceError) as exc_info:
+    # Act & Assert: WRONGTYPE is our bug; the detail goes to the log, not to the client
+    with capture_logs() as logs, pytest.raises(InternalError) as exc_info:
         await redis_client.get("list")
-    assert exc_info.value.retryable is False
+    assert "WRONGTYPE" not in exc_info.value.message
+    assert any(entry["event"] == "redis.command_rejected" and "WRONGTYPE" in entry["error"] for entry in logs)
 
 
 async def test_ping(redis_client: RedisClient) -> None:
@@ -95,13 +97,12 @@ def _unused_port() -> int:
         return port
 
 
-async def test_unreachable_redis_raises_retryable_external_error() -> None:
+async def test_unreachable_redis_is_a_service_unavailable() -> None:
     # Arrange
     client = RedisClient.from_url(f"redis://127.0.0.1:{_unused_port()}/0", socket_timeout=0.5, socket_connect_timeout=0.5)
     try:
         # Act & Assert
-        with pytest.raises(ExternalServiceError) as exc_info:
+        with pytest.raises(ServiceUnavailableError):
             await client.ping()
-        assert exc_info.value.retryable is True
     finally:
         await client.close()

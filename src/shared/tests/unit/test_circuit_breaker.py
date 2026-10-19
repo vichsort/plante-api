@@ -4,7 +4,13 @@ from collections.abc import Awaitable, Callable
 import pytest
 
 from src.shared.adapters import CircuitBreaker, CircuitState
-from src.shared.domain import ExternalServiceError, InvalidImageError
+from src.shared.domain import (
+    ExternalServiceError,
+    InternalError,
+    InvalidImageError,
+    PlantEError,
+    ServiceUnavailableError,
+)
 
 
 class _Clock:
@@ -132,6 +138,7 @@ async def test_cancelled_probe_allows_new_probe() -> None:
     [
         InvalidImageError(),
         ExternalServiceError(service="Kindwise"),
+        InternalError(),  # e.g. a command Redis refused: the server is answering
         ValueError("no suggestions"),
         TimeoutError(),
     ],
@@ -148,13 +155,14 @@ async def test_non_retryable_errors_do_not_count_as_failures(exc: Exception) -> 
     assert breaker.state is CircuitState.CLOSED
 
 
-async def test_retryable_external_errors_count_as_failures() -> None:
-    # Arrange
+@pytest.mark.parametrize("exc", [_provider_down(), ServiceUnavailableError()])
+async def test_transient_failures_count_as_failures(exc: PlantEError) -> None:
+    # Arrange: a provider's retryable failure or our own infrastructure (Redis) down
     breaker = CircuitBreaker("Kindwise", failure_threshold=1, clock=_Clock())
 
     # Act
-    with pytest.raises(ExternalServiceError):
-        await breaker.call(_failing(_provider_down()))
+    with pytest.raises(type(exc)):
+        await breaker.call(_failing(exc))
 
     # Assert
     assert breaker.state is CircuitState.OPEN

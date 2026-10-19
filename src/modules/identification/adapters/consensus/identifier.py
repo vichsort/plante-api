@@ -117,7 +117,7 @@ def _raise_domain_failure(*errors: Exception | None) -> None:
     Ambos os provedores falharam: propaga o erro de domínio mais informativo.
     Imagem inválida prevalece sobre indisponibilidade; erros desconhecidos seguem para a policy.
     """
-    for error_type in (InvalidImageError, ExternalServiceError):
+    for error_type in (NotAPlantError, InvalidImageError, ExternalServiceError):
         for error in errors:
             if isinstance(error, error_type):
                 raise error

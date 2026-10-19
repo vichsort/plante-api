@@ -17,7 +17,7 @@ from src.modules.identification.tests.fakes import (
 )
 from src.modules.identity import UserLocation
 from src.modules.identity.tests.fakes import FakeUserDirectory
-from src.modules.subscription import FeatureCost, SubscriptionRequiredError
+from src.modules.subscription import DailyQuotaExceededError, FeatureCost
 from src.modules.subscription.tests.fakes import FakeTokenWallet
 from src.modules.training.tests.fakes import FakeTrainingRecorder
 from src.shared.domain import UserId
@@ -141,7 +141,7 @@ async def test_identification_without_tokens_is_refused_before_calling_providers
     scenario = _Scenario(used_today=3)
 
     # Act & Assert
-    with pytest.raises(SubscriptionRequiredError):
+    with pytest.raises(DailyQuotaExceededError):
         await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
     assert scenario.identifier.calls == []
     assert scenario.uow.commits == 0

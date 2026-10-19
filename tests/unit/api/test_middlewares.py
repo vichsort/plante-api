@@ -7,7 +7,6 @@ import httpx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from structlog.testing import capture_logs
 
 from src.bootstrap.container import Container
 from src.modules.identity.adapters.security.jwt_token_service import JwtTokenService
@@ -19,7 +18,7 @@ from src.shared.api import (
     SecurityHeadersMiddleware,
     WindowCounter,
 )
-from src.shared.domain import ExternalServiceError, UserId
+from src.shared.domain import InternalError, ServiceUnavailableError, UserId
 
 
 def test_correlation_id_middleware_generates_and_propagates():
@@ -138,7 +137,7 @@ def test_rate_limit_middleware_blocks_after_exceeding_limit():
     assert r3.status_code == 429
     data = r3.json()
     assert data["ok"] is False
-    assert data["error"]["code"] == "PLANTE_4029_RATE_LIMIT_EXCEEDED"
+    assert data["error"]["code"] == "PLANTE_4050_RATE_LIMIT_EXCEEDED"
 
 
 def _rate_limited_app(**kwargs) -> FastAPI:
@@ -320,8 +319,8 @@ def test_rate_limit_backs_off_redis_after_failure():
         async def increment_with_expiry(self, key: str, ttl_seconds: int) -> int:
             calls.append(clock.now)
             if len(calls) == 1:
-                # Contrato do RedisClient: falha de conexão vira ExternalServiceError retryable
-                raise ExternalServiceError(message="ConnectionError", service="Redis", retryable=True)
+                # RedisClient contract: a connection failure is a ServiceUnavailableError
+                raise ServiceUnavailableError()
             return await fake.increment_with_expiry(key, ttl_seconds)
 
     flaky = _FlakyRedis()
@@ -393,13 +392,12 @@ def test_container_redis_client_has_short_timeouts():
 
 class _RejectingRedis(WindowCounter):
     async def increment_with_expiry(self, key: str, ttl_seconds: int) -> int:
-        raise ExternalServiceError(message="WRONGTYPE", service="Redis", retryable=False)
+        # RedisClient contract: a refused command (WRONGTYPE) is an InternalError, logged by the client
+        raise InternalError()
 
 
 def test_rate_limit_falls_back_to_memory_when_redis_rejects_command():
     client = TestClient(_rate_limited_app(requests_per_minute=1, redis_provider=_RejectingRedis))
 
-    with capture_logs() as logs:
-        assert client.get("/api/test").status_code == 200
+    assert client.get("/api/test").status_code == 200
     assert client.get("/api/test").status_code == 429
-    assert any(entry["event"] == "rate_limit.redis_rejected" for entry in logs)

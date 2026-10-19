@@ -1,7 +1,12 @@
 from pydantic import BaseModel
 
 from src.shared.api.response import ApiResponse
-from src.shared.domain.exceptions import PlantEError, RateLimitExceededError
+from src.shared.domain.exceptions import (
+    InternalError,
+    InvalidRequestError,
+    PlantEError,
+    RateLimitExceededError,
+)
 from src.shared.domain.value_objects.json_value import JsonObject, JsonValue
 
 # Formato de `responses` do FastAPI: documentação por status, com o modelo e exemplos em JSON
@@ -52,20 +57,4 @@ def error_responses(*errors: type[PlantEError]) -> OpenApiResponses:
 
 
 # Erros que qualquer rota pode retornar (validação, rate limit e falha inesperada)
-COMMON_ERROR_RESPONSES: OpenApiResponses = {
-    **_build({
-        422: {
-            "PLANTE_4220_VALIDATION_ERROR": {
-                "summary": "Dados da requisição inválidos.",
-                "value": _envelope("PLANTE_4220_VALIDATION_ERROR", "Dados da requisição inválidos."),
-            },
-        },
-        500: {
-            "PLANTE_5000_INTERNAL_ERROR": {
-                "summary": "Erro interno inesperado.",
-                "value": _envelope("PLANTE_5000_INTERNAL_ERROR", "Erro interno. Tente novamente em instantes."),
-            },
-        },
-    }),
-    **error_responses(RateLimitExceededError),
-}
+COMMON_ERROR_RESPONSES: OpenApiResponses = error_responses(InvalidRequestError, RateLimitExceededError, InternalError)

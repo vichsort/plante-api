@@ -93,7 +93,7 @@ def test_diagnose_rejects_coordinates_out_of_range(api: _App) -> None:
     )
 
     # Assert
-    assert (response.status_code, response.json()["error"]["code"]) == (422, "PLANTE_4220_VALIDATION_ERROR")
+    assert (response.status_code, response.json()["error"]["code"]) == (422, "PLANTE_4000_VALIDATION_ERROR")
     use_case.execute.assert_not_called()
 
 
@@ -108,7 +108,7 @@ def test_diagnosing_a_missing_plant_is_not_found(api: _App) -> None:
     )
 
     # Assert
-    assert (response.status_code, response.json()["error"]["code"]) == (404, "PLANTE_4001_PLANT_NOT_FOUND")
+    assert (response.status_code, response.json()["error"]["code"]) == (404, "PLANTE_4530_PLANT_NOT_FOUND")
 
 
 def test_feedback_passes_the_verdict(api: _App) -> None:
@@ -134,7 +134,7 @@ def test_feedback_on_a_missing_diagnosis_is_not_found(api: _App) -> None:
     response = api.client.post(f"/diagnose/{record_id}/feedback", json={"verdict": "wrong"}, headers=AUTH)
 
     # Assert
-    assert (response.status_code, response.json()["error"]["code"]) == (404, "PLANTE_4017_HEALTH_RECORD_NOT_FOUND")
+    assert (response.status_code, response.json()["error"]["code"]) == (404, "PLANTE_4630_HEALTH_RECORD_NOT_FOUND")
 
 
 def test_history_lists_the_diagnoses(api: _App) -> None:

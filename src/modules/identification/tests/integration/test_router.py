@@ -137,7 +137,7 @@ def test_feedback_on_unknown_identification_is_not_found(api: _App) -> None:
     response = api.client.post(f"/identify/{identification_id}/feedback", json={"verdict": "correct"}, headers=AUTH)
 
     # Assert
-    assert (response.status_code, response.json()["error"]["code"]) == (404, "PLANTE_4012_IDENTIFICATION_NOT_FOUND")
+    assert (response.status_code, response.json()["error"]["code"]) == (404, "PLANTE_4430_IDENTIFICATION_NOT_FOUND")
 
 
 def test_feedback_rejects_an_unknown_verdict(api: _App) -> None:

@@ -22,12 +22,12 @@ class ITokenWallet(ABC):
 
     @abstractmethod
     async def ensure_can_identify(self, user_id: UserId, now: datetime) -> None:
-        """Lança `SubscriptionRequiredError` sem saldo para uma identificação."""
+        """Lança `DailyQuotaExceededError` sem saldo para uma identificação."""
         ...
 
     @abstractmethod
     async def ensure_can_diagnose(self, user_id: UserId, now: datetime) -> None:
-        """Lança `SubscriptionRequiredError` sem saldo para o diagnóstico básico."""
+        """Lança `DailyQuotaExceededError` sem saldo para o diagnóstico básico."""
         ...
 
     @abstractmethod

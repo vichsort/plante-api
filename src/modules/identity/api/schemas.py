@@ -1,17 +1,22 @@
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, StringConstraints
 
 from src.modules.identity.domain.entities.user import User
 from src.modules.identity.domain.use_cases.login import LoginResult
 from src.modules.identity.domain.use_cases.refresh_token import RefreshResult
 
+# Same rules as `UserLocation`, checked here so a bad value is a 422 and not a 500
+Country = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^[A-Za-z]{2}$")]  # ISO 3166-1 alpha-2
+State = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=100)]  # column size
+
 
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
-    country: str
-    state: str
+    country: Country
+    state: State
 
 class RegisterResponse(BaseModel):
     user_id: UUID
@@ -60,5 +65,5 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 
 class UpdateLocationRequest(BaseModel):
-    country: str
-    state: str
+    country: Country
+    state: State

@@ -50,7 +50,7 @@ def test_readiness_route_not_ready_when_redis_down(client: TestClient):
     assert response.status_code == 503
     payload = response.json()
     assert payload["ok"] is False
-    assert payload["error"]["code"] == "PLANTE_5003_SERVICE_NOT_READY"
+    assert payload["error"]["code"] == "PLANTE_5030_SERVICE_UNAVAILABLE"
     assert payload["error"]["details"]["checks"] == {"database": True, "redis": False}
 
 

@@ -40,7 +40,7 @@ memória e as fábricas de planta dos testes daqui.
   - O vencimento é um **dia do calendário local** (`LocalCalendar`, fuso em `LOCAL_TIMEZONE`,
     padrão `America/Sao_Paulo`), não um instante.
   - A janela vai de 1 dia antes a 1 dia depois do vencimento. Antes dela a rega é recusada
-    (`PLANTE_4016`); dentro dela soma 1 à sequência; depois dela é aceita, mas a sequência
+    (`PLANTE_4540`); dentro dela soma 1 à sequência; depois dela é aceita, mas a sequência
     recomeça em 1.
   - Uma rega por dia. A primeira rega (sem vencimento) vale a qualquer dia. Cada rega recalcula o
     vencimento (dia da rega + intervalo de 7 dias).
@@ -58,12 +58,8 @@ memória e as fábricas de planta dos testes daqui.
 
 | Código | Erro | HTTP | Quando |
 | :--- | :--- | :---: | :--- |
-| `PLANTE_4001_PLANT_NOT_FOUND` | `PlantNotFoundError` | 404 | Planta não existe, foi tirada do jardim ou é de outro usuário. |
-| `PLANTE_4016_NOT_READY_FOR_WATERING` | `PlantNotReadyForWateringError` | 400 | Rega antes da janela (vencimento − 1 dia) ou segunda rega no mesmo dia. |
+| `PLANTE_4530_PLANT_NOT_FOUND` | `PlantNotFoundError` | 404 | Planta não existe, foi tirada do jardim ou é de outro usuário. |
+| `PLANTE_4540_NOT_READY_FOR_WATERING` | `PlantNotReadyForWateringError` | 409 | Rega antes da janela (vencimento − 1 dia) ou segunda rega no mesmo dia. `details`: `next_watering_on` (ISO). |
 
-`PLANTE_4012_IDENTIFICATION_NOT_FOUND` (adicionar com identificação inexistente ou de outro usuário)
-é do identification; `PLANTE_4005_FREE_TIER_PLANT_LIMIT`, do subscription.
-
-`PLANTE_4009_FORBIDDEN` (`ForbiddenError`) foi aposentado em 2026-10-19 (aprovado pelo usuário): a
-rega conferia o dono depois de uma busca que já filtrava por ele, então o 403 documentado nunca
-saía. Não reutilizar o número.
+`PLANTE_4430_IDENTIFICATION_NOT_FOUND` (adicionar com identificação inexistente ou de outro usuário)
+é do identification; `PLANTE_4220_PLANT_LIMIT_REACHED`, do subscription.

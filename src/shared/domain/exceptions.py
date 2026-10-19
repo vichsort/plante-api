@@ -1,4 +1,5 @@
-"""Exceções que qualquer módulo usa. As específicas moram em `domain/exceptions.py` de cada módulo."""
+"""Errors any module uses. Module-specific ones live in each module's `domain/exceptions.py`."""
+from typing import ClassVar
 from uuid import UUID
 
 from src.shared.domain.value_objects.json_value import JsonObject
@@ -6,31 +7,71 @@ from src.shared.domain.value_objects.json_value import JsonObject
 
 class PlantEError(Exception):
     """
-    Erro base do PlantE. Todos os erros de domínio herdam desta classe.
+    Base of every PlantE error, never raised by itself. Each subclass sets `code`
+    (`PLANTE_ABCD_NAME`: family, module, kind, sequence; see ARCHITECTURE.md §4) and `status_code`,
+    and the HTTP handler turns it into the envelope.
     """
-    code: str = "PLANTE_4000_DOMAIN_ERROR"
-    status_code: int = 400
+    code: ClassVar[str]
+    status_code: ClassVar[int]
 
-    def __init__(
-        self,
-        message: str | None = None,
-        code: str | None = None,
-        status_code: int | None = None,
-        details: JsonObject | None = None,
-    ) -> None:
-        # Sem mensagem, a docstring da classe descreve o erro
+    def __init__(self, message: str | None = None, details: JsonObject | None = None) -> None:
+        if not hasattr(type(self), "code"):
+            # A bug, not a client error: the generic handler answers 500
+            raise TypeError(f"{type(self).__name__} has no error code; raise a subclass of it")
+        # Without a message, the class docstring describes the error
         self.message = message or (type(self).__doc__ or self.code).strip()
-        if code:
-            self.code = code
-        if status_code:
-            self.status_code = status_code
         self.details = details or {}
         super().__init__(self.message)
 
 
+class InvalidRequestError(PlantEError):
+    """The request body, query or path failed validation."""
+    code = "PLANTE_4000_VALIDATION_ERROR"
+    status_code = 422
+
+    def __init__(self, message: str = "Invalid request data.", details: JsonObject | None = None):
+        super().__init__(message=message, details=details)
+
+
+class MethodNotAllowedError(PlantEError):
+    """The route exists, but not for this HTTP method."""
+    code = "PLANTE_4002_METHOD_NOT_ALLOWED"
+    status_code = 405
+
+    def __init__(self, message: str = "Method not allowed for this route."):
+        super().__init__(message=message)
+
+
+class RouteNotFoundError(PlantEError):
+    """No route matches the requested path."""
+    code = "PLANTE_4030_ROUTE_NOT_FOUND"
+    status_code = 404
+
+    def __init__(self, message: str = "Route not found."):
+        super().__init__(message=message)
+
+
+class InternalError(PlantEError):
+    """Unexpected failure; the details only go to the log."""
+    code = "PLANTE_5000_INTERNAL_ERROR"
+    status_code = 500
+
+    def __init__(self, message: str = "Internal error. Please try again shortly."):
+        super().__init__(message=message)
+
+
+class ServiceUnavailableError(PlantEError):
+    """A dependency of our own infrastructure (database, Redis) is not responding."""
+    code = "PLANTE_5030_SERVICE_UNAVAILABLE"
+    status_code = 503
+
+    def __init__(self, message: str = "Service temporarily unavailable.", details: JsonObject | None = None):
+        super().__init__(message=message, details=details)
+
+
 class ExternalServiceError(PlantEError):
-    """Uma API externa (Kindwise, PlantNet, Gemini, AWS) falhou."""
-    code = "PLANTE_5001_EXTERNAL_SERVICE_ERROR"
+    """An external provider (Kindwise, PlantNet, Gemini, AWS) failed."""
+    code = "PLANTE_5010_EXTERNAL_SERVICE_ERROR"
     status_code = 502
 
     def __init__(
@@ -47,8 +88,8 @@ class ExternalServiceError(PlantEError):
 
 
 class RateLimitExceededError(PlantEError):
-    """Cliente excedeu o limite de requisições da janela atual."""
-    code = "PLANTE_4029_RATE_LIMIT_EXCEEDED"
+    """The client went over the request limit of the current window."""
+    code = "PLANTE_4050_RATE_LIMIT_EXCEEDED"
     status_code = 429
 
     def __init__(self, limit: int, retry_after_seconds: int):
@@ -59,8 +100,8 @@ class RateLimitExceededError(PlantEError):
 
 
 class UnauthorizedError(PlantEError):
-    """Token inválido, expirado ou ausente."""
-    code = "PLANTE_4006_UNAUTHORIZED"
+    """Access token missing, invalid or expired: renew it or sign in again."""
+    code = "PLANTE_4010_UNAUTHORIZED"
     status_code = 401
 
     def __init__(self, message: str = "Authentication required."):
@@ -68,8 +109,8 @@ class UnauthorizedError(PlantEError):
 
 
 class UserNotFoundError(PlantEError):
-    """Usuário não encontrado."""
-    code = "PLANTE_4002_USER_NOT_FOUND"
+    """The user does not exist."""
+    code = "PLANTE_4031_USER_NOT_FOUND"
     status_code = 404
 
     def __init__(self, message: str = "User not found.", user_id: UUID | None = None):
@@ -79,9 +120,9 @@ class UserNotFoundError(PlantEError):
 
 
 class InvalidImageError(PlantEError):
-    """A imagem enviada é inválida ou não contém uma planta."""
-    code = "PLANTE_4013_INVALID_IMAGE"
+    """The image is unreadable, in an unsupported format or too large."""
+    code = "PLANTE_4001_INVALID_IMAGE"
     status_code = 400
 
-    def __init__(self, message: str = "Invalid image or unindentifiable plant."):
+    def __init__(self, message: str = "Invalid or unreadable image."):
         super().__init__(message=message)

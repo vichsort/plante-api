@@ -5,8 +5,8 @@ monta o módulo por `src.modules.subscription.container`.
 from src.modules.subscription.domain.entities.subscription import Subscription
 from src.modules.subscription.domain.events import SubscriptionUpgradedEvent
 from src.modules.subscription.domain.exceptions import (
+    DailyQuotaExceededError,
     PlantLimitExceededError,
-    SubscriptionRequiredError,
 )
 from src.modules.subscription.domain.services.garden_quota import IGardenQuota
 from src.modules.subscription.domain.services.token_wallet import ITokenWallet
@@ -21,7 +21,7 @@ __all__ = [
     "ITokenWallet",
     "PlantLimitExceededError",
     "Subscription",
-    "SubscriptionRequiredError",
+    "DailyQuotaExceededError",
     "SubscriptionTier",
     "SubscriptionUpgradedEvent",
 ]

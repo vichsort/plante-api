@@ -9,7 +9,7 @@ from starlette.responses import Response
 from starlette.types import ASGIApp
 
 from src.shared.api.response import ApiResponse
-from src.shared.domain.exceptions import ExternalServiceError, RateLimitExceededError
+from src.shared.domain.exceptions import PlantEError, RateLimitExceededError
 from src.shared.domain.value_objects.ids import UserId
 
 log = structlog.stdlib.get_logger()
@@ -139,11 +139,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 if self._redis_breaker is None:
                     return await _increment_in_redis(provider, key)
                 return await self._redis_breaker.call(lambda: _increment_in_redis(provider, key))
-            except ExternalServiceError as exc:
-                # Falha ou backoff ativo: o breaker loga a abertura e o fechamento. Comando
-                # recusado não abre o breaker, então é logado aqui
-                if not exc.retryable:
-                    log.error("rate_limit.redis_rejected", error=str(exc))
+            except PlantEError:
+                # Redis down, refused command or circuit open: already logged by the Redis client
+                # and the breaker
+                pass
             except Exception as exc:
                 # Rate limit nunca derruba a requisição
                 log.warning("rate_limit.redis_unavailable", error=str(exc))

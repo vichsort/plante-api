@@ -1,6 +1,6 @@
 """As rotas do módulo num app mínimo: só elas, o envelope e a autenticação do shared."""
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -110,13 +110,14 @@ def test_watering_returns_the_next_due_day_and_the_streak(api: _App) -> None:
 
 def test_watering_too_early_is_refused(api: _App) -> None:
     # Arrange
-    api.use_case(api.container.water_plant_use_case).execute.side_effect = PlantNotReadyForWateringError("22/10/2026")
+    api.use_case(api.container.water_plant_use_case).execute.side_effect = PlantNotReadyForWateringError(date(2026, 10, 22))
 
     # Act
     response = api.client.post(f"/garden/{uuid4()}/water", headers=AUTH)
 
     # Assert
-    assert (response.status_code, response.json()["error"]["code"]) == (400, "PLANTE_4016_NOT_READY_FOR_WATERING")
+    assert (response.status_code, response.json()["error"]["code"]) == (409, "PLANTE_4540_NOT_READY_FOR_WATERING")
+    assert response.json()["error"]["details"] == {"next_watering_on": "2026-10-22"}
 
 
 def test_delete_needs_no_body(api: _App) -> None:
@@ -156,7 +157,7 @@ def test_details_of_a_missing_plant_are_not_found(api: _App) -> None:
     response = api.client.get(f"/plants/{plant_id}", headers=AUTH)
 
     # Assert
-    assert (response.status_code, response.json()["error"]["code"]) == (404, "PLANTE_4001_PLANT_NOT_FOUND")
+    assert (response.status_code, response.json()["error"]["code"]) == (404, "PLANTE_4530_PLANT_NOT_FOUND")
 
 
 def test_garden_requires_authentication(api: _App) -> None:

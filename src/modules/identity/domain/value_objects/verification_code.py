@@ -6,36 +6,22 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class VerificationCode:
     """
-    Formato esperado: PLA-XXX-C-XXX onde C é o dígito verificador (0-9).
-    Exemplo: PLA-347-5-218 (5 = (3+4+7+2+1+8) % 10)
+    Format PLA-XXX-C-XXX, where C is a check digit: the sum of the six other digits, modulo 10.
+    Example: PLA-347-5-218 (5 = (3+4+7+2+1+8) % 10).
     """
     raw_code: str
 
     def __post_init__(self) -> None:
-        # Removemos hífens e espaços para padronizar
+        # Hyphens, spaces and case do not matter
         clean_code = self.raw_code.replace("-", "").strip().upper()
-        
-        # Validamos o formato via Regex (PLA + 3 num + 1 num + 3 num = 10 chars)
         if not re.match(r"^PLA\d{7}$", clean_code):
-            raise ValueError("O código de verificação está em um formato inválido.")
-            
-        # Extraímos as partes
-        _prefix = clean_code[0:3]  # PLA
-        first_part = clean_code[3:6]  # 3 dígitos
-        v_digit = int(clean_code[6])  # O dígito V
-        second_part = clean_code[7:10]  # 3 dígitos
+            raise ValueError("Verification code in an invalid format.")
 
-        # REGRA DE NEGÓCIO: O dígito V é válido? 
-        # Exemplo de regra: A soma dos 6 dígitos módulo 10 deve ser igual a V.
-        all_digits = [int(d) for d in first_part + second_part]
-        expected_v = sum(all_digits) % 10
-        
-        if v_digit != expected_v:
-            raise ValueError("Código de verificação corrompido ou inválido (Falha de Checksum).")
+        first_part, check_digit, second_part = clean_code[3:6], int(clean_code[6]), clean_code[7:10]
+        if check_digit != sum(int(d) for d in first_part + second_part) % 10:
+            raise ValueError("Verification code with a wrong check digit.")
 
-        # Se passou por tudo, podemos salvar a versão limpa.
-        # Contornando o frozen=True do dataclass:
-        object.__setattr__(self, 'raw_code', clean_code)
+        object.__setattr__(self, "raw_code", clean_code)
 
     @classmethod
     def generate(cls) -> "VerificationCode":

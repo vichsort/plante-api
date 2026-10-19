@@ -2,8 +2,8 @@ from datetime import date, datetime
 
 from src.modules.subscription.domain.entities.subscription import Subscription
 from src.modules.subscription.domain.exceptions import (
+    DailyQuotaExceededError,
     PlantLimitExceededError,
-    SubscriptionRequiredError,
 )
 from src.modules.subscription.domain.value_objects.tier import FeatureCost
 
@@ -19,16 +19,24 @@ class SubscriptionPolicy:
         return subscription.active_tier(now).can_consume(cost, subscription.tokens_used_on(today))
 
     @staticmethod
+    def _enforce_can_spend(subscription: Subscription, cost: FeatureCost, now: datetime, today: date) -> None:
+        if not SubscriptionPolicy.can_spend(subscription, cost, now, today):
+            tier = subscription.active_tier(now)
+            raise DailyQuotaExceededError(
+                plan=tier.plan_name,
+                used_today=subscription.tokens_used_on(today),
+                daily_limit=tier.max_daily_tokens,
+            )
+
+    @staticmethod
     def enforce_can_identify_plant(subscription: Subscription, now: datetime, today: date) -> None:
         """Saldo para uma identificação. O limite do jardim não entra aqui: identificar não adiciona planta."""
-        if not SubscriptionPolicy.can_spend(subscription, FeatureCost.IDENTIFY, now, today):
-            raise SubscriptionRequiredError(feature="Mais identificações diárias")
+        SubscriptionPolicy._enforce_can_spend(subscription, FeatureCost.IDENTIFY, now, today)
 
     @staticmethod
     def enforce_can_diagnose(subscription: Subscription, now: datetime, today: date) -> None:
         """Saldo para o diagnóstico básico (o complemento do Gemini cobra à parte, se couber)."""
-        if not SubscriptionPolicy.can_spend(subscription, FeatureCost.DIAGNOSIS, now, today):
-            raise SubscriptionRequiredError(feature="Mais diagnósticos diários")
+        SubscriptionPolicy._enforce_can_spend(subscription, FeatureCost.DIAGNOSIS, now, today)
 
     @staticmethod
     def can_enrich_diagnosis(subscription: Subscription, now: datetime, today: date) -> bool:
@@ -41,4 +49,6 @@ class SubscriptionPolicy:
         """`plants_in_garden` = plantas ativas hoje. Tokens não entram: já foram cobrados na identificação."""
         tier = subscription.active_tier(now)
         if not tier.can_add_plant(plants_in_garden):
-            raise PlantLimitExceededError(limit=tier.max_plants)
+            raise PlantLimitExceededError(
+                plan=tier.plan_name, current_count=plants_in_garden, max_allowed=tier.max_plants,
+            )

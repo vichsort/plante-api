@@ -67,10 +67,11 @@ portas em memória dos testes daqui.
 
 | Código | Erro | HTTP | Quando |
 | :--- | :--- | :---: | :--- |
-| `PLANTE_4003_INVALID_VERIFICATION_CODE` | `InvalidVerificationCodeError` | 400 | Código fora do formato, expirado ou diferente do enviado. |
-| `PLANTE_4004_EMAIL_ALREADY_IN_USE` | `EmailAlreadyInUseError` | 409 | E-mail já usado por outra conta (cadastro ou troca de e-mail). |
-| `PLANTE_4007_WRONG_CREDENTIALS` | `InvalidCredentialsError` | 400 | Senha atual incorreta ao trocar e-mail ou senha. |
-| `PLANTE_4008_WEAK_PASSWORD` | `WeakPasswordError` | 400 | Senha (cadastro ou troca) fora da `PasswordPolicy`, ou nova senha igual à atual. |
+| `PLANTE_4100_WEAK_PASSWORD` | `WeakPasswordError` | 400 | Senha (cadastro ou troca) fora da `PasswordPolicy`, ou nova senha igual à atual. |
+| `PLANTE_4101_INVALID_VERIFICATION_CODE` | `InvalidVerificationCodeError` | 400 | Código fora do formato, expirado ou diferente do enviado. |
+| `PLANTE_4102_WRONG_CREDENTIALS` | `InvalidCredentialsError` | 400 | Login com e-mail ou senha errados (mesma resposta para os dois), ou senha atual incorreta ao trocar e-mail ou senha. Não é 401: a sessão continua válida. |
+| `PLANTE_4120_EMAIL_NOT_VERIFIED` | `EmailNotVerifiedError` | 403 | Login com a senha certa, mas e-mail ainda não verificado. |
+| `PLANTE_4140_EMAIL_ALREADY_IN_USE` | `EmailAlreadyInUseError` | 409 | E-mail já usado por outra conta (cadastro ou troca de e-mail). |
 
-Login com credenciais erradas, token inválido e e-mail não verificado respondem
-`PLANTE_4006_UNAUTHORIZED`, e conta inexistente responde `PLANTE_4002_USER_NOT_FOUND` (erros do kernel).
+Token ausente, inválido ou expirado (inclusive o refresh) responde `PLANTE_4010_UNAUTHORIZED`, e
+conta inexistente responde `PLANTE_4031_USER_NOT_FOUND` (erros do kernel).

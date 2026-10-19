@@ -3,12 +3,15 @@ from datetime import timedelta
 
 import structlog
 
+from src.modules.identity.domain.exceptions import (
+    EmailNotVerifiedError,
+    InvalidCredentialsError,
+)
 from src.modules.identity.domain.ports.password_hasher import IPasswordHasher
 from src.modules.identity.domain.ports.token_repository import ITokenRepository
 from src.modules.identity.domain.ports.token_service import ITokenService, TokenKind
 from src.modules.identity.domain.ports.unit_of_work import IIdentityUnitOfWork
 from src.modules.identity.domain.value_objects.email import normalize_email
-from src.shared.domain import UnauthorizedError
 
 log = structlog.stdlib.get_logger()
 
@@ -24,7 +27,8 @@ class LoginResult:
 
 
 class LoginUseCase:
-    raises = (UnauthorizedError,)
+    # Not 401: that one only means "renew the token or sign in again"
+    raises = (EmailNotVerifiedError, InvalidCredentialsError)
 
     def __init__(
         self,
@@ -43,10 +47,10 @@ class LoginUseCase:
             user = await uow.users.get_by_email(normalize_email(email))
 
         if not user or not self._hasher.verify(password, user.hashed_password):
-            raise UnauthorizedError("Invalid email or password.")
+            raise InvalidCredentialsError("Invalid email or password.")
 
         if not user.is_verified:
-            raise UnauthorizedError("Email not verified.")
+            raise EmailNotVerifiedError()
 
         access_token = self._token_service.issue(user.id, TokenKind.ACCESS, ACCESS_TOKEN_TTL)
         refresh_token = self._token_service.issue(user.id, TokenKind.REFRESH, REFRESH_TOKEN_TTL)

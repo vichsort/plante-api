@@ -4,13 +4,13 @@ MIN_PASSWORD_LENGTH = 8
 
 
 class PasswordPolicy:
-    """Força mínima da senha: vale no cadastro e na troca de senha."""
+    """Minimum password strength, on sign-up and on password change."""
 
     @staticmethod
     def enforce_strong(password: str) -> None:
         if len(password) < MIN_PASSWORD_LENGTH:
-            raise WeakPasswordError(f"A senha deve ter no mínimo {MIN_PASSWORD_LENGTH} caracteres.")
+            raise WeakPasswordError(f"The password must have at least {MIN_PASSWORD_LENGTH} characters.")
         if not any(c.isupper() for c in password):
-            raise WeakPasswordError("A senha deve conter ao menos uma letra maiúscula.")
+            raise WeakPasswordError("The password must have at least one uppercase letter.")
         if not any(c.isdigit() for c in password):
-            raise WeakPasswordError("A senha deve conter ao menos um número.")
+            raise WeakPasswordError("The password must have at least one digit.")

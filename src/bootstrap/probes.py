@@ -5,15 +5,15 @@ from typing import Annotated, Literal
 
 import structlog
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from src.bootstrap.container import Container
 from src.shared.adapters import RedisClient
-from src.shared.api import ApiResponse
-from src.shared.domain import JsonObject
+from src.shared.api import ApiResponse, error_responses
+from src.shared.domain import JsonObject, ServiceUnavailableError
 
 log = structlog.stdlib.get_logger()
 
@@ -78,13 +78,13 @@ async def liveness() -> ApiResponse[LivenessResponse]:
     "/readiness",
     status_code=200,
     response_model=ApiResponse[ReadinessResponse],
-    responses={503: {"model": ApiResponse[None], "description": "PLANTE_5003_SERVICE_NOT_READY"}},
+    responses=error_responses(ServiceUnavailableError),
 )
 @inject
 async def readiness(
     engine: Annotated[AsyncEngine, Depends(Provide[Container.infra.engine])],
     redis: Annotated[RedisClient, Depends(Provide[Container.adapters.redis])],
-) -> ApiResponse[ReadinessResponse] | Response:
+) -> ApiResponse[ReadinessResponse]:
     """Instância pronta para receber tráfego: Postgres e Redis respondendo."""
     async def run_checks() -> dict[str, bool]:
         database_ok, redis_ok = await asyncio.gather(
@@ -97,12 +97,7 @@ async def readiness(
 
     if not all(checks.values()):
         details: JsonObject = {"checks": {name: ok for name, ok in checks.items()}}
-        body = ApiResponse.fail(
-            code="PLANTE_5003_SERVICE_NOT_READY",
-            message="Service dependencies are not ready.",
-            details=details,
-        )
-        return Response(content=body.model_dump_json(), status_code=503, media_type="application/json")
+        raise ServiceUnavailableError(message="Service dependencies are not ready.", details=details)
 
     return ApiResponse.success(ReadinessResponse(checks=checks))
 

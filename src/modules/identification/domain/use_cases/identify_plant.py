@@ -4,7 +4,10 @@ from datetime import UTC, datetime
 from src.modules.catalog import ISpeciesRegistry
 from src.modules.identification.domain.entities.identification import Identification
 from src.modules.identification.domain.events import PlantIdentifiedEvent
-from src.modules.identification.domain.exceptions import LowConfidenceError
+from src.modules.identification.domain.exceptions import (
+    LowConfidenceError,
+    NotAPlantError,
+)
 from src.modules.identification.domain.ports.plant_identifier import IPlantIdentifier
 from src.modules.identification.domain.ports.unit_of_work import (
     IIdentificationUnitOfWork,
@@ -15,9 +18,9 @@ from src.modules.identification.domain.value_objects.confidence_score import (
 from src.modules.identification.domain.value_objects.ids import IdentificationId
 from src.modules.identity import IUserDirectory
 from src.modules.subscription import (
+    DailyQuotaExceededError,
     FeatureCost,
     ITokenWallet,
-    SubscriptionRequiredError,
 )
 from src.modules.training import (
     ITrainingRecorder,
@@ -67,7 +70,8 @@ class IdentifyPlantUseCase:
         ExternalServiceError,
         InvalidImageError,
         LowConfidenceError,
-        SubscriptionRequiredError,
+        NotAPlantError,
+        DailyQuotaExceededError,
         UserNotFoundError,
     )
 

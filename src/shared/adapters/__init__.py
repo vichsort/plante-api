@@ -25,7 +25,7 @@ from src.shared.adapters.redis.client import RedisClient
 from src.shared.adapters.resilience.circuit_breaker import (
     CircuitBreaker,
     CircuitState,
-    is_provider_failure,
+    is_transient_failure,
 )
 from src.shared.adapters.s3.image_storage import S3ImageStorage
 
@@ -48,7 +48,7 @@ __all__ = [
     "build_engine",
     "build_session_factory",
     "enum_values",
-    "is_provider_failure",
+    "is_transient_failure",
     "parse_contract",
     "parse_contract_json",
     "parse_json_object",
