@@ -69,12 +69,10 @@ def create_app() -> FastAPI:
 
     register_exception_handlers(app)
 
-    from src.api.routers import (
-        health,
-        profile,
-    )
+    from src.api.routers import profile
     from src.bootstrap import probes
     from src.modules.garden import api as garden
+    from src.modules.health import api as health
     from src.modules.identification import api as identification
     from src.modules.identity import api as identity
     from src.modules.subscription import api as subscription

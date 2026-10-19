@@ -4,17 +4,17 @@ verdade nos testes ponta a ponta: rotas, middlewares, use cases, Unit of Work, P
 """
 from dataclasses import dataclass, field
 
-from src.domain.ports.health_analyzer import (
+from src.modules.catalog import ImageSource
+from src.modules.health.domain.ports.health_analyzer import (
     DiseaseHint,
     HealthAssessmentResult,
     IHealthAnalyzer,
 )
-from src.domain.ports.health_enricher import (
+from src.modules.health.domain.ports.health_enricher import (
     DiseaseAnalysisResult,
     HealthDiagnosisEnrichment,
     IHealthEnricher,
 )
-from src.modules.catalog import ImageSource
 from src.modules.identification.domain.ports.plant_identifier import (
     IdentificationResult,
     IPlantIdentifier,

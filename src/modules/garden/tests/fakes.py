@@ -1,5 +1,5 @@
 """
-Dublês do garden: `FakePlantLookup` para quem usa o módulo (o health, hoje código antigo) e, para os
+Dublês do garden: `FakePlantLookup` para quem usa o módulo (o health) e, para os
 testes daqui, as portas em memória e as fábricas de planta.
 """
 from datetime import UTC, date, datetime

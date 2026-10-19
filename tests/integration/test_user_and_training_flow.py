@@ -9,16 +9,6 @@ from unittest.mock import AsyncMock
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
-from src.domain.ports.health_analyzer import DiseaseHint, HealthAssessmentResult
-from src.domain.use_cases.diagnose_health_use_case import (
-    DiagnoseHealthInputDTO,
-    DiagnoseHealthUseCase,
-)
-from src.domain.use_cases.give_health_feedback_use_case import (
-    GiveHealthFeedbackInputDTO,
-    GiveHealthFeedbackUseCase,
-)
 from src.modules.catalog.adapters.persistence.unit_of_work import (
     SqlAlchemyCatalogUnitOfWork,
 )
@@ -38,6 +28,21 @@ from src.modules.garden.domain.use_cases.delete_plant import (
 from src.modules.garden.domain.use_cases.water_plant import (
     WaterPlantInputDTO,
     WaterPlantUseCase,
+)
+from src.modules.health.adapters.persistence.unit_of_work import (
+    SqlAlchemyHealthUnitOfWork,
+)
+from src.modules.health.domain.ports.health_analyzer import (
+    DiseaseHint,
+    HealthAssessmentResult,
+)
+from src.modules.health.domain.use_cases.diagnose import (
+    DiagnoseHealthInputDTO,
+    DiagnoseHealthUseCase,
+)
+from src.modules.health.domain.use_cases.give_feedback import (
+    GiveHealthFeedbackInputDTO,
+    GiveHealthFeedbackUseCase,
 )
 from src.modules.identification.adapters.persistence.unit_of_work import (
     SqlAlchemyIdentificationUnitOfWork,
@@ -78,8 +83,8 @@ from src.modules.training.adapters.persistence.unit_of_work import (
     SqlAlchemyTrainingUnitOfWork,
 )
 from src.modules.training.domain.services.recorder import TrainingRecorder
+from src.shared.tests.fakes import MarkingSanitizer
 from tests.factories import CALENDAR, make_identification_signals, make_user
-from tests.fakes import MarkingSanitizer
 
 
 def _storage() -> AsyncMock:
@@ -123,8 +128,8 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     session_factory: async_sessionmaker[AsyncSession],
     db_session: AsyncSession,
 ) -> None:
-    def uow() -> SqlAlchemyUnitOfWork:
-        return SqlAlchemyUnitOfWork(session_factory)
+    def health() -> SqlAlchemyHealthUnitOfWork:
+        return SqlAlchemyHealthUnitOfWork(session_factory)
 
     def garden() -> SqlAlchemyGardenUnitOfWork:
         return SqlAlchemyGardenUnitOfWork(session_factory)
@@ -172,11 +177,11 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
 
     # 3. Diagnosticar e dar feedback
     diagnosis = await DiagnoseHealthUseCase(
-        uow=uow(), sanitizer=MarkingSanitizer(), health_analyzer=_analyzer(), plant_enricher=enricher, storage=storage,
+        uow=health(), sanitizer=MarkingSanitizer(), health_analyzer=_analyzer(), enricher=enricher, storage=storage,
         users=users, wallet=wallet(), training=training(), plants=PlantLookup(garden()),
     ).execute(DiagnoseHealthInputDTO(user_id=user.id, user_plant_id=plant.id, image_bytes=b"leaf"))
 
-    await GiveHealthFeedbackUseCase(uow=uow(), training=training()).execute(GiveHealthFeedbackInputDTO(
+    await GiveHealthFeedbackUseCase(uow=health(), training=training()).execute(GiveHealthFeedbackInputDTO(
         user_id=user.id, health_record_id=diagnosis.record.id, verdict=FeedbackVerdict.CORRECT,
     ))
 

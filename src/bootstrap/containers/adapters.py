@@ -1,8 +1,5 @@
 from dependency_injector import containers, providers
 
-from src.adapters.ai.gemini.gemini_adapter import GeminiHealthEnricher
-from src.adapters.ai.kindwise.kindwise_adapter import KindwiseHealthAnalyzer
-from src.adapters.resilience import CircuitBreakerHealthAnalyzer
 from src.bootstrap.celery_config import celery_app
 from src.bootstrap.settings import Settings
 from src.modules.identity.workers import route_event as identity_events
@@ -56,15 +53,4 @@ class AdaptersContainer(containers.DeclarativeContainer):
     kindwise_client = providers.Singleton(
         KindwiseClient,
         api_key=settings.provided.kindwise_key,
-    )
-
-    health_analyzer = providers.Singleton(
-        CircuitBreakerHealthAnalyzer,
-        inner=providers.Singleton(KindwiseHealthAnalyzer, client=kindwise_client),
-        breaker=kindwise_breaker,
-    )
-
-    health_enricher = providers.Singleton(
-        GeminiHealthEnricher,
-        api_key=settings.provided.gemini_api_key,
     )

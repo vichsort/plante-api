@@ -6,6 +6,7 @@ from src.bootstrap.containers.use_cases import UseCasesContainer
 from src.bootstrap.settings import Settings
 from src.modules.catalog.container import CatalogContainer
 from src.modules.garden.container import GardenContainer
+from src.modules.health.container import HealthContainer
 from src.modules.identification.container import IdentificationContainer
 from src.modules.identity.container import IdentityContainer
 from src.modules.subscription.container import SubscriptionContainer
@@ -88,15 +89,21 @@ class Container(containers.DeclarativeContainer):
         catalog=catalog.registry,
     )
 
+    health = providers.Container(
+        HealthContainer,
+        session_factory=infra.session_factory,
+        sanitizer=adapters.image_sanitizer,
+        storage=adapters.image_storage,
+        kindwise_client=adapters.kindwise_client,
+        kindwise_breaker=adapters.kindwise_breaker,
+        gemini_api_key=settings.provided.gemini_api_key,
+        users=identity.directory,
+        wallet=subscription.token_wallet,
+        training=training.recorder,
+        plants=garden.lookup,
+    )
+
     use_cases = providers.Container(
         UseCasesContainer,
         unit_of_work=infra.unit_of_work,
-        health_analyzer=adapters.health_analyzer,
-        health_enricher=adapters.health_enricher,
-        image_storage=adapters.image_storage,
-        image_sanitizer=adapters.image_sanitizer,
-        training_recorder=training.recorder,
-        token_wallet=subscription.token_wallet,
-        user_directory=identity.directory,
-        plant_lookup=garden.lookup,
     )
