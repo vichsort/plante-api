@@ -167,14 +167,16 @@ def _imports(path: Path) -> list[tuple[int, str]]:
 
 def barrel_violations(src_root: Path) -> list[str]:
     """
-    - Outro módulo: só a raiz (`src.modules.<x>`); a composição também pode `container`, `api` e `workers`.
-    - Shared, de fora dele: só as camadas (`src.shared.domain`, `.adapters`, `.api`, `.workers`).
+    - Outro módulo: só a raiz (`src.modules.<x>`); a composição também pode `container`, `api` e `workers`,
+      e os testes de um módulo, os dublês publicados por outro (`src.modules.<x>.tests.fakes`).
+    - Shared, de fora dele: só as camadas, ou os dublês dele nos testes (`src.shared.tests.fakes`).
     - Ninguém importa o barrel de um pacote que o contém (import circular, tudo carregado antes da hora).
     """
     violations: list[str] = []
     for path in sorted(src_root.rglob("*.py")):
         importer = module_name(path, src_root)
         is_composition = importer == "src.main" or importer.startswith("src.bootstrap")
+        is_module_test = importer.startswith("src.modules.") and ".tests." in importer
         for line, target in _imports(path):
             where = f"{path.relative_to(src_root.parent)}:{line}"
             if importer != target and importer.startswith(target + "."):
@@ -185,10 +187,13 @@ def barrel_violations(src_root: Path) -> list[str]:
                 owner = ".".join(parts[:3])
                 inside = importer == owner or importer.startswith(owner + ".")
                 composition_entry = is_composition and len(parts) == 4 and parts[3] in COMPOSITION_ENTRIES
-                if not inside and not composition_entry:
+                # Os dublês de uma porta moram no módulo dono dela, para os testes de quem a usa
+                published_fakes = is_module_test and parts[3:] == ["tests", "fakes"]
+                if not inside and not composition_entry and not published_fakes:
                     violations.append(f"{where}: {target} é interno de {owner}; importe {owner}")
             elif parts[:2] == ["src", "shared"] and len(parts) != 3:
-                if not importer.startswith("src.shared"):
+                shared_fakes = is_module_test and parts[2:] == ["tests", "fakes"]
+                if not importer.startswith("src.shared") and not shared_fakes:
                     allowed = ", ".join(f"src.shared.{layer}" for layer in SHARED_LAYERS)
                     violations.append(f"{where}: {target}: de fora do shared, importe uma camada ({allowed})")
     return violations

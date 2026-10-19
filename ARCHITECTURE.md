@@ -88,7 +88,8 @@ src/modules/<nome>/
 - Nomes fixos. Pasta só existe se tiver conteúdo (nada de pasta só com `__init__.py`).
   Conferido por `tests/architecture` (`test_module_layout`).
 - `shared` segue o mesmo esqueleto, com uma diferença: a borda HTTP dele é a do app inteiro.
-- Os fakes de uma porta ficam no módulo dono da porta.
+- Os fakes de uma porta ficam no módulo dono da porta, em `tests/fakes.py`, e os testes de quem usa
+  a porta os importam de lá (regra 3 de imports).
 - Todo pacote em `src` precisa de `__init__.py` (o import-linter não enxerga namespace packages;
   `tests/test_packages.py` confere).
 
@@ -124,8 +125,11 @@ e por `tests/architecture` (`test_imports_go_through_barrels`).
    importa continuar puro.
 2. **A composição** (`src/main.py`, `src/bootstrap`) também pode importar `container`, `api` e
    `workers` de cada módulo, para montar o app. Nunca `adapters` ou `domain` direto.
+   Os **testes** de um módulo também podem importar os dublês publicados por outro
+   (`src.modules.<x>.tests.fakes`), e nada mais do interior dele.
 3. **O shared se importa pela camada:** `src.shared.domain`, `src.shared.adapters`,
-   `src.shared.api`, `src.shared.workers`. O domínio de um módulo só usa `src.shared.domain`.
+   `src.shared.api`, `src.shared.workers`. O domínio de um módulo só usa `src.shared.domain`. Os
+   testes também podem importar os dublês das portas do shared (`src.shared.tests.fakes`).
 4. **Ninguém importa o barrel de um pacote que o contém** (ex.: um arquivo de
    `src/modules/garden/domain/` importando `src.modules.garden`). Em Python isso gera import
    circular e carrega tudo antes da hora. Dentro do módulo, importa-se o arquivo ou o barrel de uma

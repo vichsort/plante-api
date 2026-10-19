@@ -1,10 +1,10 @@
-"""Dublês tipados das portas para os testes unitários."""
+"""Dublês tipados das portas para os testes unitários. `MarkingSanitizer` vem do shared."""
 from types import TracebackType
 from typing import Self
 from unittest.mock import AsyncMock
 
 from src.domain.ports.unit_of_work import IUnitOfWork
-from src.shared.domain import IImageSanitizer
+from src.shared.tests.fakes import MarkingSanitizer
 
 
 class FakeUnitOfWork(IUnitOfWork):
@@ -44,8 +44,4 @@ class FakeUnitOfWork(IUnitOfWork):
         self.committed = True
 
 
-class MarkingSanitizer(IImageSanitizer):
-    """Prefixa os bytes: o teste confere que provedores e armazenamento só recebem a imagem limpa."""
-
-    def sanitize(self, image_bytes: bytes) -> bytes:
-        return b"clean:" + image_bytes
+__all__ = ["FakeUnitOfWork", "MarkingSanitizer"]
