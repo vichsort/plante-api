@@ -55,6 +55,9 @@ READMEs dos módulos.
 Contexto: primeiro num servidor caseiro (PC antigo), API usada pelo site pessoal com captcha,
 pouquíssimas requisições por mês; AWS no futuro; possível projeto de pesquisa para a Latinoware.
 
+- [ ] **Consentimento para o treino (LGPD):** aceite dos termos registrado no cadastro (versão dos
+  termos e data), dizendo que as fotos viram dataset anônimo. Sem isso não se coleta dado de treino
+  em público.
 - [ ] **Créditos do Kindwise:** a chave tem limite de 10 identificações por mês. Comprar créditos
   (menor pacote ~€50 / 1000) e ajustar o limite no painel. Cada `/identify` e `/diagnose` gasta 1.
 - [ ] **Captcha validado na API** (ao menos em `/auth/register`): captcha só no site não protege a
