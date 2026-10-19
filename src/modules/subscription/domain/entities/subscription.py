@@ -43,13 +43,6 @@ class Subscription:
         self.tokens_used_today = self.tokens_used_on(today) + cost.value
         self.tokens_day = today
 
-    def upgrade_to_pro(self, expires_at: datetime, current_time: datetime) -> None:
-        if expires_at <= current_time:
-            raise ValueError("expires_at must be a future datetime.")
-        self.tier = SubscriptionTier.PRO
-        self.expires_at = expires_at
-        self.tokens_used_today = 0  # o upgrade começa com a cota do PRO cheia
-
     def is_pro(self, current_time: datetime) -> bool:
         return (
             self.tier == SubscriptionTier.PRO

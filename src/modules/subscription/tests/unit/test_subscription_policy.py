@@ -151,15 +151,3 @@ def test_diagnosis_enrichment_only_when_both_tokens_fit(used: int, can_enrich: b
 def test_identifying_does_not_depend_on_garden_size() -> None:
     # Act & Assert: identificar não adiciona planta ao jardim, então jardim cheio não bloqueia
     SubscriptionPolicy.enforce_can_identify_plant(_free(), NOW, TODAY)
-
-
-def test_upgrade_starts_with_a_full_pro_quota() -> None:
-    # Arrange
-    subscription = _free(tokens_used_today=3)
-
-    # Act
-    subscription.upgrade_to_pro(expires_at=NOW + timedelta(days=30), current_time=NOW)
-
-    # Assert
-    assert subscription.active_tier(NOW) == SubscriptionTier.PRO
-    assert subscription.active_tier(NOW).remaining_tokens(subscription.tokens_used_on(TODAY)) == 30
