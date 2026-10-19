@@ -33,7 +33,8 @@ READMEs dos módulos.
   públicas. Política por módulo, mecanismo no shared (critério do módulo `media` no
   `src/shared/README.md`). Junto: a foto do diagnóstico é gravada com `upload_identification_image`
   (prefixo das fotos de identificação; ver o README do health).
-- [ ] **Engine de confiança do rótulo:** rascunho no README do training.
+- [ ] **Engine de confiança do rótulo**, junto com a exportação do dataset e um relatório por
+  exportação (rascunho e proteções no README do training). Depois dos itens aprovados abaixo.
 - [ ] **Análise profunda pela metade:** `ISpeciesEnricher.enrich_nutritional`, `PlantNutritional` e
   `IHealthEnricher.analyze_disease` existem sem uso. Decidir se a feature entra (rota, use case no
   módulo da tela, cobrança) ou se sai.
@@ -41,14 +42,13 @@ READMEs dos módulos.
     nunca sobrescreve dado dos provedores); nomes populares unidos, provedores primeiro; falha →
     `FAILED` e sem cobrança.
 - [ ] **Conquistas:** regra de concessão (consumir os eventos que hoje ninguém consome).
-- [ ] **HEIC (iPhone):** hoje rejeitado com 4001; avaliar `pillow-heif`.
-- [ ] **Motivo da exclusão da planta** como sinal de treino.
-- [ ] **Geocodificação reversa** (estado a partir do GPS; hoje vem do perfil). Sem serviço que mande
-  o GPS do usuário a terceiros (ver "Descartado").
-- [ ] **Reuso do e-mail de conta excluída:** o índice único vale também com soft delete (hoje não
-  existe exclusão de conta).
-- [ ] **Sessões por aparelho:** hoje um refresh por usuário (login em outro aparelho derruba o
-  primeiro). Quando houver app.
+- [ ] **HEIC (iPhone):** aceito (aprovado). `pillow-heif` no sanitizador; sai em JPEG sem metadados.
+- [ ] **Motivo da exclusão da planta** (aprovado): `DELETE /garden/{id}?reason=died|gave_away|misidentified|other`,
+  opcional. Só `misidentified` vira feedback implícito negativo (origem `removed_from_garden`); os
+  outros ficam gravados, sem voto.
+- [ ] **Exclusão de conta** (aprovado): `DELETE /profile` confirmado com a senha; exclusão definitiva
+  (as FKs `CASCADE` levam jardim, identificações e diagnósticos), fotos do usuário apagadas do S3,
+  treino intacto. O e-mail fica livre na hora (resolve o reuso).
 
 ## Antes de publicar
 
@@ -72,3 +72,7 @@ Código recuperável pelo commit `6f2b3e3` (pai: `8107105`).
 - **OpenMeteo, clima para o Gemini:** utilidade duvidosa e difícil de medir.
 - **Nominatim, geocodificação:** manda o GPS do usuário a terceiros, e o servidor público limita a
   1 req/s.
+- **Geocodificação reversa em tempo de execução:** o estado só serve ao treino, e o treino já guarda
+  a grade de ~11 km; a exportação tira o estado dela com uma base offline de limites estaduais.
+- **Sessões por aparelho:** fica uma sessão só (um refresh por usuário; login novo derruba o
+  anterior). Ver o README do identity.
