@@ -3,7 +3,7 @@ from src.shared.domain import PlantEError
 
 class SubscriptionRequiredError(PlantEError):
     """Funcionalidade exclusiva do Plano Pro."""
-    code = "PLANTE_4019_SUBSCRIPTION_REQUIRED"
+    code = "PLANTE_4220_SUBSCRIPTION_REQUIRED"
     status_code = 403
 
     def __init__(self, feature: str):
@@ -14,7 +14,7 @@ class SubscriptionRequiredError(PlantEError):
 
 class PlantLimitExceededError(PlantEError):
     """Usuário free atingiu o limite de plantas no jardim."""
-    code = "PLANTE_4005_FREE_TIER_PLANT_LIMIT"
+    code = "PLANTE_4221_FREE_TIER_PLANT_LIMIT"
     status_code = 403
 
     def __init__(self, limit: int):

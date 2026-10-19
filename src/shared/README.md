@@ -60,29 +60,27 @@ domínio, inclusive por caminho indireto).
 
 ## Erros
 
-Base: `PlantEError` (`PLANTE_4000_DOMAIN_ERROR`, nunca chega ao cliente sem subclasse). Todo erro
-de domínio do projeto herda dela; o handler HTTP (`register_exception_handlers`) a transforma no
-envelope.
+Base: `PlantEError`, abstrata (sem código; instanciá-la direto é bug e vira 500). Todo erro do
+projeto herda dela; o handler HTTP (`register_exception_handlers`) a transforma no envelope. Erro
+sem detalhes sai com `details: null`.
 
 | Código | Erro | HTTP | Quando |
 | :--- | :--- | :---: | :--- |
-| `PLANTE_4000_DOMAIN_ERROR` | `PlantEError` | 400 | Base. |
-| `PLANTE_4002_USER_NOT_FOUND` | `UserNotFoundError` | 404 | O usuário do token não tem conta. |
-| `PLANTE_4006_UNAUTHORIZED` | `UnauthorizedError` | 401 | Token ausente, inválido ou expirado; login com credenciais erradas. |
-| `PLANTE_4013_INVALID_IMAGE` | `InvalidImageError` | 400 | Imagem ilegível, formato não aceito (só JPEG/PNG/WebP), acima de 60 MP, ou sem planta (subclasses nos módulos, ex.: `NotAPlantError`). |
-| `PLANTE_4029_RATE_LIMIT_EXCEEDED` | `RateLimitExceededError` | 429 | Limite por minuto: 60 nas rotas gerais, 15 nas de IA e auth. Anônimas contam por IP; autenticadas, por usuário. |
-| `PLANTE_5001_EXTERNAL_SERVICE_ERROR` | `ExternalServiceError` | 502 | Provedor externo falhou (Kindwise, PlantNet, Gemini, AWS, Redis). |
-
-Também saem daqui, sem classe própria: `PLANTE_4220_VALIDATION_ERROR` (422, corpo/query/path
-inválidos, só `loc`/`msg`/`type` nos detalhes) e `PLANTE_5000_INTERNAL_ERROR` (500, detalhes só no
-log). O readiness devolve `PLANTE_5003_SERVICE_NOT_READY` (503).
+| `PLANTE_4000_VALIDATION_ERROR` | `InvalidRequestError` | 422 | Corpo/query/path inválidos (montado pelo handler; só `loc`/`msg`/`type` nos detalhes). |
+| `PLANTE_4001_INVALID_IMAGE` | `InvalidImageError` | 400 | Imagem ilegível, formato não aceito (só JPEG/PNG/WebP), acima de 60 MP, ou sem planta (subclasses nos módulos, ex.: `NotAPlantError`). |
+| `PLANTE_4010_UNAUTHORIZED` | `UnauthorizedError` | 401 | Token ausente, inválido ou expirado; login com credenciais erradas. |
+| `PLANTE_4031_USER_NOT_FOUND` | `UserNotFoundError` | 404 | O usuário do token não tem conta. |
+| `PLANTE_4050_RATE_LIMIT_EXCEEDED` | `RateLimitExceededError` | 429 | Limite por minuto: 60 nas rotas gerais, 15 nas de IA e auth. Anônimas contam por IP; autenticadas, por usuário. |
+| `PLANTE_5000_INTERNAL_ERROR` | `InternalError` | 500 | Falha inesperada (montado pelo handler; detalhes só no log). |
+| `PLANTE_5010_EXTERNAL_SERVICE_ERROR` | `ExternalServiceError` | 502 | Provedor externo falhou (Kindwise, PlantNet, Gemini, AWS, Redis). |
+| `PLANTE_5030_SERVICE_UNAVAILABLE` | `ServiceUnavailableError` | 503 | Readiness: Postgres ou Redis sem responder. |
 
 **`ExternalServiceError.retryable`:**
 - `True`: falha transitória (rede, timeout, 5xx, 429). Só essas contam para abrir o circuit breaker.
 - `False`: o provedor rejeitou a requisição (payload nosso inválido, 401/403 de chave mal
   configurada, logado como `provider.misconfigured`, ou comando recusado pelo Redis, como
   `WRONGTYPE`). Não abre o circuito.
-- Circuito aberto também responde `PLANTE_5001`.
+- Circuito aberto também responde `PLANTE_5010`.
 - Resposta fora do contrato do provedor é falha dele: `retryable=False` + log `provider.unexpected_response`.
 
 **Envelope** de toda resposta, sucesso ou erro:
@@ -91,7 +89,7 @@ log). O readiness devolve `PLANTE_5003_SERVICE_NOT_READY` (503).
 {
   "ok": false,
   "data": null,
-  "error": { "code": "PLANTE_4029_RATE_LIMIT_EXCEEDED", "message": "...", "details": { "limit": 15 } },
+  "error": { "code": "PLANTE_4050_RATE_LIMIT_EXCEEDED", "message": "...", "details": { "limit": 15 } },
   "meta": { "timestamp": "2026-10-16T16:35:00Z" }
 }
 ```

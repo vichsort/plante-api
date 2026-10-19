@@ -22,12 +22,12 @@ def test_openapi_documents_domain_and_common_errors(client: TestClient):
 
     water = paths["/garden/{user_plant_id}/water"]["post"]["responses"]
     # Sem 403: planta de outro usuário é 404 (o 4009 foi aposentado)
-    assert set(water) == {"200", "400", "401", "404", "422", "429", "500"}
+    assert set(water) == {"200", "401", "404", "409", "422", "429", "500"}
     examples_429 = water["429"]["content"]["application/json"]["examples"]
-    assert "PLANTE_4029_RATE_LIMIT_EXCEEDED" in examples_429
+    assert "PLANTE_4050_RATE_LIMIT_EXCEEDED" in examples_429
 
     login = paths["/auth/login"]["post"]["responses"]
-    assert "PLANTE_4006_UNAUTHORIZED" in login["401"]["content"]["application/json"]["examples"]
+    assert "PLANTE_4010_UNAUTHORIZED" in login["401"]["content"]["application/json"]["examples"]
 
 
 def test_openapi_documents_common_errors_on_every_domain_route(client: TestClient):
@@ -60,4 +60,4 @@ def test_openapi_ai_routes_document_invalid_image(client: TestClient):
 
     for path in ("/identify", "/diagnose"):
         examples = paths[path]["post"]["responses"]["400"]["content"]["application/json"]["examples"]
-        assert "PLANTE_4013_INVALID_IMAGE" in examples
+        assert "PLANTE_4001_INVALID_IMAGE" in examples

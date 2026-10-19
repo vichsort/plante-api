@@ -44,7 +44,7 @@ async def test_file_that_is_not_an_image_is_rejected(api: Api) -> None:
 
     # Assert
     assert response.status_code == 400
-    assert response.json()["error"]["code"] == "PLANTE_4013_INVALID_IMAGE"
+    assert response.json()["error"]["code"] == "PLANTE_4001_INVALID_IMAGE"
     assert api.fakes.identifier.received == []
 
 
@@ -63,7 +63,7 @@ async def test_feedback_is_recorded_only_for_the_owner(api: Api, db_session: Asy
     # Assert
     assert by_owner.status_code == again.status_code == 200
     assert by_stranger.status_code == 404
-    assert by_stranger.json()["error"]["code"] == "PLANTE_4012_IDENTIFICATION_NOT_FOUND"
+    assert by_stranger.json()["error"]["code"] == "PLANTE_4430_IDENTIFICATION_NOT_FOUND"
     # Cada resposta é um evento (o usuário pode mudar de ideia)
     assert await _count(db_session, "training_feedback") == 2
 
@@ -79,7 +79,7 @@ async def test_free_plan_allows_three_identifications(api: Api) -> None:
 
     # Assert
     assert fourth.status_code == 403
-    assert fourth.json()["error"]["code"] == "PLANTE_4019_SUBSCRIPTION_REQUIRED"
+    assert fourth.json()["error"]["code"] == "PLANTE_4220_SUBSCRIPTION_REQUIRED"
 
 
 async def test_quota_is_full_again_on_the_next_day(api: Api, db_session: AsyncSession) -> None:

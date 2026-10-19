@@ -40,4 +40,4 @@ fica em `tests/fakes.py`.
 
 | Código | Erro | HTTP | Quando |
 | :--- | :--- | :---: | :--- |
-| `PLANTE_4014_SPECIES_NOT_FOUND` | `SpeciesNotFoundError` | 404 | Espécie não existe. |
+| `PLANTE_4330_SPECIES_NOT_FOUND` | `SpeciesNotFoundError` | 404 | Espécie não existe. |

@@ -68,10 +68,10 @@ A composição monta o módulo por:
 
 | Código | Erro | HTTP | Quando |
 | :--- | :--- | :---: | :--- |
-| `PLANTE_4017_HEALTH_RECORD_NOT_FOUND` | `HealthRecordNotFoundError` | 404 | Feedback de diagnóstico que não existe ou é de outro usuário. |
+| `PLANTE_4630_HEALTH_RECORD_NOT_FOUND` | `HealthRecordNotFoundError` | 404 | Feedback de diagnóstico que não existe ou é de outro usuário. |
 
-Também saem das rotas daqui, definidos em outros módulos: `PLANTE_4001_PLANT_NOT_FOUND` (garden:
-planta inexistente, tirada do jardim ou de outro usuário), `PLANTE_4019_SUBSCRIPTION_REQUIRED`
-(subscription: sem tokens), `PLANTE_4013_INVALID_IMAGE`/`NotAPlantError` (identification e shared),
-`PLANTE_4002_USER_NOT_FOUND` e `PLANTE_5001_EXTERNAL_SERVICE_ERROR` (Kindwise fora ou circuito
+Também saem das rotas daqui, definidos em outros módulos: `PLANTE_4530_PLANT_NOT_FOUND` (garden:
+planta inexistente, tirada do jardim ou de outro usuário), `PLANTE_4220_SUBSCRIPTION_REQUIRED`
+(subscription: sem tokens), `PLANTE_4001_INVALID_IMAGE`/`NotAPlantError` (identification e shared),
+`PLANTE_4031_USER_NOT_FOUND` e `PLANTE_5010_EXTERNAL_SERVICE_ERROR` (Kindwise fora ou circuito
 aberto; o Gemini fora não gera erro).

@@ -40,7 +40,7 @@ async def test_email_is_unique_regardless_of_case(api: Api) -> None:
 
     # Assert
     assert duplicate.status_code == 409
-    assert duplicate.json()["error"]["code"] == "PLANTE_4004_EMAIL_ALREADY_IN_USE"
+    assert duplicate.json()["error"]["code"] == "PLANTE_4140_EMAIL_ALREADY_IN_USE"
 
 
 async def test_wrong_password_and_unknown_email_look_the_same(api: Api) -> None:
@@ -66,7 +66,7 @@ async def test_wrong_verification_code_is_rejected(api: Api) -> None:
 
     # Assert
     assert response.status_code == 400
-    assert response.json()["error"]["code"] == "PLANTE_4003_INVALID_VERIFICATION_CODE"
+    assert response.json()["error"]["code"] == "PLANTE_4101_INVALID_VERIFICATION_CODE"
 
 
 async def test_signup_rejects_a_weak_password(api: Api) -> None:
@@ -75,7 +75,7 @@ async def test_signup_rejects_a_weak_password(api: Api) -> None:
 
     # Assert
     assert response.status_code == 400
-    assert response.json()["error"]["code"] == "PLANTE_4008_WEAK_PASSWORD"
+    assert response.json()["error"]["code"] == "PLANTE_4100_WEAK_PASSWORD"
 
 
 async def test_refresh_rotates_and_reuse_revokes_the_session(api: Api) -> None:
@@ -121,7 +121,7 @@ async def test_protected_routes_need_a_token(api: Api) -> None:
 
     # Assert
     assert response.status_code == 401
-    assert response.json()["error"]["code"] == "PLANTE_4006_UNAUTHORIZED"
+    assert response.json()["error"]["code"] == "PLANTE_4010_UNAUTHORIZED"
 
 
 async def test_login_is_rate_limited_per_ip(api: Api, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -136,5 +136,5 @@ async def test_login_is_rate_limited_per_ip(api: Api, monkeypatch: pytest.Monkey
 
     # Assert
     assert blocked.status_code == 429
-    assert blocked.json()["error"]["code"] == "PLANTE_4029_RATE_LIMIT_EXCEEDED"
+    assert blocked.json()["error"]["code"] == "PLANTE_4050_RATE_LIMIT_EXCEEDED"
     assert blocked.headers["X-RateLimit-Limit"] == "15"

@@ -15,7 +15,7 @@ Plantas do usuário.
 Nenhuma ainda.
 
 ## Erros
-- `PLANTE_4001_PLANT_NOT_FOUND`
+- `PLANTE_4530_PLANT_NOT_FOUND`
 """
 
 
@@ -33,7 +33,7 @@ def _module(tmp_path: Path, extra: dict[str, str] | None = None) -> Path:
         "README.md": GOOD_README,
         "container.py": "",
         "domain/__init__.py": "",
-        "domain/exceptions.py": 'class PlantNotFoundError(PlantEError):\n    code = "PLANTE_4001_PLANT_NOT_FOUND"\n',
+        "domain/exceptions.py": 'class PlantNotFoundError(PlantEError):\n    code = "PLANTE_4530_PLANT_NOT_FOUND"\n',
         "domain/entities/__init__.py": "",
         "domain/entities/user_plant.py": "",
         "adapters/__init__.py": "",
@@ -102,8 +102,8 @@ def test_every_error_of_the_module_is_documented(tmp_path: Path) -> None:
     # Arrange
     module = _module(tmp_path, {
         "domain/exceptions.py": (
-            'class PlantNotFoundError(PlantEError):\n    code = "PLANTE_4001_PLANT_NOT_FOUND"\n'
-            'class PlantLimitExceededError(PlantEError):\n    code = "PLANTE_4005_FREE_TIER_PLANT_LIMIT"\n'
+            'class PlantNotFoundError(PlantEError):\n    code = "PLANTE_4530_PLANT_NOT_FOUND"\n'
+            'class PlantLimitExceededError(PlantEError):\n    code = "PLANTE_4221_FREE_TIER_PLANT_LIMIT"\n'
         ),
     })
 
@@ -111,16 +111,16 @@ def test_every_error_of_the_module_is_documented(tmp_path: Path) -> None:
     violations = rules.undocumented_errors(module)
 
     # Assert
-    assert violations == ["garden: PlantLimitExceededError (PLANTE_4005_FREE_TIER_PLANT_LIMIT) não aparece em '## Erros' do README"]
+    assert violations == ["garden: PlantLimitExceededError (PLANTE_4221_FREE_TIER_PLANT_LIMIT) não aparece em '## Erros' do README"]
 
 
 def test_error_codes_are_unique_but_inheriting_a_code_is_fine(tmp_path: Path) -> None:
     # Arrange: a subclasse que não redefine `code` herda o da base (ex.: NotAPlantError)
     first = _write(tmp_path / "a", {"exceptions.py": (
-        'class InvalidImageError(PlantEError):\n    code = "PLANTE_4013_INVALID_IMAGE"\n'
+        'class InvalidImageError(PlantEError):\n    code = "PLANTE_4001_INVALID_IMAGE"\n'
         "class NotAPlantError(InvalidImageError):\n    pass\n"
     )}) / "exceptions.py"
-    second = _write(tmp_path / "b", {"exceptions.py": 'class Other(PlantEError):\n    code = "PLANTE_4013_INVALID_IMAGE"\n'}) / "exceptions.py"
+    second = _write(tmp_path / "b", {"exceptions.py": 'class Other(PlantEError):\n    code = "PLANTE_4001_INVALID_IMAGE"\n'}) / "exceptions.py"
 
     # Act
     alone = rules.duplicated_error_codes([first])
@@ -128,7 +128,53 @@ def test_error_codes_are_unique_but_inheriting_a_code_is_fine(tmp_path: Path) ->
 
     # Assert
     assert alone == []
-    assert len(together) == 1 and together[0].startswith("PLANTE_4013_INVALID_IMAGE repetido")
+    assert len(together) == 1 and together[0].startswith("PLANTE_4001_INVALID_IMAGE repetido")
+
+
+def test_error_codes_follow_the_scheme(tmp_path: Path) -> None:
+    # Arrange
+    exceptions = _write(tmp_path, {"exceptions.py": (
+        'class PlantNotFoundError(PlantEError):\n    code = "PLANTE_4530_PLANT_NOT_FOUND"\n    status_code = 404\n'
+        'class WrongModule(PlantEError):\n    code = "PLANTE_4130_WRONG_MODULE"\n    status_code = 404\n'
+        'class WrongFamily(PlantEError):\n    code = "PLANTE_4531_WRONG_FAMILY"\n    status_code = 500\n'
+        'class WrongKind(PlantEError):\n    code = "PLANTE_4532_WRONG_KIND"\n    status_code = 409\n'
+        'class BadFormat(PlantEError):\n    code = "PLANTE_453_BAD"\n    status_code = 404\n'
+        'class NoStatus(PlantEError):\n    code = "PLANTE_4533_NO_STATUS"\n'
+        'class MethodNotAllowed(PlantEError):\n    code = "PLANTE_4500_METHOD"\n    status_code = 405\n'
+    )}) / "exceptions.py"
+
+    # Act
+    violations = rules.error_code_violations(exceptions, "garden")
+
+    # Assert
+    assert violations == [
+        "garden: WrongModule (PLANTE_4130_WRONG_MODULE): B=1, but the class lives in garden (5)",
+        "garden: WrongFamily (PLANTE_4531_WRONG_FAMILY): A=4, but status_code is 500",
+        "garden: WrongKind (PLANTE_4532_WRONG_KIND): C=3 does not allow status_code 409",
+        "garden: BadFormat (PLANTE_453_BAD): not in the PLANTE_ABCD_NAME format",
+        "garden: NoStatus (PLANTE_4533_NO_STATUS): defines no literal status_code",
+    ]
+
+
+def test_an_error_counts_as_used_only_when_raised_built_or_declared(tmp_path: Path) -> None:
+    # Arrange
+    src = tmp_path / "src"
+    exceptions = _write(src / "garden", {"exceptions.py": "".join(
+        f'class {name}(PlantEError):\n    code = "PLANTE_45{i}0_X"\n'
+        for i, name in enumerate(["Raised", "Built", "Declared", "OnlyDocumented", "OnlyCaught", "OnlyInTests", "Pending"])
+    )}) / "exceptions.py"
+    _write(src, {
+        "adapter.py": "def f():\n    raise Raised()\n\ndef g():\n    return Built()\n",
+        "use_case.py": "class UseCase:\n    raises = (Declared,)\n",
+        "router.py": "responses = error_responses(OnlyDocumented)\ntry:\n    pass\nexcept OnlyCaught:\n    pass\n",
+        "garden/tests/test_x.py": "raise OnlyInTests()\n",
+    })
+
+    # Act
+    violations = rules.unused_errors(src, [exceptions], allowed=frozenset({"Pending"}))
+
+    # Assert
+    assert [v.split(": ")[1].split(" ")[0] for v in violations] == ["OnlyDocumented", "OnlyCaught", "OnlyInTests"]
 
 
 def test_barrels(tmp_path: Path) -> None:

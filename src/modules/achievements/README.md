@@ -34,5 +34,5 @@ A composição monta o módulo por:
 
 ## Erros
 
-O módulo não define erros. A rota só devolve os comuns do shared (ex.: `PLANTE_4006_UNAUTHORIZED`
+O módulo não define erros. A rota só devolve os comuns do shared (ex.: `PLANTE_4010_UNAUTHORIZED`
 sem token válido); usuário sem conquistas recebe a lista vazia.

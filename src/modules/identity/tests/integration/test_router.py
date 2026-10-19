@@ -106,7 +106,7 @@ def test_logout_requires_authentication(api: _App) -> None:
 
     # Assert
     assert response.status_code == 401
-    assert response.json()["error"]["code"] == "PLANTE_4006_UNAUTHORIZED"
+    assert response.json()["error"]["code"] == "PLANTE_4010_UNAUTHORIZED"
 
 
 def test_logout_revokes_the_callers_session(api: _App) -> None:

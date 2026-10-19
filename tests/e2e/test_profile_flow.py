@@ -38,8 +38,8 @@ async def test_password_change_rejects_weak_or_wrong_current_password(api: Api) 
     )
 
     # Assert
-    assert weak.json()["error"]["code"] == "PLANTE_4008_WEAK_PASSWORD"
-    assert wrong_current.json()["error"]["code"] == "PLANTE_4007_WRONG_CREDENTIALS"
+    assert weak.json()["error"]["code"] == "PLANTE_4100_WEAK_PASSWORD"
+    assert wrong_current.json()["error"]["code"] == "PLANTE_4102_WRONG_CREDENTIALS"
 
 
 async def test_email_change_takes_effect_only_after_the_code(api: Api) -> None:

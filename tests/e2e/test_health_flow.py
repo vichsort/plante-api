@@ -47,7 +47,7 @@ async def test_enriched_diagnosis_costs_two_tokens(api: Api) -> None:
 
     # Assert
     assert response.status_code == 403
-    assert response.json()["error"]["code"] == "PLANTE_4019_SUBSCRIPTION_REQUIRED"
+    assert response.json()["error"]["code"] == "PLANTE_4220_SUBSCRIPTION_REQUIRED"
 
 
 async def test_diagnosis_without_tokens_never_reaches_the_providers(api: Api) -> None:
@@ -63,7 +63,7 @@ async def test_diagnosis_without_tokens_never_reaches_the_providers(api: Api) ->
 
     # Assert: antes o /diagnose não conferia o saldo e gastava créditos dos provedores
     assert response.status_code == 403
-    assert response.json()["error"]["code"] == "PLANTE_4019_SUBSCRIPTION_REQUIRED"
+    assert response.json()["error"]["code"] == "PLANTE_4220_SUBSCRIPTION_REQUIRED"
     assert len(api.fakes.storage.uploads) == uploads_before
 
 
@@ -110,6 +110,6 @@ async def test_diagnoses_of_another_user_are_not_found(api: Api) -> None:
     feedback = await api.http.post(f"/diagnose/{record_id}/feedback", headers=stranger, json={"verdict": "wrong"})
 
     # Assert
-    assert diagnose.json()["error"]["code"] == "PLANTE_4001_PLANT_NOT_FOUND"
-    assert history.json()["error"]["code"] == "PLANTE_4001_PLANT_NOT_FOUND"
-    assert feedback.json()["error"]["code"] == "PLANTE_4017_HEALTH_RECORD_NOT_FOUND"
+    assert diagnose.json()["error"]["code"] == "PLANTE_4530_PLANT_NOT_FOUND"
+    assert history.json()["error"]["code"] == "PLANTE_4530_PLANT_NOT_FOUND"
+    assert feedback.json()["error"]["code"] == "PLANTE_4630_HEALTH_RECORD_NOT_FOUND"

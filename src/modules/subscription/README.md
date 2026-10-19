@@ -56,7 +56,7 @@ dublês do wallet e da quota para testes ficam em `tests/fakes.py`, com as regra
 
 | Código | Erro | HTTP | Quando |
 | :--- | :--- | :---: | :--- |
-| `PLANTE_4005_FREE_TIER_PLANT_LIMIT` | `PlantLimitExceededError` | 403 | O plano ativo atingiu o limite de plantas no jardim. |
-| `PLANTE_4019_SUBSCRIPTION_REQUIRED` | `SubscriptionRequiredError` | 403 | Tokens do dia esgotados para a ação pedida. |
+| `PLANTE_4221_FREE_TIER_PLANT_LIMIT` | `PlantLimitExceededError` | 403 | O plano ativo atingiu o limite de plantas no jardim. |
+| `PLANTE_4220_SUBSCRIPTION_REQUIRED` | `SubscriptionRequiredError` | 403 | Tokens do dia esgotados para a ação pedida. |
 
-O upgrade de um usuário sem conta responde `PLANTE_4002_USER_NOT_FOUND` (erro do kernel).
+O upgrade de um usuário sem conta responde `PLANTE_4031_USER_NOT_FOUND` (erro do kernel).

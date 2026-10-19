@@ -5,7 +5,7 @@ from src.shared.domain import InvalidImageError, PlantEError
 
 class LowConfidenceError(PlantEError):
     """A identificação retornou confiança abaixo do threshold aceitável."""
-    code = "PLANTE_4011_LOW_CONFIDENCE"
+    code = "PLANTE_4400_LOW_CONFIDENCE"
     status_code = 422
 
     def __init__(self, confidence: float):
@@ -16,7 +16,7 @@ class LowConfidenceError(PlantEError):
 
 class IdentificationNotFoundError(PlantEError):
     """A identificação solicitada não existe ou não pertence ao usuário."""
-    code = "PLANTE_4012_IDENTIFICATION_NOT_FOUND"
+    code = "PLANTE_4430_IDENTIFICATION_NOT_FOUND"
     status_code = 404
 
     def __init__(self, identification_id: UUID):

@@ -60,8 +60,8 @@ async def test_watering_sets_next_due_day_and_blocks_a_second_watering(api: Api)
     assert watered.status_code == 200
     assert watered.json()["data"]["current_streak"] == 1
     assert watered.json()["data"]["next_due_on"] == (today + timedelta(days=7)).isoformat()
-    assert again.status_code == 400
-    assert again.json()["error"]["code"] == "PLANTE_4016_NOT_READY_FOR_WATERING"
+    assert again.status_code == 409
+    assert again.json()["error"]["code"] == "PLANTE_4540_NOT_READY_FOR_WATERING"
     window_opens = (today + timedelta(days=6)).strftime("%d/%m/%Y")
     assert window_opens in again.json()["error"]["message"]
 
@@ -104,7 +104,7 @@ async def test_free_plan_garden_limit(api: Api, db_session: AsyncSession) -> Non
 
     # Assert
     assert response.status_code == 403
-    assert response.json()["error"]["code"] == "PLANTE_4005_FREE_TIER_PLANT_LIMIT"
+    assert response.json()["error"]["code"] == "PLANTE_4221_FREE_TIER_PLANT_LIMIT"
 
 
 async def test_plants_of_another_user_are_not_found(api: Api) -> None:
@@ -122,5 +122,5 @@ async def test_plants_of_another_user_are_not_found(api: Api) -> None:
 
     # Assert
     assert [r.status_code for r in responses] == [404, 404, 404]
-    assert {r.json()["error"]["code"] for r in responses} == {"PLANTE_4001_PLANT_NOT_FOUND"}
+    assert {r.json()["error"]["code"] for r in responses} == {"PLANTE_4530_PLANT_NOT_FOUND"}
     assert len((await api.http.get("/garden", headers=owner)).json()["data"]) == 1

@@ -116,7 +116,7 @@ def test_watering_too_early_is_refused(api: _App) -> None:
     response = api.client.post(f"/garden/{uuid4()}/water", headers=AUTH)
 
     # Assert
-    assert (response.status_code, response.json()["error"]["code"]) == (400, "PLANTE_4016_NOT_READY_FOR_WATERING")
+    assert (response.status_code, response.json()["error"]["code"]) == (409, "PLANTE_4540_NOT_READY_FOR_WATERING")
 
 
 def test_delete_needs_no_body(api: _App) -> None:
@@ -156,7 +156,7 @@ def test_details_of_a_missing_plant_are_not_found(api: _App) -> None:
     response = api.client.get(f"/plants/{plant_id}", headers=AUTH)
 
     # Assert
-    assert (response.status_code, response.json()["error"]["code"]) == (404, "PLANTE_4001_PLANT_NOT_FOUND")
+    assert (response.status_code, response.json()["error"]["code"]) == (404, "PLANTE_4530_PLANT_NOT_FOUND")
 
 
 def test_garden_requires_authentication(api: _App) -> None:

@@ -45,6 +45,30 @@ def test_error_codes_are_unique() -> None:
     assert violations == []
 
 
+def test_error_codes_follow_the_scheme() -> None:
+    # Act
+    violations = [
+        v
+        for module in [*_MODULES, _SHARED]
+        for v in rules.error_code_violations(module / "domain" / "exceptions.py", module.name)
+    ]
+
+    # Assert
+    assert violations == []
+
+
+def test_every_error_is_raised_somewhere() -> None:
+    # Arrange: the catalog has no route and /identify never misses a species yet (open point in todo)
+    files = sorted(_SRC.glob("**/exceptions.py"))
+    pending = frozenset({"SpeciesNotFoundError"})
+
+    # Act
+    violations = rules.unused_errors(_SRC, files, allowed=pending)
+
+    # Assert
+    assert violations == []
+
+
 def test_imports_go_through_barrels() -> None:
     # Act
     violations = rules.barrel_violations(_SRC)

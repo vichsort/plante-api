@@ -138,7 +138,7 @@ def test_rate_limit_middleware_blocks_after_exceeding_limit():
     assert r3.status_code == 429
     data = r3.json()
     assert data["ok"] is False
-    assert data["error"]["code"] == "PLANTE_4029_RATE_LIMIT_EXCEEDED"
+    assert data["error"]["code"] == "PLANTE_4050_RATE_LIMIT_EXCEEDED"
 
 
 def _rate_limited_app(**kwargs) -> FastAPI:

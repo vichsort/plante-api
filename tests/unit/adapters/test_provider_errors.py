@@ -25,7 +25,7 @@ async def _translate(exc: Exception) -> Exception:
 async def test_bad_request_becomes_invalid_image():
     error = await _translate(_status_error(400))
     assert isinstance(error, InvalidImageError)
-    assert error.code == "PLANTE_4013_INVALID_IMAGE"
+    assert error.code == "PLANTE_4001_INVALID_IMAGE"
 
 
 @pytest.mark.asyncio

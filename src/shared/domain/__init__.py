@@ -2,9 +2,12 @@
 from src.shared.domain.events import DomainEvent
 from src.shared.domain.exceptions import (
     ExternalServiceError,
+    InternalError,
     InvalidImageError,
+    InvalidRequestError,
     PlantEError,
     RateLimitExceededError,
+    ServiceUnavailableError,
     UnauthorizedError,
     UserNotFoundError,
 )
@@ -25,12 +28,15 @@ __all__ = [
     "IImageSanitizer",
     "IImageStorage",
     "IUnitOfWork",
+    "InternalError",
     "InvalidImageError",
+    "InvalidRequestError",
     "JsonObject",
     "JsonValue",
     "LocalCalendar",
     "PlantEError",
     "RateLimitExceededError",
+    "ServiceUnavailableError",
     "UnauthorizedError",
     "UserId",
     "UserNotFoundError",

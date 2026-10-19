@@ -104,23 +104,31 @@ def _section(text: str, heading: str) -> str:
     return text[start:] if following == -1 else text[start:following]
 
 
-def defined_error_codes(exceptions_file: Path) -> dict[str, str]:
-    """Classe -> código, só das classes que definem `code` no próprio corpo."""
+def _class_constants(node: ast.ClassDef) -> dict[str, object]:
+    """Literal class attributes assigned in the class body (`code = "..."`, `status_code = 404`)."""
+    constants: dict[str, object] = {}
+    for stmt in node.body:
+        if isinstance(stmt, ast.Assign) and isinstance(stmt.value, ast.Constant):
+            for target in stmt.targets:
+                if isinstance(target, ast.Name):
+                    constants[target.id] = stmt.value.value
+    return constants
+
+
+def _error_classes(exceptions_file: Path) -> dict[str, dict[str, object]]:
+    """Class -> its literal constants, only for classes that define `code` in their own body."""
     if not exceptions_file.exists():
         return {}
-    codes: dict[str, str] = {}
-    for node in ast.parse(exceptions_file.read_text()).body:
-        if not isinstance(node, ast.ClassDef):
-            continue
-        for stmt in node.body:
-            if (
-                isinstance(stmt, ast.Assign)
-                and any(isinstance(t, ast.Name) and t.id == "code" for t in stmt.targets)
-                and isinstance(stmt.value, ast.Constant)
-                and isinstance(stmt.value.value, str)
-            ):
-                codes[node.name] = stmt.value.value
-    return codes
+    return {
+        node.name: constants
+        for node in ast.parse(exceptions_file.read_text()).body
+        if isinstance(node, ast.ClassDef) and isinstance((constants := _class_constants(node)).get("code"), str)
+    }
+
+
+def defined_error_codes(exceptions_file: Path) -> dict[str, str]:
+    """Classe -> código, só das classes que definem `code` no próprio corpo."""
+    return {cls: str(constants["code"]) for cls, constants in _error_classes(exceptions_file).items()}
 
 
 def undocumented_errors(module: Path) -> list[str]:
@@ -144,6 +152,90 @@ def duplicated_error_codes(exception_files: list[Path]) -> list[str]:
             else:
                 seen[code] = where
     return violations
+
+
+# `PLANTE_ABCD_NAME`: A = family (4 client, 5 server), B = owning module, C = kind, D = sequence
+ERROR_CODE = re.compile(r"PLANTE_([45])(\d)(\d)(\d)_[A-Z0-9]+(?:_[A-Z0-9]+)*")
+MODULE_DIGITS = {
+    "shared": 0, "identity": 1, "subscription": 2, "catalog": 3, "identification": 4,
+    "garden": 5, "health": 6, "achievements": 7, "training": 8,
+}
+# (A, C) -> the HTTP statuses that kind of error may answer with
+KIND_STATUSES: dict[tuple[int, int], frozenset[int]] = {
+    (4, 0): frozenset({400, 405, 422}),  # invalid request
+    (4, 1): frozenset({401}),  # authentication
+    (4, 2): frozenset({403}),  # permission or plan
+    (4, 3): frozenset({404}),  # not found
+    (4, 4): frozenset({409}),  # conflict or state
+    (4, 5): frozenset({429}),  # limit
+    (5, 0): frozenset({500}),  # internal
+    (5, 1): frozenset({502}),  # external provider
+    (5, 3): frozenset({503}),  # unavailable
+}
+
+
+def error_code_violations(exceptions_file: Path, owner: str) -> list[str]:
+    """Every code follows `PLANTE_ABCD_NAME` and agrees with its `status_code` and owning module."""
+    violations: list[str] = []
+    for cls, constants in _error_classes(exceptions_file).items():
+        code, status = str(constants["code"]), constants.get("status_code")
+        where = f"{owner}: {cls} ({code})"
+        match = ERROR_CODE.fullmatch(code)
+        if not match:
+            violations.append(f"{where}: not in the PLANTE_ABCD_NAME format")
+            continue
+        if not isinstance(status, int):
+            violations.append(f"{where}: defines no literal status_code")
+            continue
+        family, module, kind = int(match[1]), int(match[2]), int(match[3])
+        if module != MODULE_DIGITS.get(owner):
+            violations.append(f"{where}: B={module}, but the class lives in {owner} ({MODULE_DIGITS.get(owner)})")
+        if status // 100 != family:
+            violations.append(f"{where}: A={family}, but status_code is {status}")
+        elif status not in KIND_STATUSES.get((family, kind), frozenset()):
+            violations.append(f"{where}: C={kind} does not allow status_code {status}")
+    return violations
+
+
+def _used_names(path: Path) -> set[str]:
+    """Names a file raises, instantiates or declares in a use case's `raises` tuple."""
+    def name_of(node: ast.expr) -> str | None:
+        if isinstance(node, ast.Name):
+            return node.id
+        return node.attr if isinstance(node, ast.Attribute) else None
+
+    used: set[str] = set()
+    for node in ast.walk(ast.parse(path.read_text())):
+        if isinstance(node, ast.Call):
+            used.add(name_of(node.func) or "")
+        elif isinstance(node, ast.Raise) and node.exc is not None:
+            used.add(name_of(node.exc) or "")
+        elif (
+            isinstance(node, ast.Assign)
+            and any(isinstance(t, ast.Name) and t.id == "raises" for t in node.targets)
+            and isinstance(node.value, ast.Tuple)
+        ):
+            used.update(name_of(element) or "" for element in node.value.elts)
+    return used
+
+
+def unused_errors(src_root: Path, exception_files: list[Path], allowed: frozenset[str] = frozenset()) -> list[str]:
+    """
+    Every error with a code is raised or built somewhere outside tests, or declared in a use case's
+    `raises`. Being documented in `error_responses(...)` or caught in an `except` does not count.
+    """
+    used = {
+        name
+        for path in src_root.rglob("*.py")
+        if "tests" not in path.relative_to(src_root).parts
+        for name in _used_names(path)
+    }
+    return [
+        f"{path.relative_to(src_root.parent)}: {cls} ({code}) is never raised"
+        for path in exception_files
+        for cls, code in defined_error_codes(path).items()
+        if cls not in used and cls not in allowed
+    ]
 
 
 # --- Imports pelos barrels ---------------------------------------------------------------------

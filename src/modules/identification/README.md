@@ -40,11 +40,11 @@ portas em memória dos testes daqui.
   - Confere só os tokens do dia; o limite do jardim vale ao adicionar ao jardim.
   - A foto é limpa antes de qualquer uso (`IImageSanitizer`, do shared): orientação aplicada,
     metadados removidos (EXIF, GPS, aparelho, data), regravada em JPEG. HEIC, arquivo que não é
-    imagem ou imagem acima de 60 MP → `PLANTE_4013`.
+    imagem ou imagem acima de 60 MP → `PLANTE_4001`.
   - Nenhuma transação fica aberta durante as chamadas à IA e ao S3. A escrita (espécie, amostra de
     treino, identificação e a cobrança do token) é uma transação só, aberta pela UoW daqui; os
     services dos outros módulos se juntam a ela.
-  - Confiança abaixo de 60% (`ConfidenceScore.is_rejected`) → `PLANTE_4011`, sem gravar nem
+  - Confiança abaixo de 60% (`ConfidenceScore.is_rejected`) → `PLANTE_4400`, sem gravar nem
     cobrar nada. De 60% a 84%, a resposta pede revisão (`needs_human_review`).
   - `PlantIdentifiedEvent` sai depois do commit. Ninguém consome ainda (conquistas, depois).
 - **Feedback** (`POST /identify/{id}/feedback`): `correct | wrong | unsure` + sugestão opcional de
@@ -59,12 +59,12 @@ portas em memória dos testes daqui.
   - um provedor falha → o outro decide sozinho (`source` = nome dele). Os dois falham →
     `InvalidImageError` prevalece sobre `ExternalServiceError`.
   - **Veto:** se o Kindwise afirmar que a imagem não é planta (`is_plant.binary == false` →
-    `NotAPlantError`), a requisição falha com `PLANTE_4013` mesmo que o PlantNet tenha devolvido
+    `NotAPlantError`), a requisição falha com `PLANTE_4001` mesmo que o PlantNet tenha devolvido
     uma espécie. Outras falhas do Kindwise (sugestões vazias, imagem ilegível) não vetam.
   - As imagens de referência vêm do provedor cujos dados venceram (Kindwise no acordo exato), com
     a origem correta (`kindwise_similar` / `plantnet_similar`).
   - Os sinais de treino juntam o que cada provedor que respondeu disse (o que falhou fica de fora).
-- **Quando um provedor gera `PLANTE_4013`:**
+- **Quando um provedor gera `PLANTE_4001`:**
   - Kindwise: `is_plant.binary == false` explícito → `NotAPlantError` (campo ausente segue o fluxo
     normal); lista de sugestões vazia → `InvalidImageError`; HTTP 400 → `InvalidImageError` **só**
     se o corpo contiver `Invalid image` (outros 400 são payload nosso malformado →
@@ -99,9 +99,9 @@ portas em memória dos testes daqui.
 
 | Código | Erro | HTTP | Quando |
 | :--- | :--- | :---: | :--- |
-| `PLANTE_4011_LOW_CONFIDENCE` | `LowConfidenceError` | 422 | Confiança da identificação abaixo de 60%. |
-| `PLANTE_4012_IDENTIFICATION_NOT_FOUND` | `IdentificationNotFoundError` | 404 | Identificação não existe ou não pertence ao usuário (feedback, adicionar ao jardim). |
-| `PLANTE_4013_INVALID_IMAGE` | `NotAPlantError` | 400 | O Kindwise afirmou que a foto não é planta (código herdado do `InvalidImageError`, do kernel). |
+| `PLANTE_4400_LOW_CONFIDENCE` | `LowConfidenceError` | 422 | Confiança da identificação abaixo de 60%. |
+| `PLANTE_4430_IDENTIFICATION_NOT_FOUND` | `IdentificationNotFoundError` | 404 | Identificação não existe ou não pertence ao usuário (feedback, adicionar ao jardim). |
+| `PLANTE_4001_INVALID_IMAGE` | `NotAPlantError` | 400 | O Kindwise afirmou que a foto não é planta (código herdado do `InvalidImageError`, do kernel). |
 
 `PLANTE_4010_IDENTIFICATION_FAILED` (`PlantIdentificationError`) foi aposentado: nunca era lançado
 nem aparecia no OpenAPI. Não reutilizar o número.
