@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 from src.modules.garden.domain.entities.user_plant import UserPlant
 from src.modules.garden.domain.events import PlantWateredEvent
 from src.modules.garden.domain.exceptions import (
-    ForbiddenError,
     PlantNotFoundError,
     PlantNotReadyForWateringError,
 )
@@ -19,7 +18,7 @@ class WaterPlantInputDTO:
     user_plant_id: UserPlantId
 
 class WaterPlantUseCase:
-    raises = (ForbiddenError, PlantNotFoundError, PlantNotReadyForWateringError)
+    raises = (PlantNotFoundError, PlantNotReadyForWateringError)
 
     def __init__(
         self,
@@ -36,9 +35,6 @@ class WaterPlantUseCase:
             plant = await uow.user_plants.get_by_id(dto.user_plant_id, dto.user_id)
             if not plant:
                 raise PlantNotFoundError(dto.user_plant_id)
-
-            if plant.user_id != dto.user_id:
-                raise ForbiddenError("Você não tem permissão para regar esta planta.")
 
             plant.water(datetime.now(UTC), self.calendar)
             await uow.user_plants.save(plant)

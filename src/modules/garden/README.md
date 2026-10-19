@@ -52,17 +52,18 @@ memória e as fábricas de planta dos testes daqui.
   morrido ou sido doada): identificação e dado de treino não mudam.
 - **`/garden` e `/plants` no mesmo módulo e no mesmo router** (`router` inclui os dois, nessa
   ordem): o detalhe da planta é do jardim; o prefixo `/plants` só ficou por contrato da API.
-- **Hoje:** `WaterPlantUseCase` ainda confere o dono depois de uma busca que já filtra por ele, então
-  o `PLANTE_4009_FORBIDDEN` nunca sai. Ficou porque o OpenAPI da rota de rega documenta o 403;
-  tirar é mudança de contrato (decidir com o usuário).
+- **Planta de outro usuário é 404, nunca 403** (a API não distingue "não existe" de "não é sua").
 
 ## Erros
 
 | Código | Erro | HTTP | Quando |
 | :--- | :--- | :---: | :--- |
 | `PLANTE_4001_PLANT_NOT_FOUND` | `PlantNotFoundError` | 404 | Planta não existe, foi tirada do jardim ou é de outro usuário. |
-| `PLANTE_4009_FORBIDDEN` | `ForbiddenError` | 403 | Documentado na rega, mas inalcançável hoje (ver "Hoje" acima). |
 | `PLANTE_4016_NOT_READY_FOR_WATERING` | `PlantNotReadyForWateringError` | 400 | Rega antes da janela (vencimento − 1 dia) ou segunda rega no mesmo dia. |
 
 `PLANTE_4012_IDENTIFICATION_NOT_FOUND` (adicionar com identificação inexistente ou de outro usuário)
 é do identification; `PLANTE_4005_FREE_TIER_PLANT_LIMIT`, do subscription.
+
+`PLANTE_4009_FORBIDDEN` (`ForbiddenError`) foi aposentado em 2026-10-19 (aprovado pelo usuário): a
+rega conferia o dono depois de uma busca que já filtrava por ele, então o 403 documentado nunca
+saía. Não reutilizar o número.
