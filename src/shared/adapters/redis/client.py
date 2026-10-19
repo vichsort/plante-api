@@ -4,18 +4,21 @@ Fachada tipada sobre o cliente assíncrono do redis-py.
 O redis-py tipa o retorno de todo comando como `Any`; aqui ficam só os comandos que o projeto
 usa, com o tipo de retorno conferido em execução. É o único ponto do código que toca o
 redis-py: o resto (repositórios de cache, rate limit, readiness) depende desta classe.
-Falhas de conexão viram `ExternalServiceError(retryable=True)`; comando recusado pelo servidor
-(`ResponseError`), `retryable=False`.
+Redis is our own infrastructure, not an external provider: an unreachable server is a
+`ServiceUnavailableError` (503, counts for the circuit breaker) and a refused command
+(`ResponseError`, e.g. WRONGTYPE) is our bug, an `InternalError` (500). The detail only goes to
+the log, never to the client.
 """
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import structlog
 from redis.asyncio import Redis
 from redis.exceptions import RedisError, ResponseError
 
-from src.shared.domain.exceptions import ExternalServiceError
+from src.shared.domain.exceptions import InternalError, ServiceUnavailableError
 
-_SERVICE = "Redis"
+log = structlog.stdlib.get_logger()
 
 
 @asynccontextmanager
@@ -23,14 +26,12 @@ async def _translated_errors() -> AsyncIterator[None]:
     try:
         yield
     except ResponseError as exc:
-        # O servidor recusou o comando (ex.: WRONGTYPE): repetir não resolve e não abre o breaker
-        raise ExternalServiceError(
-            message=f"{type(exc).__name__}: {exc}", service=_SERVICE, retryable=False
-        ) from exc
+        # Repeating does not help and the server is fine: does not open the breaker
+        log.error("redis.command_rejected", error=f"{type(exc).__name__}: {exc}")
+        raise InternalError() from exc
     except (RedisError, OSError) as exc:
-        raise ExternalServiceError(
-            message=f"{type(exc).__name__}: {exc}", service=_SERVICE, retryable=True
-        ) from exc
+        log.warning("redis.unavailable", error=f"{type(exc).__name__}: {exc}")
+        raise ServiceUnavailableError() from exc
 
 
 class RedisClient:

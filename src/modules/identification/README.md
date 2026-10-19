@@ -57,14 +57,14 @@ portas em memória dos testes daqui.
   - desacordo total → vence o Kindwise, salvo se o PlantNet tiver 20 pontos percentuais a mais;
     sempre `low_confidence`;
   - um provedor falha → o outro decide sozinho (`source` = nome dele). Os dois falham →
-    `InvalidImageError` prevalece sobre `ExternalServiceError`.
+    `NotAPlantError` prevalece sobre `InvalidImageError`, que prevalece sobre `ExternalServiceError`.
   - **Veto:** se o Kindwise afirmar que a imagem não é planta (`is_plant.binary == false` →
-    `NotAPlantError`), a requisição falha com `PLANTE_4001` mesmo que o PlantNet tenha devolvido
+    `NotAPlantError`), a requisição falha com `PLANTE_4401` mesmo que o PlantNet tenha devolvido
     uma espécie. Outras falhas do Kindwise (sugestões vazias, imagem ilegível) não vetam.
   - As imagens de referência vêm do provedor cujos dados venceram (Kindwise no acordo exato), com
     a origem correta (`kindwise_similar` / `plantnet_similar`).
   - Os sinais de treino juntam o que cada provedor que respondeu disse (o que falhou fica de fora).
-- **Quando um provedor gera `PLANTE_4001`:**
+- **Quando um provedor gera `PLANTE_4001` ou `PLANTE_4401`:**
   - Kindwise: `is_plant.binary == false` explícito → `NotAPlantError` (campo ausente segue o fluxo
     normal); lista de sugestões vazia → `InvalidImageError`; HTTP 400 → `InvalidImageError` **só**
     se o corpo contiver `Invalid image` (outros 400 são payload nosso malformado →
@@ -101,7 +101,7 @@ portas em memória dos testes daqui.
 | :--- | :--- | :---: | :--- |
 | `PLANTE_4400_LOW_CONFIDENCE` | `LowConfidenceError` | 422 | Confiança da identificação abaixo de 60%. |
 | `PLANTE_4430_IDENTIFICATION_NOT_FOUND` | `IdentificationNotFoundError` | 404 | Identificação não existe ou não pertence ao usuário (feedback, adicionar ao jardim). |
-| `PLANTE_4001_INVALID_IMAGE` | `NotAPlantError` | 400 | O Kindwise afirmou que a foto não é planta (código herdado do `InvalidImageError`, do kernel). |
+| `PLANTE_4401_NOT_A_PLANT` | `NotAPlantError` | 422 | O Kindwise afirmou que a foto não é planta (a imagem em si é legível). Também no diagnóstico. |
 
 `PLANTE_4010_IDENTIFICATION_FAILED` (`PlantIdentificationError`) foi aposentado: nunca era lançado
 nem aparecia no OpenAPI. Não reutilizar o número.

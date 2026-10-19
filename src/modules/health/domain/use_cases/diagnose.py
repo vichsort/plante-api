@@ -13,6 +13,7 @@ from src.modules.health.domain.ports.health_enricher import (
 )
 from src.modules.health.domain.ports.unit_of_work import IHealthUnitOfWork
 from src.modules.health.domain.value_objects.ids import HealthRecordId
+from src.modules.identification import NotAPlantError
 from src.modules.identity import IUserDirectory
 from src.modules.subscription import (
     FeatureCost,
@@ -75,7 +76,14 @@ class DiagnoseHealthUseCase:
     momento (`GiveHealthFeedbackUseCase`).
     """
 
-    raises = (ExternalServiceError, InvalidImageError, PlantNotFoundError, SubscriptionRequiredError, UserNotFoundError)
+    raises = (
+        ExternalServiceError,
+        InvalidImageError,
+        NotAPlantError,
+        PlantNotFoundError,
+        SubscriptionRequiredError,
+        UserNotFoundError,
+    )
 
     def __init__(
         self,

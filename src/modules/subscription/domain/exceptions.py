@@ -8,7 +8,7 @@ class SubscriptionRequiredError(PlantEError):
 
     def __init__(self, feature: str):
         super().__init__(
-            message=f'"{feature}" is exclusive to the Pro Plan (R$ 6,99/month).',
+            message=f'"{feature}" is exclusive to the Pro Plan.',
         )
 
 
@@ -17,8 +17,8 @@ class PlantLimitExceededError(PlantEError):
     code = "PLANTE_4221_FREE_TIER_PLANT_LIMIT"
     status_code = 403
 
-    def __init__(self, limit: int):
+    def __init__(self, current_count: int, max_allowed: int):
         super().__init__(
-            message=f"Limit of {limit} plants reached. Subscribe to the Pro Plan to add more.",
-            details={"current_count": str(limit), "max_allowed": str(limit)},
+            message=f"Limit of {max_allowed} plants reached. Subscribe to the Pro Plan to add more.",
+            details={"current_count": current_count, "max_allowed": max_allowed},
         )

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from src.shared.domain import InvalidImageError, PlantEError
+from src.shared.domain import PlantEError
 
 
 class LowConfidenceError(PlantEError):
@@ -25,8 +25,10 @@ class IdentificationNotFoundError(PlantEError):
         )
 
 
-class NotAPlantError(InvalidImageError):
-    """O provedor afirmou que a imagem não contém uma planta (mesmo código da API que `InvalidImageError`)."""
+class NotAPlantError(PlantEError):
+    """The provider stated the image holds no plant (the image itself is readable)."""
+    code = "PLANTE_4401_NOT_A_PLANT"
+    status_code = 422
 
     def __init__(self, message: str = "The image does not contain a plant."):
         super().__init__(message=message)

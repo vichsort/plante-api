@@ -5,6 +5,8 @@ from src.modules.identity.domain.entities.user import User
 from src.modules.identity.domain.events import UserRegisteredEvent
 from src.modules.identity.domain.exceptions import (
     EmailAlreadyInUseError,
+    EmailNotVerifiedError,
+    InvalidCredentialsError,
     WeakPasswordError,
 )
 from src.modules.identity.domain.ports.token_service import TokenKind
@@ -20,7 +22,7 @@ from src.modules.identity.tests.fakes import (
     PlainHasher,
     make_user,
 )
-from src.shared.domain import DomainEvent, IDomainPublisher, UnauthorizedError
+from src.shared.domain import DomainEvent, IDomainPublisher
 
 TOKENS = JwtTokenService(secret_key="testsecretkey-with-at-least-32-bytes", algorithm="HS256")
 
@@ -102,19 +104,19 @@ async def test_login_issues_access_and_refresh_tokens() -> None:
 
 
 @pytest.mark.parametrize("email, password", [("user@plante.org", "wrong"), ("nobody@plante.org", "Secret1password")])
-async def test_login_with_wrong_credentials_is_unauthorized(email: str, password: str) -> None:
+async def test_login_with_wrong_credentials_is_refused(email: str, password: str) -> None:
     # Arrange
     use_case, _ = _login(make_user())
 
     # Act & Assert
-    with pytest.raises(UnauthorizedError, match="Invalid email or password"):
+    with pytest.raises(InvalidCredentialsError, match="Invalid email or password"):
         await use_case.execute(email=email, password=password)
 
 
-async def test_login_before_verifying_the_email_is_unauthorized() -> None:
+async def test_login_before_verifying_the_email_is_refused() -> None:
     # Arrange
     use_case, _ = _login(make_user(is_verified=False))
 
     # Act & Assert
-    with pytest.raises(UnauthorizedError, match="not verified"):
+    with pytest.raises(EmailNotVerifiedError):
         await use_case.execute(email="user@plante.org", password="Secret1password")

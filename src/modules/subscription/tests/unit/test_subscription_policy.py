@@ -54,6 +54,15 @@ def test_free_user_exceeds_garden_limit_raises() -> None:
         SubscriptionPolicy.enforce_can_add_to_garden(_free(), plants_in_garden=3, now=NOW)
 
 
+def test_garden_limit_details_tell_the_count_and_the_limit_apart() -> None:
+    # Act: before, both fields carried the limit, as text
+    with pytest.raises(PlantLimitExceededError) as raised:
+        SubscriptionPolicy.enforce_can_add_to_garden(_free(), plants_in_garden=4, now=NOW)
+
+    # Assert
+    assert raised.value.details == {"current_count": 4, "max_allowed": 3}
+
+
 def test_pro_user_garden_limit() -> None:
     # Arrange
     subscription = _pro()

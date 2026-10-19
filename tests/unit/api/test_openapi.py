@@ -27,7 +27,9 @@ def test_openapi_documents_domain_and_common_errors(client: TestClient):
     assert "PLANTE_4050_RATE_LIMIT_EXCEEDED" in examples_429
 
     login = paths["/auth/login"]["post"]["responses"]
-    assert "PLANTE_4010_UNAUTHORIZED" in login["401"]["content"]["application/json"]["examples"]
+    assert "PLANTE_4102_WRONG_CREDENTIALS" in login["400"]["content"]["application/json"]["examples"]
+    assert "PLANTE_4120_EMAIL_NOT_VERIFIED" in login["403"]["content"]["application/json"]["examples"]
+    assert "401" not in login
 
 
 def test_openapi_documents_common_errors_on_every_domain_route(client: TestClient):

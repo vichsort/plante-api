@@ -5,7 +5,7 @@ from typing import TypeVar
 
 import structlog
 
-from src.shared.domain.exceptions import ExternalServiceError
+from src.shared.domain.exceptions import ExternalServiceError, ServiceUnavailableError
 
 log = structlog.stdlib.get_logger()
 
@@ -21,12 +21,13 @@ class CircuitState(StrEnum):
     HALF_OPEN = "half_open"
 
 
-def is_provider_failure(exc: BaseException) -> bool:
+def is_transient_failure(exc: BaseException) -> bool:
     """
-    Apenas falhas transitórias do provedor (ExternalServiceError retryable) abrem o circuito.
-    Imagem inválida, outros 4xx ou resultados vazios indicam que o provedor está respondendo.
+    Only transient failures open the circuit: a provider's (ExternalServiceError retryable) or our
+    own infrastructure's (ServiceUnavailableError). Invalid image, other 4xx or empty results mean
+    the service is answering.
     """
-    return isinstance(exc, ExternalServiceError) and exc.retryable
+    return isinstance(exc, ServiceUnavailableError) or (isinstance(exc, ExternalServiceError) and exc.retryable)
 
 
 class CircuitBreaker:
@@ -60,7 +61,7 @@ class CircuitBreaker:
         try:
             result = await func()
         except Exception as exc:
-            if is_provider_failure(exc):
+            if is_transient_failure(exc):
                 self._on_failure(exc)
             else:
                 self._on_success()

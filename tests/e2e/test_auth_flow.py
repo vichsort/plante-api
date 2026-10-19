@@ -24,8 +24,8 @@ async def test_signup_verification_and_login(api: Api) -> None:
     # Assert
     assert registered.status_code == 201
     assert registered.json()["data"]["status"] == "pending_verification"
-    assert before_verification.status_code == 401
-    assert before_verification.json()["error"]["message"] == "Email not verified."
+    assert before_verification.status_code == 403
+    assert before_verification.json()["error"]["code"] == "PLANTE_4120_EMAIL_NOT_VERIFIED"
     assert verified.status_code == 200
     assert logged_in.status_code == 200
     assert set(logged_in.json()["data"]) == {"access_token", "refresh_token", "token_type"}
@@ -52,7 +52,9 @@ async def test_wrong_password_and_unknown_email_look_the_same(api: Api) -> None:
     unknown_email = await api.login("ninguem@plante.org")
 
     # Assert
-    assert wrong_password.status_code == unknown_email.status_code == 401
+    # 400, not 401: a 401 would make the app drop a session that is still valid
+    assert wrong_password.status_code == unknown_email.status_code == 400
+    assert wrong_password.json()["error"]["code"] == "PLANTE_4102_WRONG_CREDENTIALS"
     assert wrong_password.json()["error"] == unknown_email.json()["error"]
 
 

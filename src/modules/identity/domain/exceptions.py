@@ -10,6 +10,15 @@ class InvalidCredentialsError(PlantEError):
         super().__init__(message=message)
 
 
+class EmailNotVerifiedError(PlantEError):
+    """The password is right, but the account email was not verified yet."""
+    code = "PLANTE_4120_EMAIL_NOT_VERIFIED"
+    status_code = 403
+
+    def __init__(self, message: str = "Email not verified. Check your inbox for the verification code."):
+        super().__init__(message=message)
+
+
 class EmailAlreadyInUseError(PlantEError):
     """O email já está em uso por outro usuário."""
     code = "PLANTE_4140_EMAIL_ALREADY_IN_USE"

@@ -69,19 +69,18 @@ sem detalhes sai com `details: null`.
 | `PLANTE_4000_VALIDATION_ERROR` | `InvalidRequestError` | 422 | Corpo/query/path inválidos (montado pelo handler; só `loc`/`msg`/`type` nos detalhes), ou outro 4xx do próprio framework (ex.: corpo ilegível). |
 | `PLANTE_4001_INVALID_IMAGE` | `InvalidImageError` | 400 | Imagem ilegível, formato não aceito (só JPEG/PNG/WebP), acima de 60 MP, ou sem planta (subclasses nos módulos, ex.: `NotAPlantError`). |
 | `PLANTE_4002_METHOD_NOT_ALLOWED` | `MethodNotAllowedError` | 405 | A rota existe, mas não com esse método (montado pelo handler; mantém o header `Allow`). |
-| `PLANTE_4010_UNAUTHORIZED` | `UnauthorizedError` | 401 | Token ausente, inválido ou expirado; login com credenciais erradas. |
+| `PLANTE_4010_UNAUTHORIZED` | `UnauthorizedError` | 401 | Token ausente, inválido ou expirado. Só isso: o app renova o token ou pede novo login. |
 | `PLANTE_4030_ROUTE_NOT_FOUND` | `RouteNotFoundError` | 404 | Nenhuma rota com esse caminho (montado pelo handler). |
 | `PLANTE_4031_USER_NOT_FOUND` | `UserNotFoundError` | 404 | O usuário do token não tem conta. |
 | `PLANTE_4050_RATE_LIMIT_EXCEEDED` | `RateLimitExceededError` | 429 | Limite por minuto: 60 nas rotas gerais, 15 nas de IA e auth. Anônimas contam por IP; autenticadas, por usuário. |
 | `PLANTE_5000_INTERNAL_ERROR` | `InternalError` | 500 | Falha inesperada (montado pelo handler; detalhes só no log). |
-| `PLANTE_5010_EXTERNAL_SERVICE_ERROR` | `ExternalServiceError` | 502 | Provedor externo falhou (Kindwise, PlantNet, Gemini, AWS, Redis). |
-| `PLANTE_5030_SERVICE_UNAVAILABLE` | `ServiceUnavailableError` | 503 | Readiness: Postgres ou Redis sem responder. |
+| `PLANTE_5010_EXTERNAL_SERVICE_ERROR` | `ExternalServiceError` | 502 | Provedor externo falhou (Kindwise, PlantNet, Gemini, AWS). |
+| `PLANTE_5030_SERVICE_UNAVAILABLE` | `ServiceUnavailableError` | 503 | Infra nossa sem responder: readiness (Postgres ou Redis) ou Redis inalcançável numa rota. Conta para o circuit breaker. Comando recusado pelo Redis (ex.: `WRONGTYPE`) é bug nosso: 5000. |
 
 **`ExternalServiceError.retryable`:**
 - `True`: falha transitória (rede, timeout, 5xx, 429). Só essas contam para abrir o circuit breaker.
 - `False`: o provedor rejeitou a requisição (payload nosso inválido, 401/403 de chave mal
-  configurada, logado como `provider.misconfigured`, ou comando recusado pelo Redis, como
-  `WRONGTYPE`). Não abre o circuito.
+  configurada, logado como `provider.misconfigured`). Não abre o circuito.
 - Circuito aberto também responde `PLANTE_5010`.
 - Resposta fora do contrato do provedor é falha dele: `retryable=False` + log `provider.unexpected_response`.
 

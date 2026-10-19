@@ -41,4 +41,4 @@ class SubscriptionPolicy:
         """`plants_in_garden` = plantas ativas hoje. Tokens não entram: já foram cobrados na identificação."""
         tier = subscription.active_tier(now)
         if not tier.can_add_plant(plants_in_garden):
-            raise PlantLimitExceededError(limit=tier.max_plants)
+            raise PlantLimitExceededError(current_count=plants_in_garden, max_allowed=tier.max_plants)

@@ -124,5 +124,5 @@ class InvalidImageError(PlantEError):
     code = "PLANTE_4001_INVALID_IMAGE"
     status_code = 400
 
-    def __init__(self, message: str = "Invalid image or unindentifiable plant."):
+    def __init__(self, message: str = "Invalid or unreadable image."):
         super().__init__(message=message)

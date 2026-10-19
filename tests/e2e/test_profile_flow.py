@@ -21,7 +21,7 @@ async def test_password_change_notifies_and_switches_credentials(api: Api) -> No
     assert changed.status_code == 200
     assert api.fakes.email.sent[-1].to == "hugo@plante.org"
     assert api.fakes.email.sent[-1].code is None  # aviso de troca, sem código
-    assert old_login.status_code == 401
+    assert old_login.status_code == 400
     assert new_login.status_code == 200
 
 
@@ -62,9 +62,9 @@ async def test_email_change_takes_effect_only_after_the_code(api: Api) -> None:
     # Assert: até o código, nada muda (um endereço digitado errado não tranca a conta)
     assert changed.status_code == 200
     assert old_email_before.status_code == 200
-    assert new_email_before.status_code == 401
+    assert new_email_before.status_code == 400
     assert confirmed.status_code == 200
-    assert old_email_after.status_code == 401
+    assert old_email_after.status_code == 400
     assert new_email_after.status_code == 200
 
 

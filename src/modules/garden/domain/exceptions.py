@@ -21,5 +21,5 @@ class PlantNotReadyForWateringError(PlantEError):
 
     def __init__(self, next_date: str):
         super().__init__(
-            message=f"Your plant is well hydrataded! Your next watering date is: {next_date}.",
+            message=f"Your plant is well hydrated! Your next watering date is: {next_date}.",
         )
