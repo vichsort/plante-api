@@ -100,8 +100,5 @@ portas em memória dos testes daqui.
 | Código | Erro | HTTP | Quando |
 | :--- | :--- | :---: | :--- |
 | `PLANTE_4400_LOW_CONFIDENCE` | `LowConfidenceError` | 422 | Confiança da identificação abaixo de 60%. |
-| `PLANTE_4430_IDENTIFICATION_NOT_FOUND` | `IdentificationNotFoundError` | 404 | Identificação não existe ou não pertence ao usuário (feedback, adicionar ao jardim). |
 | `PLANTE_4401_NOT_A_PLANT` | `NotAPlantError` | 422 | O Kindwise afirmou que a foto não é planta (a imagem em si é legível). Também no diagnóstico. |
-
-`PLANTE_4010_IDENTIFICATION_FAILED` (`PlantIdentificationError`) foi aposentado: nunca era lançado
-nem aparecia no OpenAPI. Não reutilizar o número.
+| `PLANTE_4430_IDENTIFICATION_NOT_FOUND` | `IdentificationNotFoundError` | 404 | Identificação não existe ou não pertence ao usuário (feedback, adicionar ao jardim). |

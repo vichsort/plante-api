@@ -154,21 +154,44 @@ e por `tests/architecture` (`test_imports_go_through_barrels`).
 
 ## 4. Erros
 
-- Todo erro de domínio herda de `PlantEError` (`src.shared.domain`) e tem `code`
-  (`PLANTE_<NNNN>_<NOME>`) e `status_code`. O handler HTTP do shared o transforma no envelope
-  `ApiResponse`.
-- **Código único no projeto inteiro**, e todo código que um módulo define aparece em `## Erros`
-  do README dele (`tests/architecture`). Subclasse que não redefine `code` herda o da base (ex.:
-  `NotAPlantError` usa o de `InvalidImageError`).
-- Os códigos atuais são contrato da API e **não mudam ao migrar**. Faixas numéricas por módulo
-  foram descartadas por isso.
-- **Aposentados (não reutilizar):** `PLANTE_4015_SAMPLE_NOT_FOUND`,
-  `PLANTE_4018_RAW_RESPONSE_EXPIRED`, `PLANTE_5002_GEOCODING_ERROR`.
-- **Erros declarados por use case:** cada use case lista em `raises` os erros que pode lançar:
-  - os `raise` do próprio arquivo são conferidos por teste;
-  - os que vêm de policies, entidades e portas são listados à mão (*revisão*).
+- Every error inherits from `PlantEError` (`src.shared.domain`), which is abstract: each subclass
+  sets `code` and `status_code`, and the shared HTTP handler turns it into the `ApiResponse`
+  envelope. What the framework raises by itself (invalid body, unknown route, wrong method,
+  unexpected failure) also goes out as one of these classes, built by the handler.
+- **Code `PLANTE_ABCD_NAME`:**
+  - **A**, family: `4` client error, `5` server error (ours, our infrastructure or a provider's).
+  - **B**, the module the class lives in: `0` shared, `1` identity, `2` subscription, `3` catalog,
+    `4` identification, `5` garden, `6` health, `7` achievements, `8` training.
+  - **C**, kind, which fixes the HTTP status:
 
-  As rotas documentam o OpenAPI com `error_responses(*UseCase.raises)`.
+    | A | C | Kind | HTTP |
+    | :---: | :---: | :--- | :---: |
+    | 4 | 0 | invalid request | 400, 405, 422 |
+    | 4 | 1 | authentication | 401 |
+    | 4 | 2 | permission or plan | 403 |
+    | 4 | 3 | not found | 404 |
+    | 4 | 4 | conflict or state | 409 |
+    | 4 | 5 | limit | 429 |
+    | 5 | 0 | internal | 500 |
+    | 5 | 1 | external provider | 502 |
+    | 5 | 3 | unavailable (our infrastructure) | 503 |
+
+  - **D**, sequence (0–9) within each (B, C) pair, in order of creation, with no meaning of its own.
+- **The client decides by `code`, never by `message`.** The message is English, for people; what a
+  client needs to act on (a limit, a date) goes in `details`. A 401 only ever means "renew the
+  token or sign in again".
+- **A code is unique in the whole project.** From `v0.2.0` on, a published code never changes
+  meaning and is never reused.
+- **The catalog lives next to the code:** the `## Erros` section of the shared README (common and
+  handler errors) and of each module's README (its own).
+- **`tests/architecture` checks** that every code follows the format and agrees with its
+  `status_code` and module, is unique, is documented in its README, and is raised or declared
+  somewhere (a dead error fails the build).
+- **Errors declared per use case:** each use case lists in `raises` the errors it can raise:
+  - the `raise` statements of its own file are checked by a test;
+  - the ones that come from policies, entities and ports are listed by hand (*review*).
+
+  The routes document OpenAPI with `error_responses(*UseCase.raises)`.
 
 ---
 

@@ -21,7 +21,7 @@ def test_openapi_documents_domain_and_common_errors(client: TestClient):
     paths = client.get("/openapi.json").json()["paths"]
 
     water = paths["/garden/{user_plant_id}/water"]["post"]["responses"]
-    # Sem 403: planta de outro usuário é 404 (o 4009 foi aposentado)
+    # No 403: another user's plant is a 404, like a missing one
     assert set(water) == {"200", "401", "404", "409", "422", "429", "500"}
     examples_429 = water["429"]["content"]["application/json"]["examples"]
     assert "PLANTE_4050_RATE_LIMIT_EXCEEDED" in examples_429
