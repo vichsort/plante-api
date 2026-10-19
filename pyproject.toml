@@ -124,6 +124,7 @@ module = [
     # Composição: containers do dependency_injector e pydantic-settings
     "src.bootstrap.container",
     "src.bootstrap.containers.*",
+    "src.bootstrap.connections",  # fecha o que os providers devolvem (Any)
     "src.bootstrap.settings",
     "src.bootstrap.models",  # metadata do SQLAlchemy
 ]
