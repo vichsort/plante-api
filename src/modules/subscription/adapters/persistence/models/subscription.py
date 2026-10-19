@@ -17,7 +17,7 @@ def _plan_names(_: type[Enum]) -> list[str]:
 
 class SubscriptionModel(Base):
     """
-    Uma linha por usuário que já gastou tokens ou fez upgrade; sem linha = FREE. A chave é o
+    Uma linha por usuário que já gastou tokens; sem linha = FREE. A chave é o
     próprio `user_id` (sem `AuditMixin`: não há ID próprio nem exclusão lógica).
     """
     __tablename__ = "subscriptions"

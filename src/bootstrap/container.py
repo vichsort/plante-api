@@ -58,7 +58,6 @@ class Container(containers.DeclarativeContainer):
         SubscriptionContainer,
         session_factory=infra.session_factory,
         calendar=calendar,
-        publisher=adapters.domain_publisher,
     )
 
     identification = providers.Container(

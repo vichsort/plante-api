@@ -1,5 +1,4 @@
 """Perfil: senha, e-mail, localização, plano e conquistas, de ponta a ponta."""
-from datetime import UTC, datetime, timedelta
 
 from tests.e2e.conftest import PASSWORD, Api
 
@@ -79,20 +78,15 @@ async def test_location_update(api: Api) -> None:
     assert response.status_code == 200
 
 
-async def test_upgrade_is_self_service(api: Api) -> None:
+async def test_subscription_upgrade_route_is_gone(api: Api) -> None:
     # Arrange
     headers = await api.signed_up()
 
     # Act
     response = await api.http.post("/profile/subscription/upgrade", headers=headers, json={"plan_duration_days": 30})
 
-    # Assert
-    # Hoje: plano demonstrativo, sem pagamento: qualquer usuário vira PRO pelo prazo que pedir
-    assert response.status_code == 200
-    data = response.json()["data"]
-    assert data["subscription"] == "PRO"
-    expires_at = datetime.fromisoformat(data["expires_at"])
-    assert abs(expires_at - (datetime.now(UTC) + timedelta(days=30))) < timedelta(minutes=1)
+    # Assert: any signed-in user could give themselves PRO for as long as they asked
+    assert response.status_code == 404
 
 
 async def test_achievements_start_empty(api: Api) -> None:
