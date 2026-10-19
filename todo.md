@@ -385,7 +385,7 @@ shared
      - `FeatureCost.REIDENTIFY` removido (ninguém usava).
      - Contrato novo do import-linter, "Dependências entre módulos" (o `ARCHITECTURE.md` previa; o piloto não tinha criado).
      - Rota de módulo: a composição liga o container aninhado (`container.subscription().wire(...)`), porque a rota não pode importar o container raiz.
-   - **identity** ✅ (branch `refactor/module-identity`, empilhada na do subscription, sem push). **Aguardando a validação do usuário**; depois dela, o resto segue sozinho.
+   - **identity** ✅ (branch `refactor/module-identity`, empilhada na do subscription, sem push). **Validado pelo usuário em 2026-10-19**; daqui em diante, sozinho.
      - Conta, sessão (JWT, refresh com rotação), código de verificação (Redis + SES), troca de e-mail/senha e localização. Rotas `/auth/*` e `/profile/email|password|location`; task `notification.send_verification_email`.
      - Para os outros módulos, `IUserDirectory`: `region_of` (identify e diagnose gravam a região no treino) e `ensure_exists`.
      - Testes do módulo com AAA e fakes em memória (estado, não chamadas de `AsyncMock`); 46 testes. A regra dos `raises` passou a cobrir os use cases dos módulos.
@@ -398,9 +398,9 @@ shared
      - `MessageResponse` no `src.shared.api` (todos os routers usam).
      - `ForbiddenError` (4009) ficou no código antigo: só a rega usa; vai com o garden.
      - Nos módulos, os arquivos de use case não têm o sufixo `_use_case` (os nomes das classes não mudaram).
-   - **Achados (comportamento mantido de propósito, corrigir à parte):**
-     - `UserLocation` aplica `title()` ao estado: a sigla "SP" vira "Sp", inclusive na região que vai ao treino. Marcado com `# Hoje:` no teste do diretório.
-     - No worker, o cliente Redis de uma task terminada só é fechado pelo coletor de lixo, depois que o loop dele fechou (aviso "Exception ignored ... Event loop is closed" no log, sem efeito). A task antiga fazia o mesmo. Correção provável: fechar os clientes dentro do loop da task.
+   - **Achados, corrigidos na `develop` em 2026-10-19** (a pedido do usuário, na `develop` e não na `main`) e descidos para subscription e identity por merge:
+     - Estado do `UserLocation`: o `title()` fazia "SP" virar "Sp" (inclusive na região do treino) e "Rio Grande do Sul" virar "Rio Grande Do Sul". Agora: sigla em maiúsculas; nome com inicial maiúscula, menos os conectivos (de/da/do/das/dos/e).
+     - Conexões do worker: Redis e banco são fechados no fim de cada task, dentro do loop dela. Na `develop`, as tasks antigas usam `task_container` (`src/bootstrap/connections.py`, que também recebeu o fechamento do `main.py`). Nos módulos, o `src/bootstrap/worker.py` registra a limpeza com `on_task_loop_end` (novo no `src.shared.workers`), que substituiu o reset no `task_postrun`. O teste do worker real falha com o aviso "Event loop is closed".
 
 ### Achados da caracterização (2026-10-16; corrigidos na `v0.1.2`)
 - **Tokens do FREE nunca zeravam** (`reset_daily_tokens` não era chamado). Agora:
