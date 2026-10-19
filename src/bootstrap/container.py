@@ -2,8 +2,8 @@ from dependency_injector import containers, providers
 
 from src.bootstrap.containers.adapters import AdaptersContainer
 from src.bootstrap.containers.infra import InfraContainer
-from src.bootstrap.containers.use_cases import UseCasesContainer
 from src.bootstrap.settings import Settings
+from src.modules.achievements.container import AchievementsContainer
 from src.modules.catalog.container import CatalogContainer
 from src.modules.garden.container import GardenContainer
 from src.modules.health.container import HealthContainer
@@ -103,7 +103,7 @@ class Container(containers.DeclarativeContainer):
         plants=garden.lookup,
     )
 
-    use_cases = providers.Container(
-        UseCasesContainer,
-        unit_of_work=infra.unit_of_work,
+    achievements = providers.Container(
+        AchievementsContainer,
+        session_factory=infra.session_factory,
     )

@@ -31,7 +31,7 @@ def test_every_use_case_resolves(monkeypatch, consensus_enabled):
     monkeypatch.setenv("GEMINI_API_KEY", "test")
     monkeypatch.setenv("CONSENSUS_ENABLED", consensus_enabled)
     container = Container()
-    for sub in (container.use_cases, container.identification, container.garden, container.health):
+    for sub in (container.identification, container.garden, container.health, container.achievements):
         for provider in sub.container.providers.values():
             if not isinstance(provider, providers.Dependency):
                 provider()

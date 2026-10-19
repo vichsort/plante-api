@@ -15,16 +15,15 @@ from types import ModuleType
 
 import pytest
 
-import src.domain.use_cases as legacy_use_cases
 from src.shared.domain import PlantEError
 
 _MODULES = Path(__file__).parents[3] / "src" / "modules"
 
 
 def _use_case_packages() -> list[str]:
-    """Os use cases do código antigo e os de cada módulo (`domain/use_cases/`)."""
+    """Os use cases de cada módulo (`domain/use_cases/`)."""
     modules = sorted(p.parent.parent.name for p in _MODULES.glob("*/domain/use_cases"))
-    return [legacy_use_cases.__name__, *(f"src.modules.{name}.domain.use_cases" for name in modules)]
+    return [f"src.modules.{name}.domain.use_cases" for name in modules]
 
 
 def _use_case_modules() -> list[ModuleType]:

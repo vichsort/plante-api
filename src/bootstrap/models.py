@@ -3,7 +3,7 @@ Todas as tabelas no mesmo metadata, para o Alembic (autogenerate) e os testes de
 modelos de um módulo são registrados ao importar o container dele (container → UoW →
 repositórios → modelos), a única entrada que a composição usa.
 """
-import src.adapters.persistence.models  # noqa: F401  (tabelas do código antigo)
+import src.modules.achievements.container  # noqa: F401
 import src.modules.catalog.container  # noqa: F401
 import src.modules.garden.container  # noqa: F401
 import src.modules.health.container  # noqa: F401

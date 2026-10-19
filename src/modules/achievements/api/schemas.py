@@ -3,7 +3,9 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from src.domain.ports.achievement_repository import AchievementView
+from src.modules.achievements.domain.ports.achievement_repository import (
+    AchievementView,
+)
 
 
 class AchievementItemResponse(BaseModel):

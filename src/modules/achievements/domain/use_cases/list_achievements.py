@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from src.domain.ports.achievement_repository import (
+from src.modules.achievements.domain.ports.achievement_repository import (
     AchievementView,
 )
-from src.domain.ports.unit_of_work import IUnitOfWork
+from src.modules.achievements.domain.ports.unit_of_work import IAchievementsUnitOfWork
 from src.shared.domain import UserId
 
 
@@ -14,7 +14,7 @@ class ListUserAchievementsInputDTO:
 class ListUserAchievementsUseCase:
     raises = ()
 
-    def __init__(self, uow: IUnitOfWork) -> None:
+    def __init__(self, uow: IAchievementsUnitOfWork) -> None:
         self.uow = uow
 
     async def execute(self, dto: ListUserAchievementsInputDTO) -> list[AchievementView]:

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 
-from src.domain.value_objects.ids import AchievementId
+from src.modules.achievements.domain.value_objects.ids import AchievementId
 from src.shared.domain import UserId
 
 
@@ -14,15 +14,9 @@ class AchievementView:
 
 
 class IAchievementRepository(ABC):
-    """
-    Porta para gerenciar e consultar as conquistas (badges) dos usuários.
-    """
+    """As conquistas (badges) desbloqueadas pelos usuários."""
 
     @abstractmethod
     async def get_user_achievements_view(self, user_id: UserId) -> list[AchievementView]:
         """Medalhas desbloqueadas pelo usuário."""
-        ...
-
-    @abstractmethod
-    async def grant_badge(self, user_id: UserId, badge_code: str) -> None:
         ...

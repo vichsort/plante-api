@@ -105,8 +105,7 @@ module = [
     "src.shared.adapters.redis.client",  # redis-py: todo comando devolve Any
     "src.shared.adapters.providers.gemini_client",  # google-genai: config e erros tipados com Any
     "src.modules.identity.adapters.security.jwt_token_service",  # PyJWT: payload é dict[str, Any] (validado por Pydantic logo depois)
-    "src.adapters.persistence.*",  # SQLAlchemy ORM: modelos e consultas carregam genéricos com Any
-    "src.shared.adapters.persistence.*",
+    "src.shared.adapters.persistence.*",  # SQLAlchemy ORM: modelos e consultas carregam genéricos com Any
     "src.modules.*.adapters.persistence.*",
     # Celery: tasks e sinais
     "src.bootstrap.celery_config",
@@ -114,9 +113,7 @@ module = [
     "src.modules.*.workers.tasks",
     "src.bootstrap.worker",  # sinais do Celery
     # FastAPI / dependency_injector: decorators de rota e @inject, scope ASGI, erros de validação
-    "src.api.routers.*",
     "src.modules.*.api.router",
-    "src.api.deps",
     "src.shared.api.exception_handlers",
     "src.shared.api.authentication",  # `app.state` do Starlette é Any (o verificador sai conferido por isinstance)
     "src.shared.api.middleware.audit",
@@ -146,39 +143,37 @@ disallow_any_explicit = false
 root_package = "src"
 include_external_packages = true
 
-# Transição para o monólito modular (item 8): o código em camadas antigo (`api`, `workers`,
-# `adapters`, `domain`) convive com `modules` e `shared` até cada módulo migrar. Uma camada só
-# importa as de baixo: o código antigo pode usar módulos e o kernel; módulos e kernel nunca usam
-# o código antigo. `src.main` e `src.bootstrap` são a composição (montam containers e o app).
+# Uma camada só importa as de baixo. `src.main` e `src.bootstrap` são a composição (montam
+# containers e o app); `src.workers` é a entrada do Celery (`celery -A src.workers`). Módulos e
+# kernel nunca importam a composição.
 [[tool.importlinter.contracts]]
-name = "Camadas: entradas -> composição -> código antigo -> módulos -> shared"
+name = "Camadas: entradas -> composição -> módulos -> shared"
 type = "layers"
 containers = ["src"]
 layers = [
     "main",
-    "api | workers",
+    "workers",
     "bootstrap",
-    "adapters",
-    "domain",
     "modules",
     "shared",
 ]
 exhaustive = true  # pacote novo em `src` precisa entrar numa camada
 
-# As entradas recebem adapters pelo container, nunca importando-os direto.
+# As entradas recebem adapters pelo container, nunca importando-os direto (as rotas e tasks dos
+# módulos seguem as camadas de cada módulo, abaixo).
 [[tool.importlinter.contracts]]
 name = "Entradas não importam adapters"
 type = "forbidden"
-source_modules = ["src.api", "src.workers"]
-forbidden_modules = ["src.adapters", "src.shared.adapters"]
+source_modules = ["src.workers"]
+forbidden_modules = ["src.shared.adapters"]
 allow_indirect_imports = true  # via src.bootstrap (o container) é o caminho esperado
 
-# Domínio puro (antigo, kernel e de cada módulo): só biblioteca padrão, `typing_extensions` e
-# `structlog` (logs).
+# Domínio puro (kernel e de cada módulo): só biblioteca padrão, `typing_extensions` e `structlog`
+# (logs).
 [[tool.importlinter.contracts]]
 name = "Domínio não importa frameworks"
 type = "forbidden"
-source_modules = ["src.domain", "src.shared.domain", "src.modules.*.domain"]
+source_modules = ["src.shared.domain", "src.modules.*.domain"]
 forbidden_modules = [
     "aioboto3",
     "aiofiles",
@@ -234,16 +229,16 @@ layers = [
 exhaustive = true
 
 # Entre módulos (ARCHITECTURE.md 3.7): uma camada só importa as de baixo; `|` separa módulos
-# independentes (não se importam). Entre parênteses, os que ainda não migraram.
+# independentes (não se importam).
 [[tool.importlinter.contracts]]
 name = "Dependências entre módulos"
 type = "layers"
 containers = ["src.modules"]
 layers = [
-    "(health) | (achievements)",
-    "(garden)",
-    "(identification)",
-    "(identity) | subscription | catalog | training",
+    "health | achievements",
+    "garden",
+    "identification",
+    "identity | subscription | catalog | training",
 ]
 exhaustive = true
 

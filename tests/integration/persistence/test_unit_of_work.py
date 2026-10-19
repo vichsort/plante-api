@@ -5,7 +5,9 @@ persistido (nenhum `commit` em `src`) e os testes não viam porque confirmavam �
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
+from src.modules.achievements.adapters.persistence.unit_of_work import (
+    SqlAlchemyAchievementsUnitOfWork,
+)
 from src.modules.catalog.adapters.persistence.unit_of_work import (
     SqlAlchemyCatalogUnitOfWork,
 )
@@ -62,7 +64,7 @@ async def test_exception_discards_changes(session_factory: async_sessionmaker[As
 
 
 async def test_repositories_share_one_transaction(session_factory: async_sessionmaker[AsyncSession]) -> None:
-    async with SqlAlchemyUnitOfWork(session_factory) as uow:
+    async with SqlAlchemyAchievementsUnitOfWork(session_factory) as uow:
         # A cadeia de FKs (usuário → identificação → planta, espécie, amostra de treino) só é
         # satisfeita se todos os repositórios usam a mesma transação, inclusive os dos módulos
         # (identity, catalog, training, identification, garden), que se juntam à transação aberta aqui

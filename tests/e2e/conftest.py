@@ -19,7 +19,6 @@ from dependency_injector import providers
 from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.adapters.persistence.unit_of_work import SqlAlchemyUnitOfWork
 from src.bootstrap.container import Container
 from src.bootstrap.wiring import wire
 from src.main import app
@@ -78,9 +77,8 @@ def doubles(
     # A ligação das rotas é global: outro teste pode ter ligado outro container
     wire(container)
     overrides = {
-        # Toda transação (código antigo e módulos) na conexão do teste
+        # Toda transação (de todos os módulos) na conexão do teste
         container.infra.session_factory: providers.Object(session_factory),
-        container.infra.unit_of_work: providers.Factory(SqlAlchemyUnitOfWork, session_factory=session_factory),
         container.adapters.redis: providers.Object(redis_client),
         container.identification.plant_identifier: providers.Object(fakes.identifier),
         container.health.analyzer: providers.Object(fakes.health_analyzer),
