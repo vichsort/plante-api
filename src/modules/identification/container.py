@@ -22,7 +22,7 @@ from src.modules.identification.domain.use_cases.identify_plant import (
     IdentifyPlantUseCase,
 )
 from src.modules.identity import IUserDirectory
-from src.modules.quota import ITokenWallet
+from src.modules.quota import IProviderBudget, ITokenWallet
 from src.modules.training import ITrainingRecorder
 from src.shared.adapters import CircuitBreaker, KindwiseClient
 from src.shared.domain import IDomainPublisher, IImageSanitizer, IImageStorage
@@ -46,6 +46,7 @@ class IdentificationContainer(containers.DeclarativeContainer):
     consensus_enabled: providers.Dependency[bool] = providers.Dependency()
     users: providers.Dependency[IUserDirectory] = providers.Dependency()
     wallet: providers.Dependency[ITokenWallet] = providers.Dependency()
+    budget: providers.Dependency[IProviderBudget] = providers.Dependency()
     training: providers.Dependency[ITrainingRecorder] = providers.Dependency()
     catalog: providers.Dependency[ISpeciesRegistry] = providers.Dependency()
 
@@ -77,6 +78,7 @@ class IdentificationContainer(containers.DeclarativeContainer):
         publisher=publisher,
         users=users,
         wallet=wallet,
+        budget=budget,
         training=training,
         catalog=catalog,
     )

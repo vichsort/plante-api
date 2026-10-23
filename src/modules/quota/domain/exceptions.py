@@ -23,3 +23,15 @@ class DailyQuotaExceededError(PlantEError):
             message=f"Daily tokens of the {quota} quota used up ({used_today} of {daily_limit}). They renew tomorrow.",
             details={"quota": quota, "used_today": used_today, "daily_limit": daily_limit},
         )
+
+
+class ServiceDailyLimitError(PlantEError):
+    """The whole service's identifications and diagnoses for today are used up; they renew tomorrow."""
+    code = "PLANTE_4251_SERVICE_DAILY_LIMIT_REACHED"
+    status_code = 429
+
+    def __init__(self, daily_limit: int):
+        super().__init__(
+            message="The service reached its daily limit of identifications and diagnoses. Try again tomorrow.",
+            details={"daily_limit": daily_limit},
+        )

@@ -1,9 +1,10 @@
 from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from src.modules.identity.api.schemas import (
+    AcceptTermsRequest,
     ChangeEmailRequest,
     ChangePasswordRequest,
     DeleteAccountRequest,
@@ -11,11 +12,16 @@ from src.modules.identity.api.schemas import (
     RefreshRequest,
     RegisterRequest,
     RegisterResponse,
+    TermsResponse,
     TokenResponse,
     UpdateLocationRequest,
     VerifyEmailRequest,
 )
 from src.modules.identity.container import IdentityContainer
+from src.modules.identity.domain.use_cases.accept_terms import (
+    AcceptTermsInputDTO,
+    AcceptTermsUseCase,
+)
 from src.modules.identity.domain.use_cases.change_email import (
     ChangeEmailInputDTO,
     ChangeEmailUseCase,
@@ -43,6 +49,7 @@ from src.modules.identity.domain.use_cases.verify_email import (
     VerifyEmailInputDTO,
     VerifyEmailUseCase,
 )
+from src.modules.identity.domain.value_objects.terms import Terms
 from src.shared.api import ApiResponse, CurrentUserId, MessageResponse, error_responses
 from src.shared.domain import UnauthorizedError, UserId
 
@@ -60,6 +67,7 @@ profile_router = APIRouter(prefix="/profile", tags=["profile"], responses=error_
 @inject
 async def register(
     body: RegisterRequest,
+    request: Request,
     use_case: Annotated[RegisterUserUseCase, Depends(Provide[IdentityContainer.register_user_use_case])],
 ) -> ApiResponse[RegisterResponse]:
     user = await use_case.execute(RegisterUserInputDTO(
@@ -67,6 +75,9 @@ async def register(
         password=body.password,
         country=body.country,
         state=body.state,
+        accepted_terms_version=body.accepted_terms_version,
+        captcha_token=body.captcha_token,
+        client_ip=request.client.host if request.client else None,
     ))
     return ApiResponse.success(RegisterResponse.from_domain(user))
 
@@ -215,7 +226,37 @@ async def delete_account(
     return ApiResponse.success(MessageResponse(message="Account deleted."))
 
 
+terms_router = APIRouter(tags=["terms"])
+
+
+@terms_router.get("/terms", status_code=200, response_model=ApiResponse[TermsResponse])
+@inject
+async def get_terms(
+    terms: Annotated[Terms, Depends(Provide[IdentityContainer.terms])],
+) -> ApiResponse[TermsResponse]:
+    """The terms in force. Public: the sign-up form shows them before there is an account."""
+    return ApiResponse.success(TermsResponse.from_domain(terms))
+
+
+@profile_router.post(
+    "/terms",
+    status_code=200,
+    response_model=ApiResponse[MessageResponse],
+    responses=error_responses(*AcceptTermsUseCase.raises),
+)
+@inject
+async def accept_terms(
+    body: AcceptTermsRequest,
+    use_case: Annotated[AcceptTermsUseCase, Depends(Provide[IdentityContainer.accept_terms_use_case])],
+    user_id: CurrentUserId,
+) -> ApiResponse[MessageResponse]:
+    """Accepts a new version of the terms (the AI routes answer 403 until then)."""
+    await use_case.execute(AcceptTermsInputDTO(user_id=user_id, version=body.version))
+    return ApiResponse.success(MessageResponse(message="Terms accepted."))
+
+
 # Um router só para a composição incluir
 router = APIRouter()
 router.include_router(auth_router)
 router.include_router(profile_router)
+router.include_router(terms_router)

@@ -82,6 +82,13 @@ class Settings(BaseSettings):
     # `starttls` (port 587), `ssl` (port 465) or `none` (a local relay only)
     smtp_security: Literal["starttls", "ssl", "none"] = "starttls"
 
+    # Cloudflare Turnstile on /auth/register; empty turns the captcha off (development)
+    turnstile_secret_key: str = ""
+    # The terms in force: a new version makes everyone accept again before using the AI; the text
+    # lives on the site (`TERMS_URL`)
+    terms_version: str = "1"
+    terms_url: str | None = None
+
     # Aws
     aws_region: str = "us-east-1"
     s3_bucket: str = "plante-bucket-name"
@@ -101,6 +108,9 @@ class Settings(BaseSettings):
     quota_standard_daily_tokens: int = 3
     quota_extended_max_plants: int = 10
     quota_extended_daily_tokens: int = 10
+    # The whole service's identifications and diagnoses per local day (1 Kindwise credit each),
+    # however many accounts there are
+    provider_daily_limit: int = 30
 
 @lru_cache
 def get_settings() -> Settings:

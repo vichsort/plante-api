@@ -60,6 +60,9 @@ class Container(containers.DeclarativeContainer):
         smtp_username=settings.provided.smtp_username,
         smtp_password=settings.provided.smtp_password,
         smtp_security=settings.provided.smtp_security,
+        turnstile_secret_key=settings.provided.turnstile_secret_key,
+        terms_version=settings.provided.terms_version,
+        terms_url=settings.provided.terms_url,
     )
 
     quota_limits = providers.Singleton(
@@ -81,6 +84,8 @@ class Container(containers.DeclarativeContainer):
         session_factory=infra.session_factory,
         calendar=calendar,
         limits=quota_limits,
+        redis=adapters.redis,
+        provider_daily_limit=settings.provided.provider_daily_limit,
     )
 
     identification = providers.Container(
@@ -96,6 +101,7 @@ class Container(containers.DeclarativeContainer):
         consensus_enabled=settings.provided.consensus_enabled,
         users=identity.directory,
         wallet=quota.token_wallet,
+        budget=quota.provider_budget,
         training=training.recorder,
         catalog=catalog.registry,
     )
@@ -123,6 +129,7 @@ class Container(containers.DeclarativeContainer):
         gemini_api_key=settings.provided.gemini_api_key,
         users=identity.directory,
         wallet=quota.token_wallet,
+        budget=quota.provider_budget,
         training=training.recorder,
         plants=garden.lookup,
     )

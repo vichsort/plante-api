@@ -44,3 +44,24 @@ class InvalidVerificationCodeError(PlantEError):
 
     def __init__(self, message: str = "Invalid verification code."):
         super().__init__(message=message)
+
+
+class CaptchaFailedError(PlantEError):
+    """The captcha token is missing, invalid, expired or already used: solve the captcha again."""
+    code = "PLANTE_4103_CAPTCHA_FAILED"
+    status_code = 400
+
+    def __init__(self) -> None:
+        super().__init__(message="Captcha verification failed. Solve the captcha again.")
+
+
+class TermsNotAcceptedError(PlantEError):
+    """The user has not accepted the terms in force: accept them (sign-up, or `POST /profile/terms`)."""
+    code = "PLANTE_4121_TERMS_NOT_ACCEPTED"
+    status_code = 403
+
+    def __init__(self, current_version: str) -> None:
+        super().__init__(
+            message=f"Accept the terms in force (version {current_version}) to continue.",
+            details={"current_version": current_version},
+        )

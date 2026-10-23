@@ -15,10 +15,19 @@ from src.modules.identification.tests.fakes import (
     StubPlantIdentifier,
     make_result,
 )
-from src.modules.identity import UserLocation
+from src.modules.identity import TermsNotAcceptedError, UserLocation
 from src.modules.identity.tests.fakes import FakeUserDirectory
-from src.modules.quota import DailyQuotaExceededError, FeatureCost
-from src.modules.quota.tests.fakes import FakeTokenWallet
+from src.modules.quota import (
+    DailyQuotaExceededError,
+    FeatureCost,
+    IProviderBudget,
+    ServiceDailyLimitError,
+)
+from src.modules.quota.tests.fakes import (
+    FakeTokenWallet,
+    InMemoryUsageCounter,
+    make_provider_budget,
+)
 from src.modules.training.tests.fakes import FakeTrainingRecorder
 from src.shared.domain import UserId
 from src.shared.tests.fakes import (
@@ -35,18 +44,23 @@ class _Scenario:
     """O use case com todas as portas em memória, para o teste olhar o estado de cada uma."""
     confidence: float = 0.9
     used_today: int = 0
+    daily_limit: int = 30
     uow: FakeIdentificationUnitOfWork = field(default_factory=FakeIdentificationUnitOfWork)
     identifier: StubPlantIdentifier = field(init=False)
     storage: RecordingImageStorage = field(default_factory=RecordingImageStorage)
     publisher: RecordingPublisher = field(default_factory=RecordingPublisher)
     wallet: FakeTokenWallet = field(init=False)
+    budget: IProviderBudget = field(init=False)
+    provider_calls: InMemoryUsageCounter = field(init=False)
     training: FakeTrainingRecorder = field(default_factory=FakeTrainingRecorder)
     catalog: FakeSpeciesRegistry = field(default_factory=FakeSpeciesRegistry)
     location: UserLocation = field(default_factory=lambda: UserLocation(country="BR", state="SP"))
+    terms_accepted: bool = True
 
     def __post_init__(self) -> None:
         self.identifier = StubPlantIdentifier(make_result(confidence=self.confidence))
         self.wallet = FakeTokenWallet(used_today=self.used_today)
+        self.budget, self.provider_calls = make_provider_budget(self.daily_limit)
 
     def use_case(self) -> IdentifyPlantUseCase:
         return IdentifyPlantUseCase(
@@ -55,8 +69,9 @@ class _Scenario:
             plant_identifier=self.identifier,
             storage=self.storage,
             publisher=self.publisher,
-            users=FakeUserDirectory(location=self.location),
+            users=FakeUserDirectory(location=self.location, without_terms=set() if self.terms_accepted else {USER}),
             wallet=self.wallet,
+            budget=self.budget,
             training=self.training,
             catalog=self.catalog,
         )
@@ -145,6 +160,29 @@ async def test_identification_without_tokens_is_refused_before_calling_providers
         await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
     assert scenario.identifier.calls == []
     assert scenario.uow.commits == 0
+    assert scenario.provider_calls.total == 0  # the user's own check comes first
+
+
+async def test_identification_past_the_service_daily_limit_is_refused_before_calling_providers() -> None:
+    # Arrange: the user still has tokens, but the whole service spent today's calls
+    scenario = _Scenario(daily_limit=1)
+    await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
+
+    # Act & Assert
+    with pytest.raises(ServiceDailyLimitError):
+        await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
+    assert len(scenario.identifier.calls) == 1
+    assert (scenario.uow.commits, scenario.wallet.charged) == (1, 1)
+
+
+async def test_identification_without_the_terms_in_force_sends_the_photo_nowhere() -> None:
+    # Arrange: the photo would go to the providers and the dataset, which the terms cover
+    scenario = _Scenario(terms_accepted=False)
+
+    # Act & Assert
+    with pytest.raises(TermsNotAcceptedError):
+        await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
+    assert (scenario.identifier.calls, scenario.storage.user_uploads, scenario.provider_calls.total) == ([], [], 0)
 
 
 async def test_rejected_confidence_records_nothing() -> None:

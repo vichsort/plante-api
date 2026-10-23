@@ -2,56 +2,73 @@
 
 ## Propósito
 
-O plano do usuário (`FREE` ou `PRO`) e a cota diária de tokens que as ações de IA consomem.
+How much AI each user may spend, and how much the whole service may spend
+(`docs/decisions/2026-10-19-funding-and-quota.md`):
 
-- **O plano é demonstrativo:** não há compra nem rota de upgrade (a pública foi removida na `v0.1.3`).
-- **A cota é regra de verdade:** ela protege os créditos do Kindwise e do Gemini.
+- **Quota level per user:** `standard` for everyone; `extended`, granted by the maintainer on
+  request, never for payment. There is no paid plan and no upgrade route.
+- **Daily tokens per user**, which the AI actions spend.
+- **The service's daily limit** of calls to the paid providers, however many accounts there are.
 
-Fica de fora: pagamento, e saber se o usuário existe. Este é um módulo base; quem tem a conta é o
-identity, e aqui só existe a FK para `users`.
+All of it protects the providers' credits (Kindwise, Gemini), so it is real rule, not decoration.
+
+Out of scope: payment, and knowing whether the user exists. This is a base module; the identity owns
+the account, and here there is only the FK to `users`.
 
 ## API pública
 
-`src.modules.quota` exporta só domínio:
+`src.modules.quota` exports domain only:
 
-- **`ITokenWallet`**: a cota, para quem consome IA (identificação, diagnóstico). O uso esperado:
-  1. conferir o saldo antes das chamadas caras (`ensure_can_identify`, `ensure_can_diagnose`,
+- **`ITokenWallet`**: the user's daily tokens, for whoever spends AI (identification, diagnosis):
+  1. check the balance before the expensive calls (`ensure_can_identify`, `ensure_can_diagnose`,
      `can_enrich_diagnosis`);
-  2. chamar os provedores fora da transação;
-  3. cobrar com `charge`, **dentro da transação de quem chama**, junto com o que foi entregue.
+  2. call the providers outside the transaction;
+  3. charge with `charge`, **inside the caller's transaction**, together with what was delivered.
 
-  Chamado fora de uma transação, `charge` levanta erro em vez de perder a cobrança em silêncio.
-- **`IGardenQuota`**: o limite de plantas no jardim pelo plano ativo.
-- **Tipos:** `Subscription`, `SubscriptionTier`, `FeatureCost` e os erros abaixo.
+  Called outside a transaction, `charge` raises instead of losing the charge silently.
+- **`IProviderBudget`**: the service's daily limit. `take(now)` right before calling the provider,
+  after the user's own checks.
+- **`IGardenQuota`**: the garden's plant limit for the active level.
+- **Types:** `Quota`, `QuotaLevel`, `QuotaLimits`/`LevelLimits`, `FeatureCost`,
+  `GrantExtendedQuotaInputDTO`/`MAX_GRANT_DAYS` and the errors below.
 
-O módulo não tem rotas. A composição o monta por `src.modules.quota.container`. Os
-dublês do wallet e da quota para testes ficam em `tests/fakes.py`, com as regras de verdade.
+The module has no routes. The composition builds it through `src.modules.quota.container`; the
+maintainer's command is `src.bootstrap.quota_admin` (`grant`/`revoke`). The doubles for tests live
+in `tests/fakes.py`, with the real rules.
 
 ## Decisões
 
-- **Sem linha = FREE com a cota cheia.** O cadastro não chama este módulo. A linha nasce na primeira
-  cobrança. Por isso uma conta nova não precisa de nada aqui, e a migration
-  (`f4c2a8d6e1b3`) só copiou de `users` quem tinha algo diferente do padrão.
-- **Vale o plano ativo:** PRO vencido conta como FREE (`Subscription.active_tier`).
-- **Cota diária no dia local** (`LocalCalendar`, `LOCAL_TIMEZONE`), sem cron. `tokens_day` guarda o
-  dia a que o contador se refere, e a primeira cobrança de um dia novo recomeça do zero.
-  - Limites: FREE 3 tokens por dia e 3 plantas; PRO 30 tokens e 50 plantas.
-  - Custos: identificar 1; diagnóstico 1, mais 1 pelo complemento do Gemini (só chamado se os 2
-    couberem, e só cobrado se entregue); análise profunda 2 (a feature ainda não existe).
-- **A cobrança trava a linha** (`INSERT … ON CONFLICT DO NOTHING` + `SELECT … FOR UPDATE`).
-  - Antes, duas identificações simultâneas podiam ler o mesmo saldo, e uma cobrança sobrescrevia a
-    outra (o usuário ganhava tokens).
-  - O `INSERT` prévio também cobre a primeira cobrança de quem ainda não tem linha.
-- **Conta inexistente:** a única FK da tabela é para `users`, então a violação dela vira
-  `UserNotFoundError` (do kernel), sem este módulo importar o identity.
-- **Conferir o saldo antes, cobrar depois.** O saldo é conferido antes de chamar os provedores (eles
-  gastam crédito), e a cobrança é feita na escrita, sobre a linha travada. Duas requisições
-  simultâneas podem passar pela conferência com o último token; a segunda cobrança ultrapassa a
-  cota em 1. Aceito: travar a linha durante as chamadas à IA prenderia uma conexão por segundos.
+- **No row = `standard` with a full quota.** Signing up does not call this module; the row is born
+  on the first charge or grant.
+- **The active level counts:** an expired `extended` counts as `standard` (`Quota.active_level`).
+  A grant lasts up to `MAX_GRANT_DAYS` (365), counts from now and starts with a full quota; a
+  revoke goes back to `standard` at once, and today's tokens stay spent.
+- **Limits come from the settings** (`QUOTA_STANDARD_*`, `QUOTA_EXTENDED_*`): a collective goal
+  raises `standard` without touching code. Defaults: `standard` 3 tokens a day and 3 plants;
+  `extended` 10 and 10.
+- **Daily tokens on the local day** (`LocalCalendar`, `LOCAL_TIMEZONE`), with no cron. `tokens_day`
+  keeps the day the counter refers to, and the first charge of a new day starts from zero.
+  - Costs: identify 1; diagnosis 1, plus 1 for Gemini's add-on (called only if both fit, and
+    charged only if delivered); deep analysis 2 (the feature does not exist yet).
+- **The charge locks the row** (`INSERT … ON CONFLICT DO NOTHING` + `SELECT … FOR UPDATE`): two
+  simultaneous identifications cannot read the same balance and overwrite each other's charge.
+- **Missing account:** the table's only FK is to `users`, so its violation becomes
+  `UserNotFoundError` (from the kernel), without this module importing the identity.
+- **Check the balance before, charge after.** Two simultaneous requests may both pass the check
+  with the last token; the second charge goes 1 over. Accepted: locking the row during the AI calls
+  would hold a connection for seconds.
+- **The service's daily limit** (`PROVIDER_DAILY_LIMIT`, default 30): identifications and diagnoses
+  (1 Kindwise credit each) per local day, counted in Redis (`plante:usage:provider_calls:<day>`,
+  shared by every API process, expires in two days).
+  - The per-user quota does not cover it: throwaway accounts each bring their own tokens.
+  - Counted before the call: a provider failure still spends one (conservative). Gemini is not
+    counted (separate, degradable add-on).
+  - Redis down fails closed (`ServiceUnavailableError`): no count, no paid call.
 
 ## Erros
 
 | Código | Erro | HTTP | Quando |
 | :--- | :--- | :---: | :--- |
-| `PLANTE_4220_PLANT_LIMIT_REACHED` | `PlantLimitExceededError` | 403 | O plano ativo (Pro também) atingiu o limite de plantas no jardim. `details`: `plan`, `current_count`, `max_allowed`. |
-| `PLANTE_4250_DAILY_QUOTA_EXCEEDED` | `DailyQuotaExceededError` | 429 | Tokens do dia do plano ativo (Pro também) esgotados para a ação pedida; renovam no dia seguinte. `details`: `plan`, `used_today`, `daily_limit`. |
+| `PLANTE_4220_PLANT_LIMIT_REACHED` | `PlantLimitExceededError` | 403 | The active level (`extended` too) reached the garden's plant limit. `details`: `quota`, `current_count`, `max_allowed`. |
+| `PLANTE_4250_DAILY_QUOTA_EXCEEDED` | `DailyQuotaExceededError` | 429 | The active level's tokens for today (`extended` too) are not enough for the action; they renew the next day. `details`: `quota`, `used_today`, `daily_limit`. |
+| `PLANTE_4251_SERVICE_DAILY_LIMIT_REACHED` | `ServiceDailyLimitError` | 429 | The whole service spent today's identifications and diagnoses; they renew the next day. `details`: `daily_limit`. |

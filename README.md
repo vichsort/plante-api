@@ -180,6 +180,9 @@ Copie `.env.example` para `.env` e preencha:
 | `EMAIL_FROM` | Remetente dos e-mails |
 | `EMAIL_VERIFICATION_REQUIRED` | `false` enquanto não houver provedor: a conta já nasce verificada |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USERNAME` / `SMTP_PASSWORD` / `SMTP_SECURITY` | Provedor SMTP (`starttls`, `ssl` ou `none`) |
+| `TURNSTILE_SECRET_KEY` | Chave secreta do Cloudflare Turnstile (captcha do cadastro); vazia desliga |
+| `TERMS_VERSION` / `TERMS_URL` | Versão vigente dos termos e o link do texto (no site); versão nova exige novo aceite |
+| `PROVIDER_DAILY_LIMIT` | Identificações + diagnósticos por dia no serviço inteiro (padrão 30) |
 
 ---
 

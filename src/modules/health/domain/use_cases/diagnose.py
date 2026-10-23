@@ -14,11 +14,13 @@ from src.modules.health.domain.ports.health_enricher import (
 from src.modules.health.domain.ports.unit_of_work import IHealthUnitOfWork
 from src.modules.health.domain.value_objects.ids import HealthRecordId
 from src.modules.identification import NotAPlantError
-from src.modules.identity import IUserDirectory
+from src.modules.identity import IUserDirectory, TermsNotAcceptedError
 from src.modules.quota import (
     DailyQuotaExceededError,
     FeatureCost,
+    IProviderBudget,
     ITokenWallet,
+    ServiceDailyLimitError,
 )
 from src.modules.training import (
     HealthSeverity,
@@ -83,6 +85,8 @@ class DiagnoseHealthUseCase:
         NotAPlantError,
         PlantNotFoundError,
         DailyQuotaExceededError,
+        ServiceDailyLimitError,
+        TermsNotAcceptedError,
         UserNotFoundError,
     )
 
@@ -95,6 +99,7 @@ class DiagnoseHealthUseCase:
         storage: IImageStorage,
         users: IUserDirectory,
         wallet: ITokenWallet,
+        budget: IProviderBudget,
         training: ITrainingRecorder,
         plants: IPlantLookup,
     ) -> None:
@@ -102,6 +107,7 @@ class DiagnoseHealthUseCase:
         self._training = training
         self._users = users
         self._wallet = wallet
+        self._budget = budget
         self._uow = uow
         self._sanitizer = sanitizer
         self._health_analyzer = health_analyzer
@@ -114,11 +120,13 @@ class DiagnoseHealthUseCase:
         # 1. Leitura curta: a transação não fica aberta durante as chamadas à IA e ao S3
         async with self._uow as uow:
             region = await self._users.region_of(dto.user_id)
+            await self._users.ensure_accepted_terms(dto.user_id)
 
             user_plant = await self._plants.get_for_user(dto.user_plant_id, dto.user_id)
 
             await self._wallet.ensure_can_diagnose(dto.user_id, now)
             can_enrich = await self._wallet.can_enrich_diagnosis(dto.user_id, now)
+        await self._budget.take(now)
 
         # 2. Serviços externos, só com a foto já sem metadados (GPS, aparelho, data)
         image_bytes = self._sanitizer.sanitize(dto.image_bytes)

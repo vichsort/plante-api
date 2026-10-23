@@ -8,7 +8,7 @@ from src.modules.identity.domain.use_cases.register_user import (
     RegisterUserInputDTO,
     RegisterUserUseCase,
 )
-from src.modules.identity.tests.fakes import PlainHasher
+from src.modules.identity.tests.fakes import TERMS, PlainHasher, StubCaptchaVerifier
 from src.shared.domain import DomainEvent, IDomainPublisher
 
 
@@ -32,10 +32,15 @@ class _PublisherThatChecksPersistence(IDomainPublisher):
 async def test_register_persists_the_user_before_publishing(session_factory: async_sessionmaker[AsyncSession]) -> None:
     # Arrange: o e-mail de verificação não pode sair para um usuário que não foi gravado
     publisher = _PublisherThatChecksPersistence(session_factory)
-    use_case = RegisterUserUseCase(uow=SqlAlchemyIdentityUnitOfWork(session_factory), hasher=PlainHasher(), publisher=publisher, verification_required=True)
+    use_case = RegisterUserUseCase(
+        uow=SqlAlchemyIdentityUnitOfWork(session_factory), hasher=PlainHasher(), publisher=publisher,
+        captcha=StubCaptchaVerifier(), terms=TERMS, verification_required=True,
+    )
 
     # Act
-    await use_case.execute(RegisterUserInputDTO(email="E2E@Plante.org", password="Secret123", country="BR", state="SP"))
+    await use_case.execute(RegisterUserInputDTO(
+        email="E2E@Plante.org", password="Secret123", country="BR", state="SP", accepted_terms_version="1", captcha_token="captcha-ok",
+    ))
 
     # Assert
     assert publisher.user_was_persisted is True

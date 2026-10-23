@@ -1,11 +1,12 @@
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, StringConstraints
+from pydantic import BaseModel, EmailStr, Field, StringConstraints
 
 from src.modules.identity.domain.entities.user import User
 from src.modules.identity.domain.use_cases.login import LoginResult
 from src.modules.identity.domain.use_cases.refresh_token import RefreshResult
+from src.modules.identity.domain.value_objects.terms import Terms
 
 # Same rules as `UserLocation`, checked here so a bad value is a 422 and not a 500
 Country = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^[A-Za-z]{2}$")]  # ISO 3166-1 alpha-2
@@ -17,6 +18,10 @@ class RegisterRequest(BaseModel):
     password: str
     country: Country
     state: State
+    # The version of the terms the user saw and accepted (`GET /terms`); it must be the one in force
+    accepted_terms_version: str = Field(min_length=1, max_length=50)
+    # The token the site's Turnstile widget produced; required when the API has the captcha on
+    captcha_token: str | None = Field(default=None, max_length=2048)
 
 class RegisterResponse(BaseModel):
     user_id: UUID
@@ -70,3 +75,17 @@ class DeleteAccountRequest(BaseModel):
 class UpdateLocationRequest(BaseModel):
     country: Country
     state: State
+
+
+class TermsResponse(BaseModel):
+    """The terms in force: the site shows them (`url`) and sends `version` back on sign-up."""
+    version: str
+    url: str | None
+
+    @classmethod
+    def from_domain(cls, terms: Terms) -> "TermsResponse":
+        return cls(version=terms.version, url=terms.url)
+
+
+class AcceptTermsRequest(BaseModel):
+    version: str = Field(min_length=1, max_length=50)

@@ -69,12 +69,13 @@ from src.modules.identity.adapters.persistence.unit_of_work import (
     SqlAlchemyIdentityUnitOfWork,
 )
 from src.modules.identity.domain.services.user_directory import UserDirectory
+from src.modules.identity.domain.value_objects.terms import Terms
 from src.modules.quota.adapters.persistence.unit_of_work import (
     SqlAlchemyQuotaUnitOfWork,
 )
 from src.modules.quota.domain.services.garden_quota import GardenQuota
 from src.modules.quota.domain.services.token_wallet import TokenWallet
-from src.modules.quota.tests.fakes import POLICY
+from src.modules.quota.tests.fakes import POLICY, make_provider_budget
 from src.modules.training import (
     DiseaseSuggestion,
     FeedbackOrigin,
@@ -148,7 +149,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     async with SqlAlchemyIdentityUnitOfWork(session_factory) as setup:
         user = await setup.users.save(make_user(email="flow@plante.org"))
         await setup.commit()
-    users = UserDirectory(SqlAlchemyIdentityUnitOfWork(session_factory))
+    users = UserDirectory(SqlAlchemyIdentityUnitOfWork(session_factory), Terms(version="1"))
 
     storage = _storage()
     enricher = AsyncMock()
@@ -157,7 +158,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     # 1. Identificar (com GPS) e dar feedback
     identified = await IdentifyPlantUseCase(
         uow=identifications(), sanitizer=MarkingSanitizer(), plant_identifier=_identifier(), storage=storage, publisher=AsyncMock(),
-        users=users, wallet=wallet(), training=training(), catalog=SpeciesRegistry(SqlAlchemyCatalogUnitOfWork(session_factory)),
+        users=users, wallet=wallet(), budget=make_provider_budget()[0], training=training(), catalog=SpeciesRegistry(SqlAlchemyCatalogUnitOfWork(session_factory)),
     ).execute(IdentifyPlantInputDTO(user_id=user.id, image_bytes=b"photo", latitude=-23.5617, longitude=-46.6559))
 
     await GiveIdentificationFeedbackUseCase(uow=identifications(), training=training()).execute(GiveIdentificationFeedbackInputDTO(
@@ -180,7 +181,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     # 3. Diagnosticar e dar feedback
     diagnosis = await DiagnoseHealthUseCase(
         uow=health(), sanitizer=MarkingSanitizer(), health_analyzer=_analyzer(), enricher=enricher, storage=storage,
-        users=users, wallet=wallet(), training=training(), plants=PlantLookup(garden()),
+        users=users, wallet=wallet(), budget=make_provider_budget()[0], training=training(), plants=PlantLookup(garden()),
     ).execute(DiagnoseHealthInputDTO(user_id=user.id, user_plant_id=plant.id, image_bytes=b"leaf"))
 
     await GiveHealthFeedbackUseCase(uow=health(), training=training()).execute(GiveHealthFeedbackInputDTO(

@@ -12,6 +12,7 @@ from src.modules.identity.api import router
 from src.modules.identity.container import IdentityContainer
 from src.modules.identity.domain.use_cases.login import LoginResult
 from src.modules.identity.domain.use_cases.refresh_token import RefreshResult
+from src.modules.identity.domain.value_objects.terms import Terms
 from src.modules.identity.tests.fakes import make_user
 from src.shared.api import install_authentication, register_exception_handlers
 from src.shared.domain import IAccessTokenVerifier, UnauthorizedError, UserId
@@ -54,16 +55,19 @@ def api() -> Iterator[_App]:
 def test_register_returns_the_pending_account(api: _App) -> None:
     # Arrange
     user = make_user(email="integration@plante.org", is_verified=False)
-    api.use_case(api.container.register_user_use_case, user)
+    use_case = api.use_case(api.container.register_user_use_case, user)
 
     # Act
     response = api.client.post("/auth/register", json={
         "email": "integration@plante.org", "password": "SecretPassword123", "country": "BR", "state": "SP",
+        "accepted_terms_version": "1", "captcha_token": "widget-token",
     })
 
     # Assert
     assert response.status_code == 201
     assert response.json()["data"] == {"user_id": str(user.id), "email": "integration@plante.org", "status": "pending_verification"}
+    dto = use_case.execute.call_args.args[0]
+    assert (dto.accepted_terms_version, dto.captcha_token, dto.client_ip) == ("1", "widget-token", "testclient")
 
 
 @pytest.mark.parametrize(("path", "method", "location"), [
@@ -163,6 +167,30 @@ def test_profile_changes_are_confirmed(api: _App, path: str, body: dict[str, str
     # Assert
     assert (response.status_code, response.json()["data"]["message"]) == (200, message)
     assert use_case.execute.call_args.args[0].user_id == USER
+
+
+def test_the_terms_in_force_are_public(api: _App) -> None:
+    # Arrange
+    api.container.terms.override(providers.Object(Terms(version="2", url="https://plante.test/terms")))
+
+    # Act
+    response = api.client.get("/terms")
+
+    # Assert
+    assert (response.status_code, response.json()["data"]) == (200, {"version": "2", "url": "https://plante.test/terms"})
+
+
+def test_accepting_the_terms_goes_to_the_use_case(api: _App) -> None:
+    # Arrange
+    use_case = api.use_case(api.container.accept_terms_use_case)
+
+    # Act
+    response = api.client.post("/profile/terms", json={"version": "2"}, headers=AUTH)
+
+    # Assert
+    assert (response.status_code, response.json()["data"]["message"]) == (200, "Terms accepted.")
+    dto = use_case.execute.call_args.args[0]
+    assert (dto.user_id, dto.version) == (USER, "2")
 
 
 def test_delete_account_takes_the_password_in_the_body(api: _App) -> None:

@@ -28,6 +28,9 @@ class User:
     pending_email: str | None = None
     bio: str | None = None
     profile_picture_url: str | None = None
+    # Last version of the terms the user accepted, and when (LGPD: the consent is on record)
+    terms_version: str | None = None
+    terms_accepted_at: datetime | None = None
 
     def __post_init__(self) -> None:
         self.email = normalize_email(self.email)
@@ -53,6 +56,13 @@ class User:
 
     def verify_email(self) -> None:
         self.is_verified = True
+
+    def accept_terms(self, version: str, at: datetime) -> None:
+        self.terms_version = version
+        self.terms_accepted_at = at
+
+    def has_accepted(self, version: str) -> bool:
+        return self.terms_version == version
 
     def update_location(self, new_location: UserLocation) -> None:
         self.location = new_location

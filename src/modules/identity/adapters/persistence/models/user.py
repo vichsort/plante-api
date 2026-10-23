@@ -1,4 +1,6 @@
-from sqlalchemy import Boolean, CheckConstraint, String
+from datetime import datetime
+
+from sqlalchemy import Boolean, CheckConstraint, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.shared.adapters import AuditMixin, Base
@@ -21,3 +23,6 @@ class UserModel(Base, AuditMixin):
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
     profile_picture_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Last version of the terms accepted, and when (LGPD: the consent is on record)
+    terms_version: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

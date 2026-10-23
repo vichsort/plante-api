@@ -120,7 +120,7 @@ class Api:
 
     async def register(self, email: str, password: str = PASSWORD) -> httpx.Response:
         return await self.http.post(
-            "/auth/register", json={"email": email, "password": password, "country": "BR", "state": "SP"},
+            "/auth/register", json={"email": email, "password": password, "country": "BR", "state": "SP", "accepted_terms_version": "1"},
         )
 
     async def login(self, email: str, password: str = PASSWORD) -> httpx.Response:
