@@ -34,31 +34,17 @@ O site só ganha cadastro depois destes itens; captcha e aceite dos termos mudam
     no redirecionamento), `EMAIL_BACKEND=smtp` e `SMTP_*` no `.env`, e então
     `EMAIL_VERIFICATION_REQUIRED=true`.
   - Não existe "esqueci a senha": quem esquecer perde a conta até existir (depende de e-mail).
-- [ ] **Cadastro protegido** (branch `feat/signup`).
-  1. **Teto global diário de identificações** (configurável): protege os créditos do Kindwise
-     independente de quantas contas existam.
-  2. **Captcha validado na API** (Cloudflare Turnstile, grátis). Captcha só no site não protege: um
-     robô chama `/auth/register` direto. Fluxo: o widget no site (com a *site key*) gera um token de
-     uso único (~5 min); o site manda o token no próprio cadastro (não num endpoint separado, que o
-     robô pularia); a API confere com a *secret key* em
-     `https://challenges.cloudflare.com/turnstile/v0/siteverify` e só cadastra se for válido.
-     - Decidido: campo `captcha_token` no corpo do `/auth/register`; só no cadastro (o login fica
-       com o rate limit).
-     - API: porta de verificação no identity, adaptador HTTP do Turnstile e falso nos testes; erro
-       próprio no identity (400) para token inválido; sem secret key, verificação desligada
-       (dev/testes) com aviso no log da subida. A Cloudflare tem chaves de teste que sempre passam
-       ou sempre falham.
-     - Usuário: painel da Cloudflare → Turnstile → Add widget; hostnames = domínio do site +
-       `localhost`; modo Managed. Site key no site, secret key no `.env` da API.
-  3. **Consentimento para o treino (LGPD):** aceite dos termos registrado no cadastro (versão e
-     data), dizendo que as fotos viram dataset anônimo **e** que são enviadas a provedores de
-     identificação (o Kindwise pode usá-las para treinar e redistribuí-las em CC BY-SA 4.0, T&C
-     17.5). Sem isso não se coleta dado de treino em público.
-     - Decidido: `GET /terms` (público: versão vigente e texto ou link);
-       `accepted_terms_version` no corpo do `/auth/register` (recusa se não for a vigente);
-       `POST /me/terms` para aceitar versão nova; sem aceite da vigente, as fotos do usuário não
-       vão para o treino.
-     - Usuário: o texto dos termos (posso rascunhar para revisão).
+- [ ] **Captcha: criar o widget** (o código está pronto; regras no README do identity). Painel da
+  Cloudflare → Turnstile → Add widget; hostnames = domínio do site + `localhost`; modo Managed.
+  Site key no site (o token vai em `captcha_token` no `/auth/register`); secret key em
+  `TURNSTILE_SECRET_KEY` no `.env` da API (vazia desliga o captcha).
+- [ ] **Termos: escrever o texto e publicar no site** (o código está pronto). Dizer que as fotos
+  vão aos provedores de identificação (o Kindwise pode treinar com elas e redistribuí-las em CC
+  BY-SA 4.0, T&C 17.5) e viram dataset anônimo. Depois, `TERMS_URL` (e `TERMS_VERSION`, que sobe a
+  cada mudança do texto) no `.env`. O site busca `GET /terms` e manda `accepted_terms_version` no
+  cadastro. Posso rascunhar o texto para revisão.
+- [ ] **Teto diário do serviço:** escolher `PROVIDER_DAILY_LIMIT` (padrão 30 identificações +
+  diagnósticos por dia) de acordo com os créditos comprados do Kindwise.
 - [ ] **Créditos do Kindwise:** a chave tem limite de 10 identificações por mês. Comprar créditos
   (menor pacote ~€50 / 1000) e ajustar o limite no painel. Cada `/identify` e `/diagnose` gasta 1.
 - [ ] Restringir `/health/*` no proxy reverso (Caddy/nginx).
