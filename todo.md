@@ -24,18 +24,17 @@ O site só ganha cadastro depois destes itens; captcha e aceite dos termos mudam
     treino mora lá).
   - R2: ativar no painel da Cloudflare (pede cartão), criar o bucket e a chave de API;
     `STORAGE_BACKEND=s3`, `S3_ENDPOINT_URL`, `AWS_REGION=auto`, `S3_BUCKET` e as chaves.
-- [ ] **E-mail** (branch `feat/email`). O e-mail de verificação sai pelo AWS SES, e não há conta na
-  AWS; o domínio só tem o redirecionamento da Cloudflare (recebe, não envia).
-  1. `EMAIL_VERIFICATION_REQUIRED` no `.env`; desligado, o cadastro nasce verificado e nada é
-     enviado. Riscos aceitos enquanto desligado: alguém cadastrar o e-mail de outra pessoa (resolve
-     à mão) e contas descartáveis (o captcha e o teto global seguram).
-  2. Adaptador de e-mail que só escreve no log (dev e sem provedor).
-  3. Adaptador SMTP genérico, escolhido pelo `.env` (o SES continua). Usuário, quando quiser ligar:
-     conta grátis num provedor (Resend 3 mil/mês, Brevo 300/dia) e os registros DNS (SPF/DKIM) no
-     painel da Cloudflare; o Resend usa um subdomínio próprio e não mexe no redirecionamento.
+- [ ] **E-mail: decidir como publicar** (o código está pronto: `EMAIL_VERIFICATION_REQUIRED`,
+  `EMAIL_BACKEND=log|smtp|ses`; regras no README do identity).
+  - Sem provedor: `EMAIL_VERIFICATION_REQUIRED=false` (a conta nasce verificada; a troca de e-mail
+    vale na hora). Riscos aceitos: alguém usar um e-mail que não é seu (resolve à mão) e contas
+    descartáveis (o captcha e o teto global seguram).
+  - Para ligar a verificação: conta grátis num provedor (Resend 3 mil/mês, Brevo 300/dia), os
+    registros DNS (SPF/DKIM) no painel da Cloudflare (o Resend usa um subdomínio próprio e não mexe
+    no redirecionamento), `EMAIL_BACKEND=smtp` e `SMTP_*` no `.env`, e então
+    `EMAIL_VERIFICATION_REQUIRED=true`.
   - Não existe "esqueci a senha": quem esquecer perde a conta até existir (depende de e-mail).
-- [ ] **Cadastro protegido** (branch `feat/signup`, depois da `feat/email`, porque as duas mexem no
-  cadastro do identity).
+- [ ] **Cadastro protegido** (branch `feat/signup`).
   1. **Teto global diário de identificações** (configurável): protege os créditos do Kindwise
      independente de quantas contas existam.
   2. **Captcha validado na API** (Cloudflare Turnstile, grátis). Captcha só no site não protege: um

@@ -52,7 +52,14 @@ class Container(containers.DeclarativeContainer):
         secret_key=settings.provided.secret_key,
         jwt_algorithm=settings.provided.jwt_algorithm,
         aws_region=settings.provided.aws_region,
-        ses_sender_email=settings.provided.ses_sender_email,
+        email_backend=settings.provided.email_backend,
+        email_from=settings.provided.email_from,
+        email_verification_required=settings.provided.email_verification_required,
+        smtp_host=settings.provided.smtp_host,
+        smtp_port=settings.provided.smtp_port,
+        smtp_username=settings.provided.smtp_username,
+        smtp_password=settings.provided.smtp_password,
+        smtp_security=settings.provided.smtp_security,
     )
 
     quota_limits = providers.Singleton(

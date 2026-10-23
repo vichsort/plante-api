@@ -42,7 +42,7 @@ os.environ["SECRET_KEY"] = "supersecretkeyfortesting1234567890"
 os.environ["JWT_ALGORITHM"] = "HS256"
 os.environ["AWS_ACCESS_KEY_ID"] = "test_aws_key"
 os.environ["AWS_SECRET_ACCESS_KEY"] = "test_aws_secret"
-os.environ["SES_SENDER_EMAIL"] = "noreply@test.org"
+os.environ["EMAIL_FROM"] = "noreply@test.org"
 
 from src.shared.adapters import RedisClient
 

@@ -35,18 +35,25 @@ class _Publisher(IDomainPublisher):
         self.events.append(event)
 
 
-def _register(uow: FakeIdentityUnitOfWork, publisher: _Publisher | None = None) -> RegisterUserUseCase:
-    return RegisterUserUseCase(uow=uow, hasher=PlainHasher(), publisher=publisher or _Publisher())
+def _register(
+    uow: FakeIdentityUnitOfWork, publisher: _Publisher | None = None, verification_required: bool = True,
+) -> RegisterUserUseCase:
+    return RegisterUserUseCase(
+        uow=uow, hasher=PlainHasher(), publisher=publisher or _Publisher(), verification_required=verification_required,
+    )
 
 
 def _dto(email: str = "new@plante.org", password: str = "Secret1password") -> RegisterUserInputDTO:
     return RegisterUserInputDTO(email=email, password=password, country="BR", state="SP")
 
 
-def _login(*users: User) -> tuple[LoginUseCase, InMemoryTokenRepository]:
+def _login(*users: User, verification_required: bool = True) -> tuple[LoginUseCase, InMemoryTokenRepository]:
     tokens = InMemoryTokenRepository()
     uow = FakeIdentityUnitOfWork(InMemoryUserRepository(*users))
-    return LoginUseCase(uow=uow, hasher=PlainHasher(), token_repo=tokens, token_service=TOKENS), tokens
+    use_case = LoginUseCase(
+        uow=uow, hasher=PlainHasher(), token_repo=tokens, token_service=TOKENS, verification_required=verification_required,
+    )
+    return use_case, tokens
 
 
 async def test_register_saves_an_unverified_user_and_announces_it() -> None:
@@ -59,7 +66,22 @@ async def test_register_saves_an_unverified_user_and_announces_it() -> None:
     # Assert
     assert await uow.users.get_by_email("new@plante.org") is user
     assert (user.is_verified, user.hashed_password, uow.commits) == (False, "hashed:Secret1password", 1)
-    assert publisher.events == [UserRegisteredEvent(occurred_on=publisher.events[0].occurred_on, user_id=user.id, email=user.email)]
+    assert publisher.events == [UserRegisteredEvent(
+        occurred_on=publisher.events[0].occurred_on, user_id=user.id, email=user.email, requires_verification=True,
+    )]
+
+
+async def test_register_without_verification_creates_a_verified_account() -> None:
+    # Arrange: no provider sends the code yet
+    uow, publisher = FakeIdentityUnitOfWork(), _Publisher()
+
+    # Act
+    user = await _register(uow, publisher, verification_required=False).execute(_dto())
+
+    # Assert: verified, and the event says no code is needed
+    assert user.is_verified
+    (event,) = publisher.events
+    assert isinstance(event, UserRegisteredEvent) and not event.requires_verification
 
 
 async def test_register_with_an_email_in_use_fails() -> None:
@@ -120,3 +142,14 @@ async def test_login_before_verifying_the_email_is_refused() -> None:
     # Act & Assert
     with pytest.raises(EmailNotVerifiedError):
         await use_case.execute(email="user@plante.org", password="Secret1password")
+
+
+async def test_login_without_verification_lets_an_unverified_account_in() -> None:
+    # Arrange: an account created while verification was on, never verified
+    use_case, _ = _login(make_user(is_verified=False), verification_required=False)
+
+    # Act
+    result = await use_case.execute(email="user@plante.org", password="Secret1password")
+
+    # Assert
+    assert result.access_token

@@ -69,13 +69,25 @@ class Settings(BaseSettings):
     # How long an image link lasts (the local storage's last between one and two of these)
     image_link_ttl_seconds: int = 3600
 
+    # Email: `log` only writes the messages to the log (development, or no provider yet); `smtp` is
+    # any provider (Resend, Brevo, Gmail...); `ses` is AWS
+    email_backend: Literal["log", "smtp", "ses"] = "log"
+    email_from: str = "noreply@plante.app"
+    # Off: accounts are born verified, no code is sent, and an email change applies at once
+    email_verification_required: bool = True
+    smtp_host: str = "localhost"
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    # `starttls` (port 587), `ssl` (port 465) or `none` (a local relay only)
+    smtp_security: Literal["starttls", "ssl", "none"] = "starttls"
+
     # Aws
     aws_region: str = "us-east-1"
     s3_bucket: str = "plante-bucket-name"
     s3_endpoint_url: str | None = None
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
-    ses_sender_email: str = "noreply@plante.app"
 
     # App
     debug: bool = False

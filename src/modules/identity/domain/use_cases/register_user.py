@@ -30,10 +30,12 @@ class RegisterUserUseCase:
         uow: IIdentityUnitOfWork,
         hasher: IPasswordHasher,
         publisher: IDomainPublisher,
+        verification_required: bool,
     ) -> None:
         self.uow = uow
         self.hasher = hasher
         self.publisher = publisher
+        self.verification_required = verification_required
 
     async def execute(self, dto: RegisterUserInputDTO) -> User:
         email = normalize_email(dto.email)
@@ -50,10 +52,15 @@ class RegisterUserUseCase:
                 location=UserLocation(country=dto.country, state=dto.state),
                 current_time=datetime.now(UTC),
             )
+            if not self.verification_required:
+                # No provider sends the code yet: the account is born verified
+                user.verify_email()
             saved_user = await uow.users.save(user)
             await uow.commit()
 
         # Depois do commit: o e-mail de verificação não sai para usuário que não foi gravado
-        await self.publisher.publish(UserRegisteredEvent.create(user_id=saved_user.id, email=saved_user.email))
+        await self.publisher.publish(UserRegisteredEvent.create(
+            user_id=saved_user.id, email=saved_user.email, requires_verification=self.verification_required,
+        ))
 
         return saved_user

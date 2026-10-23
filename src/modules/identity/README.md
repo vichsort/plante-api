@@ -35,8 +35,8 @@ portas em memória dos testes daqui.
 ## Decisões
 
 - **Conta:**
-  - Todo usuário nasce `pending_verification`. O cadastro não cria nada em `quotas`:
-    quem não tem linha lá é FREE.
+  - Todo usuário nasce `pending_verification` (ou já verificado, com a verificação desligada;
+    abaixo). O cadastro não cria nada em `quotas`: quem não tem linha lá tem a cota `standard`.
   - E-mail na forma canônica (`normalize_email`: sem espaços nas pontas, em minúsculas) no
     cadastro, no login e na troca. O banco garante com o CHECK `ck_users_email_normalized`.
   - **Senha forte** (`PasswordPolicy`: 8+ caracteres, uma maiúscula, um número) no cadastro e na troca.
@@ -53,6 +53,19 @@ portas em memória dos testes daqui.
   - É enviado pela task do Celery depois do commit do cadastro.
   - Uma nova tentativa da task reaproveita o código ainda válido: o e-mail que chegar tem sempre o
     código aceito.
+- **Email verification can be off** (`EMAIL_VERIFICATION_REQUIRED=false`), while there is no
+  provider to send the code:
+  - the account is born verified and no code goes out (`UserRegisteredEvent.requires_verification`
+    is false, so no task);
+  - login does not refuse unverified accounts (the ones created while it was on get in);
+  - an email change applies at once, with no code.
+  - Accepted risks while it is off: someone can sign up (or change to) an address that is not
+    theirs, which is fixed by hand; and throwaway accounts, held back by the captcha and the global
+    daily cap.
+- **Email backends** (`EMAIL_BACKEND`): `log` (default) only writes the message to the log, codes
+  included, so it is for development or for verification off; `smtp` is any provider (Resend,
+  Brevo...), the standard library's client in a thread; `ses` is AWS. Same text in all
+  (`adapters/email/messages.py`). Only the chosen one is built.
 - **Tokens:** access de 15 minutos, refresh de 30 dias, um refresh por usuário (login novo derruba a
   sessão anterior). Uma sessão só é decisão, não limitação: sessões por aparelho foram descartadas
   (2026-10-19).
