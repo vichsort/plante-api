@@ -38,6 +38,6 @@ fica em `tests/fakes.py`.
 
 ## Erros
 
-| Código | Erro | HTTP | Quando |
-| :--- | :--- | :---: | :--- |
-| `PLANTE_4330_SPECIES_NOT_FOUND` | `SpeciesNotFoundError` | 404 | Espécie não existe. |
+The module defines no errors. It has no route: `/identify` creates the species, and the plant
+detail tolerates a missing one. A provider that cannot recognize the plant is an identification
+error (`LowConfidenceError`, `NotAPlantError`). The 4330 code comes back with a catalog route.
