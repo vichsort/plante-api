@@ -32,6 +32,7 @@ async def test_requesting_a_change_keeps_the_current_email_working() -> None:
     otp, sender = InMemoryOtpRepository(), RecordingEmailSender()
     use_case = ChangeEmailUseCase(
         uow=FakeIdentityUnitOfWork(InMemoryUserRepository(user)), otp_repo=otp, hasher=PlainHasher(), email_sender=sender,
+        verification_required=True,
     )
 
     # Act
@@ -48,13 +49,30 @@ async def test_wrong_password_does_not_start_a_change() -> None:
     sender = RecordingEmailSender()
     use_case = ChangeEmailUseCase(
         uow=FakeIdentityUnitOfWork(InMemoryUserRepository(user)), otp_repo=InMemoryOtpRepository(), hasher=PlainHasher(),
-        email_sender=sender,
+        email_sender=sender, verification_required=True,
     )
 
     # Act & Assert
     with pytest.raises(InvalidCredentialsError):
         await use_case.execute(ChangeEmailInputDTO(user_id=user.id, current_password="wrong", new_email="novo@plante.org"))
     assert (user.pending_email, sender.sent) == (None, [])
+
+
+async def test_without_verification_the_new_email_applies_at_once() -> None:
+    # Arrange: nobody could receive the code
+    user = make_user(email="atual@plante.org")
+    otp, sender = InMemoryOtpRepository(), RecordingEmailSender()
+    use_case = ChangeEmailUseCase(
+        uow=FakeIdentityUnitOfWork(InMemoryUserRepository(user)), otp_repo=otp, hasher=PlainHasher(), email_sender=sender,
+        verification_required=False,
+    )
+
+    # Act
+    await use_case.execute(ChangeEmailInputDTO(user_id=user.id, current_password="Secret1password", new_email="novo@plante.org"))
+
+    # Assert
+    assert (user.email, user.pending_email) == ("novo@plante.org", None)
+    assert (sender.sent, otp.codes) == ([], {})
 
 
 async def test_code_confirms_the_pending_email() -> None:

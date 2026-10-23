@@ -56,7 +56,7 @@ As regras (layout, imports, erros, testes) estão no [`ARCHITECTURE.md`](ARCHITE
 | IA principal | Google Gemini API |
 | IA consensus | PlantNet + Kindwise |
 | Storage | Disco local ou S3-compatível (AWS S3, Cloudflare R2) |
-| E-mail | AWS SES |
+| E-mail | SMTP (qualquer provedor) ou AWS SES |
 | Logs | structlog (JSON estruturado) |
 | Gerenciador de pacotes | uv |
 
@@ -176,7 +176,10 @@ Copie `.env.example` para `.env` e preencha:
 | `S3_BUCKET` / `S3_ENDPOINT_URL` | Bucket e, para R2 ou outro S3-compatível, o endereço |
 | `AWS_ACCESS_KEY_ID` | Credencial AWS (S3 + SES) |
 | `AWS_SECRET_ACCESS_KEY` | Credencial AWS |
-| `SES_SENDER_EMAIL` | E-mail remetente cadastrado no SES |
+| `EMAIL_BACKEND` | `log` (padrão: só escreve no log), `smtp` ou `ses` |
+| `EMAIL_FROM` | Remetente dos e-mails |
+| `EMAIL_VERIFICATION_REQUIRED` | `false` enquanto não houver provedor: a conta já nasce verificada |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USERNAME` / `SMTP_PASSWORD` / `SMTP_SECURITY` | Provedor SMTP (`starttls`, `ssl` ou `none`) |
 
 ---
 

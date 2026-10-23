@@ -28,11 +28,13 @@ class ChangeEmailUseCase:
         otp_repo: IOtpRepository,
         hasher: IPasswordHasher,
         email_sender: IEmailSender,
+        verification_required: bool,
     ) -> None:
         self.uow = uow
         self.otp_repo = otp_repo
         self.hasher = hasher
         self.email_sender = email_sender
+        self.verification_required = verification_required
 
     async def execute(self, dto: ChangeEmailInputDTO) -> None:
         new_email = normalize_email(dto.new_email)
@@ -50,9 +52,14 @@ class ChangeEmailUseCase:
                 raise EmailAlreadyInUseError()
 
             user.request_email_change(new_email=new_email)
+            if not self.verification_required:
+                # Nobody can receive the code: the new address applies at once
+                user.confirm_email_change()
             await uow.users.save(user)
             await uow.commit()
 
+        if not self.verification_required:
+            return
         raw_code = VerificationCode.generate().raw_code
         await self.otp_repo.save_code(user_id=user.id, code=raw_code)
         await self.email_sender.send_verification_code(to_email=new_email, code=raw_code)

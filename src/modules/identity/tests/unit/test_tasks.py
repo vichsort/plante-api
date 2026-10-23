@@ -47,10 +47,18 @@ def test_registration_is_routed_to_the_verification_email() -> None:
     user_id = UserId(uuid4())
 
     # Act
-    call = route_event(UserRegisteredEvent.create(user_id=user_id, email="new@plante.org"))
+    call = route_event(UserRegisteredEvent.create(user_id=user_id, email="new@plante.org", requires_verification=True))
 
     # Assert
     assert call == TaskCall(SEND_VERIFICATION_EMAIL_TASK, {"user_id": str(user_id), "email": "new@plante.org"})
+
+
+def test_registration_without_verification_sends_no_email() -> None:
+    # Act
+    call = route_event(UserRegisteredEvent.create(user_id=UserId(uuid4()), email="new@plante.org", requires_verification=False))
+
+    # Assert
+    assert call is None
 
 
 def test_other_events_are_not_routed() -> None:

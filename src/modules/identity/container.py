@@ -1,6 +1,12 @@
+from collections.abc import Callable
+from typing import Literal
+
 from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from src.modules.identity.adapters.email.log import LogEmailSender
+from src.modules.identity.adapters.email.ses import SesEmailSender
+from src.modules.identity.adapters.email.smtp import SmtpEmailSender, SmtpSecurity
 from src.modules.identity.adapters.persistence.unit_of_work import (
     SqlAlchemyIdentityUnitOfWork,
 )
@@ -8,7 +14,7 @@ from src.modules.identity.adapters.redis.otp_repository import RedisOtpRepositor
 from src.modules.identity.adapters.redis.token_repository import RedisTokenRepository
 from src.modules.identity.adapters.security.bcrypt_hasher import BcryptHasher
 from src.modules.identity.adapters.security.jwt_token_service import JwtTokenService
-from src.modules.identity.adapters.ses.email_sender import SesEmailSender
+from src.modules.identity.domain.ports.email_sender import IEmailSender
 from src.modules.identity.domain.services.user_directory import UserDirectory
 from src.modules.identity.domain.use_cases.change_email import ChangeEmailUseCase
 from src.modules.identity.domain.use_cases.change_password import ChangePasswordUseCase
@@ -24,6 +30,18 @@ from src.modules.identity.domain.use_cases.verify_email import VerifyEmailUseCas
 from src.shared.adapters import RedisClient
 from src.shared.domain import IDomainPublisher, IImageStorage
 
+EmailBackend = Literal["log", "smtp", "ses"]
+
+
+def _pick_email_sender(
+    backend: EmailBackend,
+    log: Callable[[], IEmailSender],
+    smtp: Callable[[], IEmailSender],
+    ses: Callable[[], IEmailSender],
+) -> IEmailSender:
+    """`EMAIL_BACKEND`: builds only the chosen sender (SES opens an AWS client)."""
+    return {"log": log, "smtp": smtp, "ses": ses}[backend]()
+
 
 class IdentityContainer(containers.DeclarativeContainer):
     session_factory: providers.Dependency[async_sessionmaker[AsyncSession]] = providers.Dependency()
@@ -33,7 +51,14 @@ class IdentityContainer(containers.DeclarativeContainer):
     secret_key: providers.Dependency[str] = providers.Dependency()
     jwt_algorithm: providers.Dependency[str] = providers.Dependency()
     aws_region: providers.Dependency[str] = providers.Dependency()
-    ses_sender_email: providers.Dependency[str] = providers.Dependency()
+    email_backend: providers.Dependency[EmailBackend] = providers.Dependency()
+    email_from: providers.Dependency[str] = providers.Dependency()
+    email_verification_required: providers.Dependency[bool] = providers.Dependency()
+    smtp_host: providers.Dependency[str] = providers.Dependency()
+    smtp_port: providers.Dependency[int] = providers.Dependency()
+    smtp_username: providers.Dependency[str] = providers.Dependency()
+    smtp_password: providers.Dependency[str] = providers.Dependency()
+    smtp_security: providers.Dependency[SmtpSecurity] = providers.Dependency()
 
     unit_of_work = providers.Factory(SqlAlchemyIdentityUnitOfWork, session_factory=session_factory)
     directory = providers.Factory(UserDirectory, uow=unit_of_work)
@@ -42,13 +67,31 @@ class IdentityContainer(containers.DeclarativeContainer):
     token_service = providers.Singleton(JwtTokenService, secret_key=secret_key, algorithm=jwt_algorithm)
     token_repository = providers.Singleton(RedisTokenRepository, redis=redis)
     otp_repository = providers.Singleton(RedisOtpRepository, redis=redis)
-    email_sender = providers.Singleton(SesEmailSender, region=aws_region, sender_email=ses_sender_email)
+    log_email_sender = providers.Singleton(LogEmailSender)
+    smtp_email_sender = providers.Singleton(
+        SmtpEmailSender,
+        host=smtp_host,
+        port=smtp_port,
+        username=smtp_username,
+        password=smtp_password,
+        sender_email=email_from,
+        security=smtp_security,
+    )
+    ses_email_sender = providers.Singleton(SesEmailSender, region=aws_region, sender_email=email_from)
+    email_sender = providers.Singleton(
+        _pick_email_sender,
+        backend=email_backend,
+        log=log_email_sender.provider,
+        smtp=smtp_email_sender.provider,
+        ses=ses_email_sender.provider,
+    )
 
     register_user_use_case = providers.Factory(
         RegisterUserUseCase,
         uow=unit_of_work,
         hasher=password_hasher,
         publisher=publisher,
+        verification_required=email_verification_required,
     )
     verify_email_use_case = providers.Factory(
         VerifyEmailUseCase,
@@ -61,6 +104,7 @@ class IdentityContainer(containers.DeclarativeContainer):
         hasher=password_hasher,
         token_repo=token_repository,
         token_service=token_service,
+        verification_required=email_verification_required,
     )
     refresh_token_use_case = providers.Factory(
         RefreshTokenUseCase,
@@ -77,6 +121,7 @@ class IdentityContainer(containers.DeclarativeContainer):
         otp_repo=otp_repository,
         hasher=password_hasher,
         email_sender=email_sender,
+        verification_required=email_verification_required,
     )
     change_password_use_case = providers.Factory(
         ChangePasswordUseCase,

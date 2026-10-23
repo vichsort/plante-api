@@ -36,11 +36,13 @@ class LoginUseCase:
         hasher: IPasswordHasher,
         token_repo: ITokenRepository,
         token_service: ITokenService,
+        verification_required: bool,
     ) -> None:
         self._uow = uow
         self._hasher = hasher
         self._token_repo = token_repo
         self._token_service = token_service
+        self._verification_required = verification_required
 
     async def execute(self, email: str, password: str) -> LoginResult:
         async with self._uow as uow:
@@ -49,7 +51,8 @@ class LoginUseCase:
         if not user or not self._hasher.verify(password, user.hashed_password):
             raise InvalidCredentialsError("Invalid email or password.")
 
-        if not user.is_verified:
+        # With verification off, accounts created while it was on (and never verified) get in too
+        if self._verification_required and not user.is_verified:
             raise EmailNotVerifiedError()
 
         access_token = self._token_service.issue(user.id, TokenKind.ACCESS, ACCESS_TOKEN_TTL)

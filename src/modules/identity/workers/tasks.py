@@ -27,7 +27,7 @@ class _VerificationEmailPayload(BaseModel):
 
 def route_event(event: DomainEvent) -> TaskCall | None:
     """Os eventos do identity que viram task (a composição entrega esta rota ao publisher)."""
-    if isinstance(event, UserRegisteredEvent):
+    if isinstance(event, UserRegisteredEvent) and event.requires_verification:
         return TaskCall(SEND_VERIFICATION_EMAIL_TASK, {"user_id": str(event.user_id), "email": event.email})
     return None
 
