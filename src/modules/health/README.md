@@ -75,6 +75,6 @@ A composição monta o módulo por:
 
 Também saem das rotas daqui, definidos em outros módulos: `PLANTE_4530_PLANT_NOT_FOUND` (garden:
 planta inexistente, tirada do jardim ou de outro usuário), `PLANTE_4250_DAILY_QUOTA_EXCEEDED`
-(quota: sem tokens), `PLANTE_4251_SERVICE_DAILY_LIMIT_REACHED` (quota: limite diário do serviço), `PLANTE_4001_INVALID_IMAGE` (shared), `PLANTE_4401_NOT_A_PLANT` (`NotAPlantError`, identification),
+(quota: sem tokens), `PLANTE_4251_SERVICE_DAILY_LIMIT_REACHED` (quota: limite diário do serviço), `PLANTE_4121_TERMS_NOT_ACCEPTED` (identity: termos vigentes não aceitos), `PLANTE_4001_INVALID_IMAGE` (shared), `PLANTE_4401_NOT_A_PLANT` (`NotAPlantError`, identification),
 `PLANTE_4031_USER_NOT_FOUND` e `PLANTE_5010_EXTERNAL_SERVICE_ERROR` (Kindwise fora ou circuito
 aberto; o Gemini fora não gera erro).

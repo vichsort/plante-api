@@ -15,6 +15,7 @@ from src.modules.health.tests.fakes import (
     StubHealthEnricher,
     make_assessment,
 )
+from src.modules.identity import TermsNotAcceptedError
 from src.modules.identity.tests.fakes import FakeUserDirectory
 from src.modules.quota import (
     DailyQuotaExceededError,
@@ -193,6 +194,17 @@ async def test_diagnosis_past_the_service_daily_limit_is_refused_before_calling_
         await scenario.use_case().execute(scenario.dto())
     assert (scenario.analyzer.received, scenario.enricher.requests, scenario.storage.user_uploads) == ([], [], [])
     assert (scenario.training.is_empty, scenario.wallet.charged) == (True, 0)
+
+
+async def test_diagnosis_without_the_terms_in_force_sends_the_photo_nowhere() -> None:
+    # Arrange
+    scenario = _Scenario()
+    scenario.users.without_terms.add(USER)
+
+    # Act & Assert
+    with pytest.raises(TermsNotAcceptedError):
+        await scenario.use_case().execute(scenario.dto())
+    assert (scenario.analyzer.received, scenario.storage.user_uploads, scenario.provider_calls.total) == ([], [], 0)
 
 
 async def test_last_token_buys_the_diagnosis_without_gemini() -> None:

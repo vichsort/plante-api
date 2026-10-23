@@ -103,3 +103,8 @@ portas em memória dos testes daqui.
 | `PLANTE_4400_LOW_CONFIDENCE` | `LowConfidenceError` | 422 | Confiança da identificação abaixo de 60%. |
 | `PLANTE_4401_NOT_A_PLANT` | `NotAPlantError` | 422 | O Kindwise afirmou que a foto não é planta (a imagem em si é legível). Também no diagnóstico. |
 | `PLANTE_4430_IDENTIFICATION_NOT_FOUND` | `IdentificationNotFoundError` | 404 | Identificação não existe ou não pertence ao usuário (feedback, adicionar ao jardim). |
+
+Also out of the routes here, defined in other modules: `PLANTE_4250_DAILY_QUOTA_EXCEEDED` and
+`PLANTE_4251_SERVICE_DAILY_LIMIT_REACHED` (quota), `PLANTE_4121_TERMS_NOT_ACCEPTED` (identity: the
+terms in force not accepted), `PLANTE_4001_INVALID_IMAGE` (shared), `PLANTE_4031_USER_NOT_FOUND` and
+`PLANTE_5010_EXTERNAL_SERVICE_ERROR`.

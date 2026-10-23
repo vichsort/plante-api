@@ -9,6 +9,7 @@ from typing import Self
 from uuid import uuid4
 
 from src.modules.identity.domain.entities.user import User
+from src.modules.identity.domain.exceptions import TermsNotAcceptedError
 from src.modules.identity.domain.ports.captcha_verifier import ICaptchaVerifier
 from src.modules.identity.domain.ports.email_sender import IEmailSender
 from src.modules.identity.domain.ports.otp_repository import IOtpRepository
@@ -17,16 +18,20 @@ from src.modules.identity.domain.ports.token_repository import ITokenRepository
 from src.modules.identity.domain.ports.unit_of_work import IIdentityUnitOfWork
 from src.modules.identity.domain.ports.user_repository import IUserRepository
 from src.modules.identity.domain.services.user_directory import IUserDirectory
+from src.modules.identity.domain.value_objects.terms import Terms
 from src.modules.identity.domain.value_objects.user_location import UserLocation
 from src.shared.domain import UserId, UserNotFoundError
+
+TERMS = Terms(version="1", url="https://plante.test/terms")
 
 
 def make_user(
     email: str = "user@plante.org",
     password: str = "Secret1password",
     is_verified: bool = True,
+    terms_version: str | None = TERMS.version,
 ) -> User:
-    """Conta válida; a senha fica com o hash do `PlainHasher`."""
+    """Conta válida (com os termos em vigor aceitos); a senha fica com o hash do `PlainHasher`."""
     return User(
         id=UserId(uuid4()),
         email=email,
@@ -34,14 +39,17 @@ def make_user(
         location=UserLocation(country="BR", state="SP"),
         is_verified=is_verified,
         created_at=datetime.now(UTC),
+        terms_version=terms_version,
+        terms_accepted_at=datetime.now(UTC) if terms_version else None,
     )
 
 
 @dataclass
 class FakeUserDirectory(IUserDirectory):
-    """Todo usuário existe e mora em `location`, menos os de `missing`."""
+    """Todo usuário existe, mora em `location` e aceitou os termos, menos os de `missing` e `without_terms`."""
     location: UserLocation = field(default_factory=lambda: UserLocation(country="BR", state="SP"))
     missing: set[UserId] = field(default_factory=set)
+    without_terms: set[UserId] = field(default_factory=set)
 
     async def id_by_email(self, email: str) -> UserId:
         raise UserNotFoundError("No account has this email.")
@@ -53,6 +61,11 @@ class FakeUserDirectory(IUserDirectory):
         if user_id in self.missing:
             raise UserNotFoundError(user_id=user_id)
         return self.location
+
+    async def ensure_accepted_terms(self, user_id: UserId) -> None:
+        await self.region_of(user_id)
+        if user_id in self.without_terms:
+            raise TermsNotAcceptedError(TERMS.version)
 
 
 class InMemoryUserRepository(IUserRepository):

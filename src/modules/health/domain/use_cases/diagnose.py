@@ -14,7 +14,7 @@ from src.modules.health.domain.ports.health_enricher import (
 from src.modules.health.domain.ports.unit_of_work import IHealthUnitOfWork
 from src.modules.health.domain.value_objects.ids import HealthRecordId
 from src.modules.identification import NotAPlantError
-from src.modules.identity import IUserDirectory
+from src.modules.identity import IUserDirectory, TermsNotAcceptedError
 from src.modules.quota import (
     DailyQuotaExceededError,
     FeatureCost,
@@ -86,6 +86,7 @@ class DiagnoseHealthUseCase:
         PlantNotFoundError,
         DailyQuotaExceededError,
         ServiceDailyLimitError,
+        TermsNotAcceptedError,
         UserNotFoundError,
     )
 
@@ -119,6 +120,7 @@ class DiagnoseHealthUseCase:
         # 1. Leitura curta: a transação não fica aberta durante as chamadas à IA e ao S3
         async with self._uow as uow:
             region = await self._users.region_of(dto.user_id)
+            await self._users.ensure_accepted_terms(dto.user_id)
 
             user_plant = await self._plants.get_for_user(dto.user_plant_id, dto.user_id)
 

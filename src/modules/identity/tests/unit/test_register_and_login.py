@@ -8,6 +8,7 @@ from src.modules.identity.domain.exceptions import (
     EmailAlreadyInUseError,
     EmailNotVerifiedError,
     InvalidCredentialsError,
+    TermsNotAcceptedError,
     WeakPasswordError,
 )
 from src.modules.identity.domain.ports.token_service import TokenKind
@@ -17,6 +18,7 @@ from src.modules.identity.domain.use_cases.register_user import (
     RegisterUserUseCase,
 )
 from src.modules.identity.tests.fakes import (
+    TERMS,
     FakeIdentityUnitOfWork,
     InMemoryTokenRepository,
     InMemoryUserRepository,
@@ -42,15 +44,17 @@ def _register(
 ) -> RegisterUserUseCase:
     return RegisterUserUseCase(
         uow=uow, hasher=PlainHasher(), publisher=publisher or _Publisher(), captcha=StubCaptchaVerifier(),
-        verification_required=verification_required,
+        terms=TERMS, verification_required=verification_required,
     )
 
 
 def _dto(
     email: str = "new@plante.org", password: str = "Secret1password", captcha_token: str | None = "captcha-ok",
+    terms: str | None = "1",
 ) -> RegisterUserInputDTO:
     return RegisterUserInputDTO(
-        email=email, password=password, country="BR", state="SP", captcha_token=captcha_token, client_ip="203.0.113.7",
+        email=email, password=password, country="BR", state="SP", accepted_terms_version=terms,
+        captcha_token=captcha_token, client_ip="203.0.113.7",
     )
 
 
@@ -73,6 +77,7 @@ async def test_register_saves_an_unverified_user_and_announces_it() -> None:
     # Assert
     assert await uow.users.get_by_email("new@plante.org") is user
     assert (user.is_verified, user.hashed_password, uow.commits) == (False, "hashed:Secret1password", 1)
+    assert (user.terms_version, user.terms_accepted_at is not None) == ("1", True)  # the consent on record
     assert publisher.events == [UserRegisteredEvent(
         occurred_on=publisher.events[0].occurred_on, user_id=user.id, email=user.email, requires_verification=True,
     )]
@@ -100,6 +105,17 @@ async def test_register_without_a_valid_captcha_creates_nothing(token: str | Non
     with pytest.raises(CaptchaFailedError):
         await _register(uow, publisher).execute(_dto(email="existing@plante.org", captcha_token=token))
     assert (uow.commits, publisher.events) == (0, [])
+
+
+@pytest.mark.parametrize("terms", [None, "0"])
+async def test_register_without_accepting_the_terms_in_force_creates_nothing(terms: str | None) -> None:
+    # Arrange
+    uow = FakeIdentityUnitOfWork()
+
+    # Act & Assert
+    with pytest.raises(TermsNotAcceptedError):
+        await _register(uow).execute(_dto(terms=terms))
+    assert uow.users.by_id == {}
 
 
 async def test_register_with_an_email_in_use_fails() -> None:

@@ -19,14 +19,16 @@ Fica de fora:
 - **`IUserDirectory`**: o que os outros módulos podem saber do usuário, sem ver a conta
   (credenciais e e-mail ficam aqui):
   - `region_of(user_id)`: país e estado do perfil (identificação e saúde gravam a região no treino);
-  - `ensure_exists(user_id)`: confere que a conta existe.
+  - `ensure_exists(user_id)`: confere que a conta existe;
+  - `ensure_accepted_terms(user_id)`: the user accepted the terms in force (before the photo goes
+    out).
 
   Os dois lançam `UserNotFoundError` (do kernel) e leem dentro da transação de quem chama, se houver.
-- **Tipos:** `UserLocation` e o evento `UserRegisteredEvent`.
+- **Tipos:** `UserLocation`, o evento `UserRegisteredEvent` e o erro `TermsNotAcceptedError`.
 
 A composição monta o módulo por:
 - `container` (`IdentityContainer`);
-- `api` (rotas `/auth/*` e `/profile/email|password|location`);
+- `api` (rotas `/auth/*`, `/terms` e `/profile/email|password|location|terms`);
 - `workers` (a task `notification.send_verification_email` e a rota evento → task, `route_event`).
 
 O dublê do diretório para testes fica em `tests/fakes.py` (`FakeUserDirectory`), junto com as
@@ -69,6 +71,16 @@ portas em memória dos testes daqui.
   - Checked before anything else (before the email-in-use check).
   - Without the secret key, the captcha is off (development, tests), and the log warns.
   - Cloudflare not answering is a 502 (`ExternalServiceError`), never a pass.
+- **Terms (LGPD)** (`TERMS_VERSION`, `TERMS_URL`): the photos go to the identification providers
+  (Kindwise may train on them and redistribute them under CC BY-SA 4.0, T&C 17.5) and become an
+  anonymous training dataset; the user consents on sign-up, and the account keeps which version
+  and when (`terms_version`, `terms_accepted_at`).
+  - `GET /terms` (public): the version in force and the link to the text, which lives on the site.
+  - Sign-up requires `accepted_terms_version` equal to the version in force.
+  - A new version: `POST /profile/terms` accepts it. Until then **identification and diagnosis
+    answer 403**, before the photo goes anywhere (`IUserDirectory.ensure_accepted_terms`). The
+    rest of the app keeps working. Accounts from before this rule have no version and accept on
+    their next use of the AI.
 - **Email backends** (`EMAIL_BACKEND`): `log` (default) only writes the message to the log, codes
   included, so it is for development or for verification off; `smtp` is any provider (Resend,
   Brevo...), the standard library's client in a thread; `ses` is AWS. Same text in all
@@ -102,6 +114,7 @@ portas em memória dos testes daqui.
 | `PLANTE_4102_WRONG_CREDENTIALS` | `InvalidCredentialsError` | 400 | Login com e-mail ou senha errados (mesma resposta para os dois), ou senha atual incorreta ao trocar e-mail ou senha. Não é 401: a sessão continua válida. |
 | `PLANTE_4103_CAPTCHA_FAILED` | `CaptchaFailedError` | 400 | Cadastro sem token de captcha, ou com um inválido, expirado ou já usado (com o captcha ligado). Checado antes de tudo: o robô não descobre nem se o e-mail existe. |
 | `PLANTE_4120_EMAIL_NOT_VERIFIED` | `EmailNotVerifiedError` | 403 | Login com a senha certa, mas e-mail ainda não verificado. |
+| `PLANTE_4121_TERMS_NOT_ACCEPTED` | `TermsNotAcceptedError` | 403 | Cadastro sem aceitar a versão vigente dos termos, aceite de outra versão (`POST /profile/terms`), ou identificação/diagnóstico de quem não aceitou a vigente. `details`: `current_version`. |
 | `PLANTE_4140_EMAIL_ALREADY_IN_USE` | `EmailAlreadyInUseError` | 409 | E-mail já usado por outra conta (cadastro ou troca de e-mail). |
 
 Token ausente, inválido ou expirado (inclusive o refresh) responde `PLANTE_4010_UNAUTHORIZED`, e

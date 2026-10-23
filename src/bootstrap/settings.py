@@ -84,6 +84,10 @@ class Settings(BaseSettings):
 
     # Cloudflare Turnstile on /auth/register; empty turns the captcha off (development)
     turnstile_secret_key: str = ""
+    # The terms in force: a new version makes everyone accept again before using the AI; the text
+    # lives on the site (`TERMS_URL`)
+    terms_version: str = "1"
+    terms_url: str | None = None
 
     # Aws
     aws_region: str = "us-east-1"

@@ -19,6 +19,8 @@ class UserMapper:
             is_verified=model.is_verified,
             bio=model.bio,
             profile_picture_url=model.profile_picture_url,
+            terms_version=model.terms_version,
+            terms_accepted_at=model.terms_accepted_at,
             created_at=model.created_at,
         )
 
@@ -34,5 +36,7 @@ class UserMapper:
             is_verified=entity.is_verified,
             bio=entity.bio,
             profile_picture_url=entity.profile_picture_url,
+            terms_version=entity.terms_version,
+            terms_accepted_at=entity.terms_accepted_at,
             created_at=entity.created_at,
         )

@@ -22,6 +22,7 @@ from src.modules.identity.adapters.security.jwt_token_service import JwtTokenSer
 from src.modules.identity.domain.ports.captcha_verifier import ICaptchaVerifier
 from src.modules.identity.domain.ports.email_sender import IEmailSender
 from src.modules.identity.domain.services.user_directory import UserDirectory
+from src.modules.identity.domain.use_cases.accept_terms import AcceptTermsUseCase
 from src.modules.identity.domain.use_cases.change_email import ChangeEmailUseCase
 from src.modules.identity.domain.use_cases.change_password import ChangePasswordUseCase
 from src.modules.identity.domain.use_cases.delete_account import DeleteAccountUseCase
@@ -33,6 +34,7 @@ from src.modules.identity.domain.use_cases.update_location import (
     UpdateLocationFallbackUseCase,
 )
 from src.modules.identity.domain.use_cases.verify_email import VerifyEmailUseCase
+from src.modules.identity.domain.value_objects.terms import Terms
 from src.shared.adapters import RedisClient
 from src.shared.domain import IDomainPublisher, IImageStorage
 
@@ -76,9 +78,12 @@ class IdentityContainer(containers.DeclarativeContainer):
     smtp_password: providers.Dependency[str] = providers.Dependency()
     smtp_security: providers.Dependency[SmtpSecurity] = providers.Dependency()
     turnstile_secret_key: providers.Dependency[str] = providers.Dependency()
+    terms_version: providers.Dependency[str] = providers.Dependency()
+    terms_url: providers.Dependency[str | None] = providers.Dependency()
 
     unit_of_work = providers.Factory(SqlAlchemyIdentityUnitOfWork, session_factory=session_factory)
-    directory = providers.Factory(UserDirectory, uow=unit_of_work)
+    terms = providers.Singleton(Terms, version=terms_version, url=terms_url)
+    directory = providers.Factory(UserDirectory, uow=unit_of_work, terms=terms)
 
     password_hasher = providers.Singleton(BcryptHasher)
     token_service = providers.Singleton(JwtTokenService, secret_key=secret_key, algorithm=jwt_algorithm)
@@ -110,6 +115,7 @@ class IdentityContainer(containers.DeclarativeContainer):
         hasher=password_hasher,
         publisher=publisher,
         captcha=captcha_verifier,
+        terms=terms,
         verification_required=email_verification_required,
     )
     verify_email_use_case = providers.Factory(
@@ -148,6 +154,7 @@ class IdentityContainer(containers.DeclarativeContainer):
         hasher=password_hasher,
         email_sender=email_sender,
     )
+    accept_terms_use_case = providers.Factory(AcceptTermsUseCase, uow=unit_of_work, terms=terms)
     update_location_use_case = providers.Factory(
         UpdateLocationFallbackUseCase,
         uow=unit_of_work,

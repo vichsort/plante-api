@@ -15,7 +15,7 @@ from src.modules.identification.tests.fakes import (
     StubPlantIdentifier,
     make_result,
 )
-from src.modules.identity import UserLocation
+from src.modules.identity import TermsNotAcceptedError, UserLocation
 from src.modules.identity.tests.fakes import FakeUserDirectory
 from src.modules.quota import (
     DailyQuotaExceededError,
@@ -55,6 +55,7 @@ class _Scenario:
     training: FakeTrainingRecorder = field(default_factory=FakeTrainingRecorder)
     catalog: FakeSpeciesRegistry = field(default_factory=FakeSpeciesRegistry)
     location: UserLocation = field(default_factory=lambda: UserLocation(country="BR", state="SP"))
+    terms_accepted: bool = True
 
     def __post_init__(self) -> None:
         self.identifier = StubPlantIdentifier(make_result(confidence=self.confidence))
@@ -68,7 +69,7 @@ class _Scenario:
             plant_identifier=self.identifier,
             storage=self.storage,
             publisher=self.publisher,
-            users=FakeUserDirectory(location=self.location),
+            users=FakeUserDirectory(location=self.location, without_terms=set() if self.terms_accepted else {USER}),
             wallet=self.wallet,
             budget=self.budget,
             training=self.training,
@@ -172,6 +173,16 @@ async def test_identification_past_the_service_daily_limit_is_refused_before_cal
         await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
     assert len(scenario.identifier.calls) == 1
     assert (scenario.uow.commits, scenario.wallet.charged) == (1, 1)
+
+
+async def test_identification_without_the_terms_in_force_sends_the_photo_nowhere() -> None:
+    # Arrange: the photo would go to the providers and the dataset, which the terms cover
+    scenario = _Scenario(terms_accepted=False)
+
+    # Act & Assert
+    with pytest.raises(TermsNotAcceptedError):
+        await scenario.use_case().execute(IdentifyPlantInputDTO(user_id=USER, image_bytes=b"img"))
+    assert (scenario.identifier.calls, scenario.storage.user_uploads, scenario.provider_calls.total) == ([], [], 0)
 
 
 async def test_rejected_confidence_records_nothing() -> None:

@@ -38,7 +38,9 @@ def make_user(
     email: str = "user@plante.org",
     hashed_password: str = "hashed",
     is_verified: bool = True,
+    terms_version: str | None = "1",
 ) -> User:
+    """An account that accepted the terms in force (`TERMS_VERSION` defaults to "1")."""
     return User(
         id=user_id or UserId(uuid4()),
         email=email,
@@ -46,6 +48,8 @@ def make_user(
         location=UserLocation(country="BR", state="SP"),
         is_verified=is_verified,
         created_at=NOW,
+        terms_version=terms_version,
+        terms_accepted_at=NOW if terms_version else None,
     )
 
 

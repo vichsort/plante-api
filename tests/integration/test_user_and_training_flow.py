@@ -69,6 +69,7 @@ from src.modules.identity.adapters.persistence.unit_of_work import (
     SqlAlchemyIdentityUnitOfWork,
 )
 from src.modules.identity.domain.services.user_directory import UserDirectory
+from src.modules.identity.domain.value_objects.terms import Terms
 from src.modules.quota.adapters.persistence.unit_of_work import (
     SqlAlchemyQuotaUnitOfWork,
 )
@@ -148,7 +149,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     async with SqlAlchemyIdentityUnitOfWork(session_factory) as setup:
         user = await setup.users.save(make_user(email="flow@plante.org"))
         await setup.commit()
-    users = UserDirectory(SqlAlchemyIdentityUnitOfWork(session_factory))
+    users = UserDirectory(SqlAlchemyIdentityUnitOfWork(session_factory), Terms(version="1"))
 
     storage = _storage()
     enricher = AsyncMock()

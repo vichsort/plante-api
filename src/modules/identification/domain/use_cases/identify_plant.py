@@ -16,7 +16,7 @@ from src.modules.identification.domain.value_objects.confidence_score import (
     ConfidenceScore,
 )
 from src.modules.identification.domain.value_objects.ids import IdentificationId
-from src.modules.identity import IUserDirectory
+from src.modules.identity import IUserDirectory, TermsNotAcceptedError
 from src.modules.quota import (
     DailyQuotaExceededError,
     FeatureCost,
@@ -75,6 +75,7 @@ class IdentifyPlantUseCase:
         NotAPlantError,
         DailyQuotaExceededError,
         ServiceDailyLimitError,
+        TermsNotAcceptedError,
         UserNotFoundError,
     )
 
@@ -107,6 +108,7 @@ class IdentifyPlantUseCase:
 
         # 1. Leituras curtas: nenhuma transação fica aberta durante as chamadas à IA e ao S3
         region = await self.users.region_of(dto.user_id)
+        await self.users.ensure_accepted_terms(dto.user_id)
         await self.wallet.ensure_can_identify(dto.user_id, now)
         await self.budget.take(now)
 
