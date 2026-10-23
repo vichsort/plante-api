@@ -13,6 +13,7 @@ from src.modules.health.api import router
 from src.modules.health.container import HealthContainer
 from src.modules.health.domain.exceptions import HealthRecordNotFoundError
 from src.modules.health.domain.use_cases.diagnose import DiagnoseHealthOutput
+from src.modules.health.domain.use_cases.get_history import HealthHistoryItem
 from src.modules.health.tests.fakes import make_health_record
 from src.modules.training import FeedbackVerdict
 from src.shared.api import install_authentication, register_exception_handlers
@@ -58,7 +59,9 @@ def test_diagnose_returns_the_record_and_the_reference_images(api: _App) -> None
     record = make_health_record(user_id=USER)
     use_case = api.use_case(
         api.container.diagnose_use_case,
-        DiagnoseHealthOutput(record=record, similar_images_urls=("https://storage.plante.org/similar1.jpg",)),
+        DiagnoseHealthOutput(
+            record=record, image_url="https://images.test/identifications/a.jpg?sig=fake", similar_images_urls=("https://storage.plante.org/similar1.jpg",),
+        ),
     )
 
     # Act
@@ -74,6 +77,7 @@ def test_diagnose_returns_the_record_and_the_reference_images(api: _App) -> None
     data = response.json()["data"]
     assert (data["health_record_id"], data["severity"], data["is_healthy"]) == (str(record.id), "moderate", False)
     assert data["similar_images_urls"] == ["https://storage.plante.org/similar1.jpg"]
+    assert data["image_url"] == "https://images.test/identifications/a.jpg?sig=fake"
     dto = use_case.execute.call_args.args[0]
     assert (dto.user_id, dto.user_plant_id, dto.image_bytes, dto.latitude, dto.longitude) == (
         USER, record.user_plant_id, b"leaf bytes", -23.5, -46.6,
@@ -140,7 +144,7 @@ def test_feedback_on_a_missing_diagnosis_is_not_found(api: _App) -> None:
 def test_history_lists_the_diagnoses(api: _App) -> None:
     # Arrange
     record = make_health_record(user_id=USER)
-    use_case = api.use_case(api.container.get_history_use_case, [record])
+    use_case = api.use_case(api.container.get_history_use_case, [HealthHistoryItem(record, "https://images.test/identifications/a.jpg?sig=fake")])
 
     # Act
     response = api.client.get(f"/diagnose/history/{record.user_plant_id}?limit=5", headers=AUTH)
@@ -148,7 +152,7 @@ def test_history_lists_the_diagnoses(api: _App) -> None:
     # Assert
     assert response.status_code == 200
     (item,) = response.json()["data"]
-    assert (item["health_record_id"], item["severity"]) == (str(record.id), "moderate")
+    assert (item["health_record_id"], item["severity"], item["image_url"]) == (str(record.id), "moderate", "https://images.test/identifications/a.jpg?sig=fake")
     dto = use_case.execute.call_args.args[0]
     assert (dto.user_id, dto.user_plant_id, dto.limit) == (USER, record.user_plant_id, 5)
 

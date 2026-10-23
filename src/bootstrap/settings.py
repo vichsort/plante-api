@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -59,9 +60,19 @@ class Settings(BaseSettings):
     secret_key: str = "dev_secret_key_change_in_production"
     jwt_algorithm: str = "HS256"
 
+    # Image storage: `local` keeps the photos in a folder of the server, served by the API through
+    # signed links; `s3` is any S3-compatible storage (AWS, or Cloudflare R2 with S3_ENDPOINT_URL)
+    storage_backend: Literal["local", "s3"] = "local"
+    storage_local_root: str = "data/images"
+    # Address the client uses to reach the API: the local storage's links point to it
+    public_api_url: str = "http://localhost:8000"
+    # How long an image link lasts (the local storage's last between one and two of these)
+    image_link_ttl_seconds: int = 3600
+
     # Aws
     aws_region: str = "us-east-1"
     s3_bucket: str = "plante-bucket-name"
+    s3_endpoint_url: str | None = None
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
     ses_sender_email: str = "noreply@plante.app"

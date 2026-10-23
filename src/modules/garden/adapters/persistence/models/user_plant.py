@@ -39,7 +39,7 @@ class UserPlantModel(Base, AuditMixin):
     )
     added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     nickname: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    primary_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    primary_image_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
     last_watered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Streak achatado

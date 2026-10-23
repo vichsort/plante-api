@@ -61,8 +61,11 @@ A composição monta o módulo por:
 - **`IHealthEnricher.analyze_disease`** fica sem uso, de propósito: é a base da análise profunda
   (entrega futura).
 - **Hoje:** a foto do diagnóstico é gravada com `upload_identification_image` (mesmo prefixo das
-  fotos de identificação, com a vitalidade no lugar da confiança). Não muda o contrato; vale rever
-  quando a política de imagens privadas (URL assinada) for desenhada.
+  fotos de identificação, com a vitalidade no lugar da confiança), e a exclusão de conta a leva
+  junto. Não muda o contrato.
+- **The client gets `image_url`, a signed link that expires** (in the diagnosis and in the
+  history), never the stored key (images rule in `src/shared/README.md`). The reference images of
+  the diseases (`similar_images_urls`) are Kindwise's own URLs.
 
 ## Erros
 

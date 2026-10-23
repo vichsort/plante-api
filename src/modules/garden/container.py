@@ -20,7 +20,7 @@ from src.modules.identification import IIdentificationLookup
 from src.modules.identity import IUserDirectory
 from src.modules.quota import IGardenQuota
 from src.modules.training import ITrainingRecorder
-from src.shared.domain import IDomainPublisher, LocalCalendar
+from src.shared.domain import IDomainPublisher, IImageStorage, LocalCalendar
 
 
 class GardenContainer(containers.DeclarativeContainer):
@@ -32,6 +32,7 @@ class GardenContainer(containers.DeclarativeContainer):
     training: providers.Dependency[ITrainingRecorder] = providers.Dependency()
     identifications: providers.Dependency[IIdentificationLookup] = providers.Dependency()
     catalog: providers.Dependency[ISpeciesRegistry] = providers.Dependency()
+    storage: providers.Dependency[IImageStorage] = providers.Dependency()
 
     unit_of_work = providers.Factory(SqlAlchemyGardenUnitOfWork, session_factory=session_factory)
     lookup = providers.Factory(PlantLookup, uow=unit_of_work)
@@ -45,13 +46,17 @@ class GardenContainer(containers.DeclarativeContainer):
         quota=quota,
         training=training,
         identifications=identifications,
+        storage=storage,
     )
-    get_garden_use_case = providers.Factory(GetUserGardenUseCase, uow=unit_of_work, calendar=calendar)
+    get_garden_use_case = providers.Factory(
+        GetUserGardenUseCase, uow=unit_of_work, calendar=calendar, storage=storage,
+    )
     get_plant_details_use_case = providers.Factory(
         GetPlantDetailsUseCase,
         uow=unit_of_work,
         calendar=calendar,
         catalog=catalog,
+        storage=storage,
     )
     delete_plant_use_case = providers.Factory(
         DeleteUserPlantUseCase, uow=unit_of_work, training=training, identifications=identifications,

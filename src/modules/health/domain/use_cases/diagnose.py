@@ -65,6 +65,7 @@ class DiagnoseHealthInputDTO:
 @dataclass(frozen=True)
 class DiagnoseHealthOutput:
     record: HealthRecord
+    image_url: str  # signed link of the photo (expires)
     similar_images_urls: tuple[str, ...]
 
 
@@ -207,5 +208,6 @@ class DiagnoseHealthUseCase:
 
         return DiagnoseHealthOutput(
             record=record,
+            image_url=await self._storage.signed_url(image_key),
             similar_images_urls=assessment.all_similar_images_urls,
         )

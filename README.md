@@ -55,7 +55,7 @@ As regras (layout, imports, erros, testes) estão no [`ARCHITECTURE.md`](ARCHITE
 | Workers | Celery 5 + Celery Beat |
 | IA principal | Google Gemini API |
 | IA consensus | PlantNet + Kindwise |
-| Storage | AWS S3 |
+| Storage | Disco local ou S3-compatível (AWS S3, Cloudflare R2) |
 | E-mail | AWS SES |
 | Logs | structlog (JSON estruturado) |
 | Gerenciador de pacotes | uv |
@@ -169,7 +169,11 @@ Copie `.env.example` para `.env` e preencha:
 | `GEMINI_API_KEY` | Chave da API do Google Gemini |
 | `KINDWISE_API_KEY` | Chave da API da Kindwise |
 | `PLANTNET_API_KEY` | Chave da API do PlantNet |
-| `SECRET_KEY` | Chave secreta para JWT |
+| `SECRET_KEY` | Chave secreta para JWT (e, derivada dela, a dos links de imagem) |
+| `STORAGE_BACKEND` | `local` (padrão: pasta do servidor, servida pela API) ou `s3` |
+| `STORAGE_LOCAL_ROOT` | Pasta das imagens com `local` (padrão `data/images`; faça backup) |
+| `PUBLIC_API_URL` | Endereço da API visto pelo cliente (os links de imagem locais apontam para ele) |
+| `S3_BUCKET` / `S3_ENDPOINT_URL` | Bucket e, para R2 ou outro S3-compatível, o endereço |
 | `AWS_ACCESS_KEY_ID` | Credencial AWS (S3 + SES) |
 | `AWS_SECRET_ACCESS_KEY` | Credencial AWS |
 | `SES_SENDER_EMAIL` | E-mail remetente cadastrado no SES |

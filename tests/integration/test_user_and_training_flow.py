@@ -169,7 +169,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     quota = GardenQuota(SqlAlchemyQuotaUnitOfWork(session_factory), POLICY)
     plant = (await AddPlantToGardenUseCase(
         uow=garden(), publisher=AsyncMock(), calendar=CALENDAR, users=users, quota=quota, training=training(),
-        identifications=IdentificationLookup(identifications()),
+        identifications=IdentificationLookup(identifications()), storage=storage,
     ).execute(
         AddPlantToGardenInputDTO(user_id=user.id, identification_id=identified.identification_id)
     )).plant

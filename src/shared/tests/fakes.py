@@ -43,6 +43,14 @@ class RecordingImageStorage(IImageStorage):
         self.training_uploads.append(image_bytes)
         return f"training/identifications/{len(self.training_uploads)}.jpg"
 
+    async def signed_url(self, key: str) -> str:
+        return signed_link(key)
+
+
+def signed_link(key: str) -> str:
+    """The link the doubles sign for a key: tests compare the response with it."""
+    return f"https://images.test/{key}?sig=fake"
+
 
 @dataclass
 class RecordingPublisher(IDomainPublisher):

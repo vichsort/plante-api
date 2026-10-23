@@ -103,6 +103,7 @@ class Container(containers.DeclarativeContainer):
         training=training.recorder,
         identifications=identification.lookup,
         catalog=catalog.registry,
+        storage=adapters.image_storage,
     )
 
     health = providers.Container(

@@ -187,6 +187,6 @@ class IdentifyPlantUseCase:
             identification_id=identification.id,
             scientific_name=species.scientific_name,
             confidence=result.confidence,
-            image_url=user_image_key,
+            image_url=await self.storage.signed_url(user_image_key),
             needs_human_review=result.confidence.requires_human_review(),
         )

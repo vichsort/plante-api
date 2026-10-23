@@ -54,4 +54,6 @@ class HealthContainer(containers.DeclarativeContainer):
         plants=plants,
     )
     give_feedback_use_case = providers.Factory(GiveHealthFeedbackUseCase, uow=unit_of_work, training=training)
-    get_history_use_case = providers.Factory(GetHealthHistoryUseCase, uow=unit_of_work, plants=plants)
+    get_history_use_case = providers.Factory(
+        GetHealthHistoryUseCase, uow=unit_of_work, plants=plants, storage=storage,
+    )

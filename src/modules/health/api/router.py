@@ -90,9 +90,9 @@ async def get_health_history(
     user_id: CurrentUserId,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> ApiResponse[list[HealthRecordItemResponse]]:
-    records = await use_case.execute(GetHealthHistoryInputDTO(
+    items = await use_case.execute(GetHealthHistoryInputDTO(
         user_id=user_id,
         user_plant_id=UserPlantId(user_plant_id),
         limit=limit,
     ))
-    return ApiResponse.success([HealthRecordItemResponse.from_domain(record) for record in records])
+    return ApiResponse.success([HealthRecordItemResponse.from_domain(item) for item in items])

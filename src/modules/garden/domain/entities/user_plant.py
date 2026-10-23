@@ -34,7 +34,7 @@ class UserPlant:
     added_at: datetime | None = None
 
     nickname: str | None = None
-    primary_image_url: str | None = None
+    primary_image_key: str | None = None
     last_watered_at: datetime | None = None
     watering_streak: Streak = field(default_factory=lambda: Streak(current_count=0))
 
@@ -82,10 +82,14 @@ class UserPlant:
 
 @dataclass(frozen=True)
 class GardenPlant:
-    """A planta como o jardim mostra hoje: se precisa de rega depende do dia local, não só do estado salvo."""
+    """
+    A planta como o jardim mostra hoje: se precisa de rega depende do dia local, não só do estado
+    salvo. `image_url` is the signed link of the photo (it expires; the key never leaves the API).
+    """
     plant: UserPlant
     needs_watering: bool
+    image_url: str | None
 
     @classmethod
-    def of(cls, plant: UserPlant, today: date) -> "GardenPlant":
-        return cls(plant=plant, needs_watering=plant.needs_watering(today))
+    def of(cls, plant: UserPlant, today: date, image_url: str | None) -> "GardenPlant":
+        return cls(plant=plant, needs_watering=plant.needs_watering(today), image_url=image_url)

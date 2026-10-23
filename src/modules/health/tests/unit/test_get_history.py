@@ -15,6 +15,7 @@ from src.modules.health.tests.fakes import (
     make_health_record,
 )
 from src.shared.domain import UserId
+from src.shared.tests.fakes import RecordingImageStorage, signed_link
 
 NOW = datetime(2026, 10, 15, 12, 0, tzinfo=UTC)
 
@@ -30,12 +31,13 @@ async def test_history_lists_the_plant_diagnoses_newest_first() -> None:
     uow = FakeHealthUnitOfWork(InMemoryHealthRecordRepository(older, newer, other_plant))
 
     # Act
-    history = await GetHealthHistoryUseCase(uow, FakePlantLookup(plant)).execute(
+    history = await GetHealthHistoryUseCase(uow, FakePlantLookup(plant), RecordingImageStorage()).execute(
         GetHealthHistoryInputDTO(user_id=plant.user_id, user_plant_id=plant.id)
     )
 
     # Assert
-    assert [record.id for record in history] == [newer.id, older.id]
+    assert [item.record.id for item in history] == [newer.id, older.id]
+    assert [item.image_url for item in history] == [signed_link(newer.image_key), signed_link(older.image_key)]
 
 
 async def test_history_of_a_plant_of_another_user_is_not_found() -> None:
@@ -45,6 +47,6 @@ async def test_history_of_a_plant_of_another_user_is_not_found() -> None:
 
     # Act & Assert
     with pytest.raises(PlantNotFoundError):
-        await GetHealthHistoryUseCase(uow, FakePlantLookup(plant)).execute(
+        await GetHealthHistoryUseCase(uow, FakePlantLookup(plant), RecordingImageStorage()).execute(
             GetHealthHistoryInputDTO(user_id=UserId(uuid4()), user_plant_id=plant.id)
         )

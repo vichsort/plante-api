@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -7,6 +7,7 @@ import pytest
 from src.modules.catalog import PlantSpecies
 from src.modules.catalog.tests.fakes import FakeSpeciesRegistry
 from src.modules.garden.domain.entities.user_plant import (
+    GardenPlant,
     IdentificationSource,
     UserPlant,
 )
@@ -69,7 +70,11 @@ from src.modules.training import (
 )
 from src.modules.training.tests.fakes import FakeTrainingRecorder
 from src.shared.domain import UserId
-from src.shared.tests.fakes import RecordingPublisher
+from src.shared.tests.fakes import (
+    RecordingImageStorage,
+    RecordingPublisher,
+    signed_link,
+)
 
 OWNER = UserId(UUID(int=1))
 
@@ -93,14 +98,17 @@ class _Add:
         self.uow = FakeGardenUnitOfWork(self.plants)
 
     async def run(self, identification_id: IdentificationId | None = None, nickname: str | None = None) -> UserPlant:
+        return (await self.show(identification_id, nickname)).plant
+
+    async def show(self, identification_id: IdentificationId | None = None, nickname: str | None = None) -> GardenPlant:
         use_case = AddPlantToGardenUseCase(
             uow=self.uow, publisher=self.publisher, calendar=CALENDAR, users=FakeUserDirectory(), quota=FakeGardenQuota(),
             training=self.training, identifications=FakeIdentificationLookup(self.identification),
+            storage=RecordingImageStorage(),
         )
-        item = await use_case.execute(AddPlantToGardenInputDTO(
+        return await use_case.execute(AddPlantToGardenInputDTO(
             user_id=OWNER, identification_id=identification_id or self.identification.id, nickname=nickname,
         ))
-        return item.plant
 
 
 async def test_add_creates_the_plant_from_the_identification() -> None:
@@ -112,7 +120,7 @@ async def test_add_creates_the_plant_from_the_identification() -> None:
 
     # Assert
     assert plant.identification_id == add.identification.id
-    assert (plant.scientific_name, plant.primary_image_url) == (add.identification.scientific_name, add.identification.image_key)
+    assert (plant.scientific_name, plant.primary_image_key) == (add.identification.scientific_name, add.identification.image_key)
     assert plant.nickname == "Clotilde"
     assert plant.needs_watering(_today()) is False  # nunca regada: ainda não tem vencimento
     assert add.uow.commits == 1
@@ -292,13 +300,34 @@ async def test_watering_someone_elses_plant_is_not_found() -> None:
         await WaterPlantUseCase(uow, RecordingPublisher(), CALENDAR).execute(WaterPlantInputDTO(user_id=OWNER, user_plant_id=plant.id))
 
 
+async def test_the_garden_shows_signed_links_never_keys() -> None:
+    # Arrange: one plant with the photo of its identification, one without a photo
+    with_photo = replace(make_user_plant(user_id=OWNER), primary_image_key="identifications/a.jpg")
+    without_photo = make_user_plant(user_id=OWNER)
+    uow = FakeGardenUnitOfWork(InMemoryUserPlantRepository(with_photo, without_photo))
+
+    # Act
+    items = await GetUserGardenUseCase(uow, CALENDAR, RecordingImageStorage()).execute(GetUserGardenInputDTO(user_id=OWNER))
+    details = await GetPlantDetailsUseCase(uow, CALENDAR, FakeSpeciesRegistry(), RecordingImageStorage()).execute(
+        GetPlantDetailsInputDTO(user_id=OWNER, user_plant_id=with_photo.id),
+    )
+    added = await _Add().show()
+
+    # Assert
+    assert {item.plant.id: item.image_url for item in items} == {
+        with_photo.id: signed_link("identifications/a.jpg"), without_photo.id: None,
+    }
+    assert details.image_url == signed_link("identifications/a.jpg")
+    assert added.image_url == signed_link("identifications/monstera.jpg")  # the identification's photo
+
+
 async def test_garden_lists_only_the_users_plants() -> None:
     # Arrange
     mine = make_user_plant(user_id=OWNER)
     uow = FakeGardenUnitOfWork(InMemoryUserPlantRepository(mine, make_user_plant()))
 
     # Act
-    items = await GetUserGardenUseCase(uow, CALENDAR).execute(GetUserGardenInputDTO(user_id=OWNER))
+    items = await GetUserGardenUseCase(uow, CALENDAR, RecordingImageStorage()).execute(GetUserGardenInputDTO(user_id=OWNER))
 
     # Assert
     assert [item.plant for item in items] == [mine]
@@ -311,7 +340,9 @@ async def test_details_bring_the_species_from_the_catalog() -> None:
     uow = FakeGardenUnitOfWork(InMemoryUserPlantRepository(plant))
 
     # Act
-    details = await GetPlantDetailsUseCase(uow, CALENDAR, FakeSpeciesRegistry({"Monstera deliciosa": species})).execute(
+    details = await GetPlantDetailsUseCase(
+        uow, CALENDAR, FakeSpeciesRegistry({"Monstera deliciosa": species}), RecordingImageStorage(),
+    ).execute(
         GetPlantDetailsInputDTO(user_id=OWNER, user_plant_id=plant.id),
     )
 
@@ -325,7 +356,7 @@ async def test_details_of_a_missing_plant_are_not_found() -> None:
 
     # Act & Assert
     with pytest.raises(PlantNotFoundError):
-        await GetPlantDetailsUseCase(uow, CALENDAR, FakeSpeciesRegistry()).execute(
+        await GetPlantDetailsUseCase(uow, CALENDAR, FakeSpeciesRegistry(), RecordingImageStorage()).execute(
             GetPlantDetailsInputDTO(user_id=OWNER, user_plant_id=UserPlantId(uuid4())),
         )
 

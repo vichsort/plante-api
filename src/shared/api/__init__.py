@@ -1,6 +1,8 @@
 """Borda HTTP comum: envelope de resposta, tratamento de erros, documentação de erros e middlewares."""
 from src.shared.api.authentication import CurrentUserId, install_authentication
 from src.shared.api.exception_handlers import register_exception_handlers
+from src.shared.api.images import install_image_links
+from src.shared.api.images import router as images_router
 from src.shared.api.middleware import (
     AuditMiddleware,
     CorrelationIdMiddleware,
@@ -34,6 +36,8 @@ __all__ = [
     "SecurityHeadersMiddleware",
     "WindowCounter",
     "error_responses",
+    "images_router",
     "install_authentication",
+    "install_image_links",
     "register_exception_handlers",
 ]

@@ -42,3 +42,6 @@ celerybeat.pid
 *.log
 # Testes dos módulos ficam dentro de src/, mas também não vão para produção
 src/**/tests/
+
+# Local image storage (STORAGE_LOCAL_ROOT)
+data/

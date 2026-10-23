@@ -3,7 +3,7 @@
 ## Propósito
 
 Kernel e infraestrutura comuns a todos os módulos. **Não tem regra de negócio**: só tipos puros,
-capacidades técnicas (banco, Redis, S3, imagens, resiliência, clientes HTTP dos provedores) e a
+capacidades técnicas (banco, Redis, armazenamento de imagens, imagens, resiliência, clientes HTTP dos provedores) e a
 borda HTTP do app inteiro (envelope, erros, middlewares).
 
 Critério para algo entrar aqui: dois ou mais módulos precisam dele **e** nenhum módulo é o dono
@@ -16,8 +16,8 @@ Importa-se pela camada, nunca pela raiz nem por dentro dela (`tests/architecture
 | Camada | O que expõe |
 | :--- | :--- |
 | `src.shared.domain` | `UserId`, `LocalCalendar`, `JsonValue`/`JsonObject`, `DomainEvent`, `PlantEError` e os erros comuns, as portas `IImageStorage`, `IImageSanitizer`, `IDomainPublisher`, `IAccessTokenVerifier` |
-| `src.shared.adapters` | `CeleryPublisher`/`TaskCall`/`EventRoute` (eventos → tasks), `Base`/`AuditMixin`/`enum_values` (SQLAlchemy), `build_engine`/`build_session_factory`, `RedisClient`, `S3ImageStorage`, `PillowImageSanitizer`, `CircuitBreaker`, `GeminiClient`, `KindwiseClient`, `translate_provider_errors` e o parse de JSON dos provedores |
-| `src.shared.api` | `ApiResponse`/`MessageResponse`, `register_exception_handlers`, `error_responses`/`COMMON_ERROR_RESPONSES`, `CurrentUserId`/`install_authentication`, os middlewares (correlation, audit, rate limit, security headers) |
+| `src.shared.adapters` | `CeleryPublisher`/`TaskCall`/`EventRoute` (eventos → tasks), `Base`/`AuditMixin`/`enum_values` (SQLAlchemy), `build_engine`/`build_session_factory`, `RedisClient`, `LocalImageStorage`/`S3ImageStorage`, `PillowImageSanitizer`, `CircuitBreaker`, `GeminiClient`, `KindwiseClient`, `translate_provider_errors` e o parse de JSON dos provedores |
+| `src.shared.api` | `ApiResponse`/`MessageResponse`, `register_exception_handlers`, `error_responses`/`COMMON_ERROR_RESPONSES`, `CurrentUserId`/`install_authentication`, `images_router`/`install_image_links` (the local storage's links), os middlewares (correlation, audit, rate limit, security headers) |
 | `src.shared.workers` | `run_async` (task do Celery que chama código assíncrono) e `on_task_loop_end` (limpeza no fim da task, dentro do loop dela) |
 
 O domínio de um módulo só pode usar `src.shared.domain` (o import-linter barra frameworks no
@@ -25,18 +25,29 @@ domínio, inclusive por caminho indireto).
 
 ## Decisões
 
-- **Imagens: mecanismo aqui, política no módulo.** Gravar e (no futuro) assinar URL com prazo é
-  técnico e fica em `adapters/s3`. Decidir o que é privado e por quanto tempo é regra de cada
-  módulo: a foto da identificação é privada (identification); a imagem de referência é pública
-  (catalog).
+- **Images: mechanism here, policy in the module.** Storing and signing links is technical and
+  lives in `adapters/storage`; which photo goes out and to whom is each module's rule.
+  - **The database keeps keys, never URLs** (`identifications/<user>/<species>/<uuid>.jpg`). The
+    client gets a signed link that expires (`IImageStorage.signed_url`, lifetime in
+    `IMAGE_LINK_TTL_SECONDS`): an `<img>` cannot send the token, so whoever holds the link sees the
+    image until then. Keys are the same in every backend, so moving storage is copying files.
+  - **Two backends, chosen in `.env` (`STORAGE_BACKEND`):** `local` (default) keeps the files in a
+    folder of the server (`STORAGE_LOCAL_ROOT`) and the API serves them on `/images/<key>`, with
+    links signed by HMAC under a key derived from `SECRET_KEY`; `s3` is any S3-compatible storage
+    (AWS, or Cloudflare R2 with `S3_ENDPOINT_URL`), private objects and presigned links.
+    - The local links last between one and two lifetimes: the deadline moves in steps, so the link
+      of a photo stays the same for a while and the browser can cache it. The `/images` route
+      follows the general rate limit, by IP.
+    - With `local`, the API, the workers and the backups need the same folder (a volume in Docker);
+      the training dataset lives there too.
   - **Foto do usuário sob o prefixo dele** (`identifications/{user_id}/…`, inclusive a do
     diagnóstico): a exclusão de conta apaga o prefixo inteiro (`delete_user_images`), sem precisar
     saber quais módulos guardaram chaves. As cópias de treino ficam em `training/…`, sem dono.
     Fotos gravadas antes dessa regra não têm o prefixo e ficam fora da limpeza.
   - **Vira um módulo `media`** quando a imagem ganhar regras próprias: dono, ciclo de vida,
     sessões de upload direto do app (PUT assinado), miniaturas.
-  - Já mapeado para o app real: a URL assinada muda a cada chamada (o cache do app precisa de chave
-    estável, o ID da imagem); a lista em cache expira; com CDN, quem assina é o CloudFront, não o S3.
+  - Já mapeado para o app real: o cache do app precisa de chave estável (o ID da imagem), porque
+    o link muda; a lista em cache expira; com CDN, quem assina é a CDN, não o armazenamento.
 - **Clientes de provedor finos.** Kindwise e Gemini atendem mais de um módulo. Aqui fica só o
   comum (cliente HTTP, chave, timeout, erro HTTP → `ExternalServiceError`), sem tipos de botânica.
   Cada módulo tem o próprio adapter, com endpoint e parsing dele.
@@ -76,6 +87,7 @@ sem detalhes sai com `details: null`.
 | `PLANTE_4010_UNAUTHORIZED` | `UnauthorizedError` | 401 | Token ausente, inválido ou expirado. Só isso: o app renova o token ou pede novo login. |
 | `PLANTE_4030_ROUTE_NOT_FOUND` | `RouteNotFoundError` | 404 | Nenhuma rota com esse caminho (montado pelo handler). |
 | `PLANTE_4031_USER_NOT_FOUND` | `UserNotFoundError` | 404 | O usuário do token não tem conta. |
+| `PLANTE_4032_IMAGE_NOT_FOUND` | `ImageNotFoundError` | 404 | Link de imagem inválido, expirado ou para uma foto que não existe mais (sem dizer qual), ou o armazenamento não é o local. |
 | `PLANTE_4050_RATE_LIMIT_EXCEEDED` | `RateLimitExceededError` | 429 | Limite por minuto: 60 nas rotas gerais, 15 nas de IA e auth. Anônimas contam por IP; autenticadas, por usuário. |
 | `PLANTE_5000_INTERNAL_ERROR` | `InternalError` | 500 | Falha inesperada (montado pelo handler; detalhes só no log). |
 | `PLANTE_5010_EXTERNAL_SERVICE_ERROR` | `ExternalServiceError` | 502 | Provedor externo falhou (Kindwise, PlantNet, Gemini, AWS). |

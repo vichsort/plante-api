@@ -114,6 +114,9 @@ class FakeStorage(IImageStorage):
         self.uploads[key] = image_bytes
         return key
 
+    async def signed_url(self, key: str) -> str:
+        return f"https://images.test/{key}?sig=fake"
+
 
 @dataclass
 class SentEmail:

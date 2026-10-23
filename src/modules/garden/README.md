@@ -33,6 +33,9 @@ memória e as fábricas de planta dos testes daqui.
 - **Uma planta só entra no jardim a partir de uma identificação** (`POST /garden` com
   `identification_id`, lida pelo `IIdentificationLookup`): é aí que a `UserPlant` nasce. Repetir
   com a mesma identificação devolve a planta existente, sem sinal nem evento novo.
+- **The plant's photo is the identification's** (`primary_image_key`, the stored key). Listing,
+  details and adding answer `primary_image_url`, a signed link that expires (images rule in
+  `src/shared/README.md`).
   - O limite do plano conta as plantas **ativas** (`count_by_user`; não há contador guardado).
   - Adicionar registra um sinal implícito positivo (`added_to_garden`) na amostra de treino da
     identificação.
