@@ -5,19 +5,6 @@ READMEs dos módulos.
 
 ## Próxima release (`v0.2.0`, `develop` → `main`)
 
-- [ ] **Próximo passo: refactor da cota** (decisão e plano em
-  `docs/decisions/2026-10-19-funding-and-quota.md`). Sem plano pago: doação sem contrapartida de uso;
-  cota `standard` para todos e `extended` concedida por pedido, nunca por pagamento.
-  1. Hotfix na `main`: tirar a rota pública de upgrade (qualquer usuário se dá o PRO); `v0.1.3`.
-  2. Renomear o módulo `subscription` → `quota`.
-  3. `FREE`/`PRO` → `standard`/`extended` (migração renomeia o enum; `details.quota` nos erros).
-  4. Comando do mantenedor para conceder e revogar a cota ampliada (sem rota HTTP).
-  5. Limites vindos da configuração (meta coletiva sobe o `standard` sem mexer em código).
-- [ ] **`SpeciesNotFoundError` (4330) nunca sai.** O catalog não tem rota; `/identify` cria a
-  espécie e o detalhe da planta tolera espécie ausente. O certo seria sair quando o provedor não
-  encontra a planta, mas o PlantNet sempre devolve algo, mesmo sem certeza; falta ver o Kindwise.
-  Decidir quando sai e cobrir com teste; hoje está na lista de pendentes do teste de erro morto
-  (`tests/architecture/test_codebase.py`).
 - [ ] Ok do usuário de que está "redondinho". Só então a release.
 
 ## Validar com as chaves reais
