@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from src.modules.identity.api.schemas import (
     ChangeEmailRequest,
@@ -60,6 +60,7 @@ profile_router = APIRouter(prefix="/profile", tags=["profile"], responses=error_
 @inject
 async def register(
     body: RegisterRequest,
+    request: Request,
     use_case: Annotated[RegisterUserUseCase, Depends(Provide[IdentityContainer.register_user_use_case])],
 ) -> ApiResponse[RegisterResponse]:
     user = await use_case.execute(RegisterUserInputDTO(
@@ -67,6 +68,8 @@ async def register(
         password=body.password,
         country=body.country,
         state=body.state,
+        captcha_token=body.captcha_token,
+        client_ip=request.client.host if request.client else None,
     ))
     return ApiResponse.success(RegisterResponse.from_domain(user))
 

@@ -9,6 +9,7 @@ from typing import Self
 from uuid import uuid4
 
 from src.modules.identity.domain.entities.user import User
+from src.modules.identity.domain.ports.captcha_verifier import ICaptchaVerifier
 from src.modules.identity.domain.ports.email_sender import IEmailSender
 from src.modules.identity.domain.ports.otp_repository import IOtpRepository
 from src.modules.identity.domain.ports.password_hasher import IPasswordHasher
@@ -148,3 +149,14 @@ class RecordingEmailSender(IEmailSender):
 
     async def send_password_changed_notice(self, to_email: str) -> None:
         self.sent.append((to_email, None))
+
+
+@dataclass
+class StubCaptchaVerifier(ICaptchaVerifier):
+    """Accepts only `valid_token`; `checked` keeps what it was asked."""
+    valid_token: str = "captcha-ok"
+    checked: list[tuple[str | None, str | None]] = field(default_factory=list)
+
+    async def verify(self, token: str | None, client_ip: str | None) -> bool:
+        self.checked.append((token, client_ip))
+        return token == self.valid_token

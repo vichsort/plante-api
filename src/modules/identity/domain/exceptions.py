@@ -44,3 +44,12 @@ class InvalidVerificationCodeError(PlantEError):
 
     def __init__(self, message: str = "Invalid verification code."):
         super().__init__(message=message)
+
+
+class CaptchaFailedError(PlantEError):
+    """The captcha token is missing, invalid, expired or already used: solve the captcha again."""
+    code = "PLANTE_4103_CAPTCHA_FAILED"
+    status_code = 400
+
+    def __init__(self) -> None:
+        super().__init__(message="Captcha verification failed. Solve the captcha again.")

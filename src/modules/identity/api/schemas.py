@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, StringConstraints
+from pydantic import BaseModel, EmailStr, Field, StringConstraints
 
 from src.modules.identity.domain.entities.user import User
 from src.modules.identity.domain.use_cases.login import LoginResult
@@ -17,6 +17,8 @@ class RegisterRequest(BaseModel):
     password: str
     country: Country
     state: State
+    # The token the site's Turnstile widget produced; required when the API has the captcha on
+    captcha_token: str | None = Field(default=None, max_length=2048)
 
 class RegisterResponse(BaseModel):
     user_id: UUID

@@ -4,6 +4,7 @@ from src.modules.identity.adapters.security.jwt_token_service import JwtTokenSer
 from src.modules.identity.domain.entities.user import User
 from src.modules.identity.domain.events import UserRegisteredEvent
 from src.modules.identity.domain.exceptions import (
+    CaptchaFailedError,
     EmailAlreadyInUseError,
     EmailNotVerifiedError,
     InvalidCredentialsError,
@@ -20,6 +21,7 @@ from src.modules.identity.tests.fakes import (
     InMemoryTokenRepository,
     InMemoryUserRepository,
     PlainHasher,
+    StubCaptchaVerifier,
     make_user,
 )
 from src.shared.domain import DomainEvent, IDomainPublisher
@@ -39,12 +41,17 @@ def _register(
     uow: FakeIdentityUnitOfWork, publisher: _Publisher | None = None, verification_required: bool = True,
 ) -> RegisterUserUseCase:
     return RegisterUserUseCase(
-        uow=uow, hasher=PlainHasher(), publisher=publisher or _Publisher(), verification_required=verification_required,
+        uow=uow, hasher=PlainHasher(), publisher=publisher or _Publisher(), captcha=StubCaptchaVerifier(),
+        verification_required=verification_required,
     )
 
 
-def _dto(email: str = "new@plante.org", password: str = "Secret1password") -> RegisterUserInputDTO:
-    return RegisterUserInputDTO(email=email, password=password, country="BR", state="SP")
+def _dto(
+    email: str = "new@plante.org", password: str = "Secret1password", captcha_token: str | None = "captcha-ok",
+) -> RegisterUserInputDTO:
+    return RegisterUserInputDTO(
+        email=email, password=password, country="BR", state="SP", captcha_token=captcha_token, client_ip="203.0.113.7",
+    )
 
 
 def _login(*users: User, verification_required: bool = True) -> tuple[LoginUseCase, InMemoryTokenRepository]:
@@ -82,6 +89,17 @@ async def test_register_without_verification_creates_a_verified_account() -> Non
     assert user.is_verified
     (event,) = publisher.events
     assert isinstance(event, UserRegisteredEvent) and not event.requires_verification
+
+
+@pytest.mark.parametrize("token", [None, "forged"])
+async def test_register_without_a_valid_captcha_creates_nothing(token: str | None) -> None:
+    # Arrange: the address is even taken, and the bot still learns nothing
+    uow, publisher = FakeIdentityUnitOfWork(InMemoryUserRepository(make_user(email="existing@plante.org"))), _Publisher()
+
+    # Act & Assert
+    with pytest.raises(CaptchaFailedError):
+        await _register(uow, publisher).execute(_dto(email="existing@plante.org", captcha_token=token))
+    assert (uow.commits, publisher.events) == (0, [])
 
 
 async def test_register_with_an_email_in_use_fails() -> None:

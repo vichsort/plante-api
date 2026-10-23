@@ -54,16 +54,19 @@ def api() -> Iterator[_App]:
 def test_register_returns_the_pending_account(api: _App) -> None:
     # Arrange
     user = make_user(email="integration@plante.org", is_verified=False)
-    api.use_case(api.container.register_user_use_case, user)
+    use_case = api.use_case(api.container.register_user_use_case, user)
 
     # Act
     response = api.client.post("/auth/register", json={
         "email": "integration@plante.org", "password": "SecretPassword123", "country": "BR", "state": "SP",
+        "captcha_token": "widget-token",
     })
 
     # Assert
     assert response.status_code == 201
     assert response.json()["data"] == {"user_id": str(user.id), "email": "integration@plante.org", "status": "pending_verification"}
+    dto = use_case.execute.call_args.args[0]
+    assert (dto.captcha_token, dto.client_ip) == ("widget-token", "testclient")
 
 
 @pytest.mark.parametrize(("path", "method", "location"), [

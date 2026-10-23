@@ -62,6 +62,13 @@ portas em memória dos testes daqui.
   - Accepted risks while it is off: someone can sign up (or change to) an address that is not
     theirs, which is fixed by hand; and throwaway accounts, held back by the captcha and the global
     daily cap.
+- **Captcha on sign-up** (Cloudflare Turnstile; `TURNSTILE_SECRET_KEY`): the site's widget makes a
+  single-use token (~5 min) that goes in the `/auth/register` body (`captcha_token`), and the API
+  checks it with Cloudflare, sending the client's IP along. Not a separate endpoint: a bot would
+  skip it. Only sign-up has it; login has the rate limit.
+  - Checked before anything else (before the email-in-use check).
+  - Without the secret key, the captcha is off (development, tests), and the log warns.
+  - Cloudflare not answering is a 502 (`ExternalServiceError`), never a pass.
 - **Email backends** (`EMAIL_BACKEND`): `log` (default) only writes the message to the log, codes
   included, so it is for development or for verification off; `smtp` is any provider (Resend,
   Brevo...), the standard library's client in a thread; `ses` is AWS. Same text in all
@@ -93,6 +100,7 @@ portas em memória dos testes daqui.
 | `PLANTE_4100_WEAK_PASSWORD` | `WeakPasswordError` | 400 | Senha (cadastro ou troca) fora da `PasswordPolicy`, ou nova senha igual à atual. |
 | `PLANTE_4101_INVALID_VERIFICATION_CODE` | `InvalidVerificationCodeError` | 400 | Código fora do formato, expirado ou diferente do enviado. |
 | `PLANTE_4102_WRONG_CREDENTIALS` | `InvalidCredentialsError` | 400 | Login com e-mail ou senha errados (mesma resposta para os dois), ou senha atual incorreta ao trocar e-mail ou senha. Não é 401: a sessão continua válida. |
+| `PLANTE_4103_CAPTCHA_FAILED` | `CaptchaFailedError` | 400 | Cadastro sem token de captcha, ou com um inválido, expirado ou já usado (com o captcha ligado). Checado antes de tudo: o robô não descobre nem se o e-mail existe. |
 | `PLANTE_4120_EMAIL_NOT_VERIFIED` | `EmailNotVerifiedError` | 403 | Login com a senha certa, mas e-mail ainda não verificado. |
 | `PLANTE_4140_EMAIL_ALREADY_IN_USE` | `EmailAlreadyInUseError` | 409 | E-mail já usado por outra conta (cadastro ou troca de e-mail). |
 

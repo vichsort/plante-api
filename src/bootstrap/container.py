@@ -60,6 +60,7 @@ class Container(containers.DeclarativeContainer):
         smtp_username=settings.provided.smtp_username,
         smtp_password=settings.provided.smtp_password,
         smtp_security=settings.provided.smtp_security,
+        turnstile_secret_key=settings.provided.turnstile_secret_key,
     )
 
     quota_limits = providers.Singleton(

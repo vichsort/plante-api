@@ -82,6 +82,9 @@ class Settings(BaseSettings):
     # `starttls` (port 587), `ssl` (port 465) or `none` (a local relay only)
     smtp_security: Literal["starttls", "ssl", "none"] = "starttls"
 
+    # Cloudflare Turnstile on /auth/register; empty turns the captcha off (development)
+    turnstile_secret_key: str = ""
+
     # Aws
     aws_region: str = "us-east-1"
     s3_bucket: str = "plante-bucket-name"
