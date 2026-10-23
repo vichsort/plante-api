@@ -13,32 +13,17 @@ O site só ganha cadastro depois destes itens; captcha e aceite dos termos mudam
 - [ ] **Release `v0.2.0`** (`develop` → `main`): ok do usuário de que está "redondinho".
 - [ ] **Validar com as chaves reais:**
   - Testes de contrato: `uv run --env-file .env pytest -m contract` (~2 créditos do Kindwise).
-  - Um `/identify` real com o armazenamento escolhido (depois da `feat/storage`), incluindo a cópia
-    de treino.
+  - Um `/identify` real com o armazenamento escolhido, incluindo a cópia de treino e abrir o
+    `image_url` devolvido.
   - A `main` (`v0.1.x`) lê a chave do Kindwise de `PLANT_ID_API_KEY`; a `develop` lê
     `KINDWISE_API_KEY` (com `PLANT_ID_API_KEY` como nome antigo).
-- [ ] **Armazenamento das fotos** (branch `feat/storage`). Hoje as colunas `image_key` e
-  `user_image_key` (e `primary_image_url` do jardim) guardam a URL pública inteira do S3, e tudo é
-  gravado com `ACL="public-read"`: quem tem a URL vê a foto, e trocar de armazenamento quebra as
-  fotos antigas. Sem infra na AWS por ora; decidir depois entre disco local e Cloudflare R2.
-  1. Banco guarda só a chave relativa (`identifications/<user>/<espécie>/<uuid>.jpg`); o link é
-     gerado ao responder (método novo na porta `IImageStorage`). Migração converte as URLs gravadas
-     em chaves.
-  2. Braço local: pasta no disco; a API serve as fotos por links assinados por ela mesma
-     (`/images/<chave>?exp=…&sig=…`, com validade), porque `<img>` não manda o token. Backup da
-     pasta por conta do servidor (o dataset de treino mora lá).
-  3. Braço compatível com S3: o adaptador atual corrigido (sem `public-read`, links pré-assinados),
-     com endereço configurável; serve para AWS e R2 (R2: 10 GB grátis, sem custo de saída, pede
-     cartão cadastrado).
-  4. Escolha do braço pelo `.env` (`STORAGE_BACKEND=local|s3`). Imagens de referência podem
-     continuar públicas. Junto: a foto do diagnóstico é gravada com `upload_identification_image`
-     (prefixo das fotos de identificação; ver o README do health).
-  - Decidido (2026-10-23): braço padrão `local` quando o `.env` não diz nada; no `/diagnose` e no
-    histórico de saúde, o campo `image_key` (que hoje carrega a URL) vira `image_url` com o link
-    assinado, igual ao `/identify` (quebra o contrato, mas ainda não há cliente). Internamente,
-    `primary_image_url` do jardim passa a guardar a chave. Fotos de referência das doenças
-    (`similar_images_urls`) continuam sendo URLs externas do Kindwise.
-  - Ainda nada implementado (a branch foi aberta e descartada sem commits).
+- [ ] **Armazenamento das fotos: escolher e preparar o braço** (o código está pronto: chaves no
+  banco, links assinados, `STORAGE_BACKEND=local|s3`; regras em `src/shared/README.md`).
+  - `local` (padrão): definir `STORAGE_LOCAL_ROOT` e `PUBLIC_API_URL` no servidor; em Docker, um
+    volume com a pasta compartilhado entre API e workers; backup periódico da pasta (o dataset de
+    treino mora lá).
+  - R2: ativar no painel da Cloudflare (pede cartão), criar o bucket e a chave de API;
+    `STORAGE_BACKEND=s3`, `S3_ENDPOINT_URL`, `AWS_REGION=auto`, `S3_BUCKET` e as chaves.
 - [ ] **E-mail** (branch `feat/email`). O e-mail de verificação sai pelo AWS SES, e não há conta na
   AWS; o domínio só tem o redirecionamento da Cloudflare (recebe, não envia).
   1. `EMAIL_VERIFICATION_REQUIRED` no `.env`; desligado, o cadastro nasce verificado e nada é
