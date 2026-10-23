@@ -1,4 +1,4 @@
-"""Adapters técnicos comuns (banco, Redis, S3, imagens, resiliência, clientes de provedores). Sem regra de negócio."""
+"""Adapters técnicos comuns (banco, Redis, disco local/S3, imagens, resiliência, clientes de provedores). Sem regra de negócio."""
 from src.shared.adapters.celery.publisher import (
     CeleryPublisher,
     EventRoute,
@@ -27,10 +27,12 @@ from src.shared.adapters.resilience.circuit_breaker import (
     CircuitState,
     is_transient_failure,
 )
-from src.shared.adapters.s3.image_storage import S3ImageStorage
+from src.shared.adapters.storage.local import IMAGES_PATH, LocalImageStorage
+from src.shared.adapters.storage.s3 import S3ImageStorage
 
 __all__ = [
     "GEMINI_SERVICE",
+    "IMAGES_PATH",
     "AuditMixin",
     "Base",
     "CeleryPublisher",
@@ -39,6 +41,7 @@ __all__ = [
     "EventRoute",
     "GeminiClient",
     "KindwiseClient",
+    "LocalImageStorage",
     "PillowImageSanitizer",
     "RedisClient",
     "S3ImageStorage",

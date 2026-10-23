@@ -51,6 +51,15 @@ class RouteNotFoundError(PlantEError):
         super().__init__(message=message)
 
 
+class ImageNotFoundError(PlantEError):
+    """The image link is invalid, expired, or points to an image that no longer exists."""
+    code = "PLANTE_4032_IMAGE_NOT_FOUND"
+    status_code = 404
+
+    def __init__(self, message: str = "Image not found."):
+        super().__init__(message=message)
+
+
 class InternalError(PlantEError):
     """Unexpected failure; the details only go to the log."""
     code = "PLANTE_5000_INTERNAL_ERROR"

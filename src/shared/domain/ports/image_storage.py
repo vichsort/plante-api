@@ -5,10 +5,12 @@ from src.shared.domain.value_objects.ids import UserId
 
 class IImageStorage(ABC):
     """
-    Porta de saída para armazenamento permanente de imagens.
-    Não faz compressão, apenas guarda o arquivo e retorna a URL permanente.
+    Outbound port for permanent image storage. Does no compression: it stores the file and returns
+    its key, a path relative to the storage (`identifications/<user>/<species>/<uuid>.jpg`). The
+    database keeps only keys, so the backend can change without touching stored rows; the client
+    gets a link from `signed_url`, never the key.
     """
-    
+
     @abstractmethod
     async def upload_identification_image(
         self,
@@ -17,7 +19,7 @@ class IImageStorage(ABC):
         confidence_value: float,
         user_id: UserId,
     ) -> str:
-        """Retorna o storage_key da imagem salva."""
+        """Returns the key of the stored image."""
         ...
 
     @abstractmethod
@@ -26,7 +28,7 @@ class IImageStorage(ABC):
         external_url: str,
         scientific_name: str,
     ) -> str:
-        """Baixa URL externa (Kindwise) e re-hospeda no bucket. Retorna storage_key."""
+        """Downloads an external URL (Kindwise) and stores it. Returns the key."""
         ...
 
     @abstractmethod
@@ -42,5 +44,13 @@ class IImageStorage(ABC):
         """
         Cópia da foto para o dataset de treino: chave própria (aleatória, em prefixo separado),
         nunca devolvida ao cliente, para a amostra não compartilhar arquivo com o usuário.
+        """
+        ...
+
+    @abstractmethod
+    async def signed_url(self, key: str) -> str:
+        """
+        A link that opens the image without a token (an `<img>` cannot send one) and expires; the
+        lifetime is the storage's setting. Whoever holds the link sees the image until then.
         """
         ...

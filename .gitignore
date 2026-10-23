@@ -60,3 +60,6 @@ HANDOFF.md
 .ruff_cache/
 # import-linter
 .import_linter_cache/
+
+# Local image storage (STORAGE_LOCAL_ROOT)
+/data/

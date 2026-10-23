@@ -26,7 +26,7 @@
    `async with self.uow as uow:`. Nada é gravado sem `await uow.commit()`, e o que não foi
    confirmado é desfeito ao sair do bloco (inclusive com exceção).
    - Eventos, e-mail, OTP e Redis acontecem **depois** do commit.
-   - Chamadas lentas (IA, S3) ficam **fora** da transação: leitura curta → serviços externos →
+   - Chamadas lentas (IA, armazenamento) ficam **fora** da transação: leitura curta → serviços externos →
      escrita curta, relendo o que precisa (ex.: saldo de tokens).
    - Um Postgres só, então uma transação física: o UoW de cada módulo é uma visão da mesma sessão,
      e a fronteira entre módulos é garantida pelo import-linter, não por sessões separadas.

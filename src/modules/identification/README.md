@@ -38,10 +38,11 @@ portas em memória dos testes daqui.
 
 - **Identificar:**
   - Confere só os tokens do dia; o limite do jardim vale ao adicionar ao jardim.
+  - Answers `image_url`, a signed link to the photo that expires, never the stored key.
   - A foto é limpa antes de qualquer uso (`IImageSanitizer`, do shared): orientação aplicada,
     metadados removidos (EXIF, GPS, aparelho, data), regravada em JPEG. Aceita JPEG, PNG, WebP e
     HEIC (iPhone); outro formato, arquivo que não é imagem ou imagem acima de 60 MP → `PLANTE_4001`.
-  - Nenhuma transação fica aberta durante as chamadas à IA e ao S3. A escrita (espécie, amostra de
+  - Nenhuma transação fica aberta durante as chamadas à IA e ao armazenamento. A escrita (espécie, amostra de
     treino, identificação e a cobrança do token) é uma transação só, aberta pela UoW daqui; os
     services dos outros módulos se juntam a ela.
   - Confiança abaixo de 60% (`ConfidenceScore.is_rejected`) → `PLANTE_4400`, sem gravar nem

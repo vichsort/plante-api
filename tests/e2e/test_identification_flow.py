@@ -24,7 +24,9 @@ async def test_identify_returns_species_and_strips_metadata(api: Api, db_session
     assert data["scientific_name"] == "Monstera deliciosa"
     assert data["confidence"] == "90.0%"
     assert data["needs_human_review"] is False
-    assert data["image_url"] in api.fakes.storage.uploads
+    # A signed link to the stored photo, never the key itself
+    (user_photo,) = [key for key in api.fakes.storage.uploads if key.startswith("identifications/")]
+    assert data["image_url"] == f"https://images.test/{user_photo}?sig=fake"
     # Provedor, foto do usuário e cópia de treino recebem a imagem sem EXIF
     sent = [*api.fakes.identifier.received, *api.fakes.storage.uploads.values()]
     assert len(sent) == 3

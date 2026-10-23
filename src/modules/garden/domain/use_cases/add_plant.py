@@ -27,7 +27,13 @@ from src.modules.training import (
     IdentificationOrigin,
     ITrainingRecorder,
 )
-from src.shared.domain import IDomainPublisher, LocalCalendar, UserId, UserNotFoundError
+from src.shared.domain import (
+    IDomainPublisher,
+    IImageStorage,
+    LocalCalendar,
+    UserId,
+    UserNotFoundError,
+)
 
 
 @dataclass(frozen=True)
@@ -64,6 +70,7 @@ class AddPlantToGardenUseCase:
         quota: IGardenQuota,
         training: ITrainingRecorder,
         identifications: IIdentificationLookup,
+        storage: IImageStorage,
     ) -> None:
         self.identifications = identifications
         self.users = users
@@ -72,6 +79,7 @@ class AddPlantToGardenUseCase:
         self.publisher = publisher
         self.calendar = calendar
         self.training = training
+        self.storage = storage
 
     async def execute(self, dto: AddPlantToGardenInputDTO) -> GardenPlant:
         now = datetime.now(UTC)
@@ -84,7 +92,7 @@ class AddPlantToGardenUseCase:
 
             existing = await uow.user_plants.get_by_identification(identification.id, dto.user_id)
             if existing is not None:
-                return GardenPlant.of(existing, today)
+                return GardenPlant.of(existing, today, await self._image_url(existing))
 
             plants_in_garden = await uow.user_plants.count_by_user(dto.user_id)
             await self.quota.ensure_can_add_plant(dto.user_id, plants_in_garden, now)
@@ -105,7 +113,7 @@ class AddPlantToGardenUseCase:
                 identification_id=identification.id,
                 added_at=now,
                 nickname=dto.nickname,
-                primary_image_url=identification.image_key,
+                primary_image_key=identification.image_key,
             ))
 
             await self.training.record_feedback(
@@ -123,4 +131,7 @@ class AddPlantToGardenUseCase:
             is_first_plant=plants_in_garden == 0,
         ))
 
-        return GardenPlant.of(plant, today)
+        return GardenPlant.of(plant, today, await self._image_url(plant))
+
+    async def _image_url(self, plant: UserPlant) -> str | None:
+        return await self.storage.signed_url(plant.primary_image_key) if plant.primary_image_key else None

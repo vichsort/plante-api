@@ -16,7 +16,9 @@ from src.shared.api import (
     CorrelationIdMiddleware,
     RateLimitMiddleware,
     SecurityHeadersMiddleware,
+    images_router,
     install_authentication,
+    install_image_links,
     register_exception_handlers,
 )
 
@@ -53,6 +55,7 @@ def create_app() -> FastAPI:
 
     app.state.container = container
     install_authentication(app, container.identity.token_service)
+    install_image_links(app, container.adapters.image_storage)
 
     # Middlewares (registrados na ordem interna -> externa)
     app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -77,6 +80,7 @@ def create_app() -> FastAPI:
     from src.modules.identity import api as identity
     for domain in (identity, identification, garden, health, achievements):
         app.include_router(domain.router, responses=COMMON_ERROR_RESPONSES)
+    app.include_router(images_router, responses=COMMON_ERROR_RESPONSES)
     # Probes ficam fora do rate limit, então não documentam os erros comuns (ex.: 429)
     app.include_router(probes.router)
 

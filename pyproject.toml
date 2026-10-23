@@ -105,7 +105,7 @@ module = [
     # Clientes de bibliotecas, isolados num módulo cada
     "src.shared.adapters.redis.client",  # redis-py: todo comando devolve Any
     "src.shared.adapters.providers.gemini_client",  # google-genai: config e erros tipados com Any
-    "src.shared.adapters.s3.image_storage",  # botocore: as exceções (ClientError, BotoCoreError) não têm tipos
+    "src.shared.adapters.storage.s3",  # botocore: as exceções (ClientError, BotoCoreError) não têm tipos
     "src.modules.identity.adapters.security.jwt_token_service",  # PyJWT: payload é dict[str, Any] (validado por Pydantic logo depois)
     "src.shared.adapters.persistence.*",  # SQLAlchemy ORM: modelos e consultas carregam genéricos com Any
     "src.modules.*.adapters.persistence.*",
@@ -118,6 +118,7 @@ module = [
     "src.modules.*.api.router",
     "src.shared.api.exception_handlers",
     "src.shared.api.authentication",  # `app.state` do Starlette é Any (o verificador sai conferido por isinstance)
+    "src.shared.api.images",  # same as authentication (the storage comes out checked by isinstance), plus the route decorator
     "src.shared.api.middleware.audit",
     "src.bootstrap.probes",
     "src.main",

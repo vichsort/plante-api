@@ -2,6 +2,7 @@
 from src.shared.domain.events import DomainEvent
 from src.shared.domain.exceptions import (
     ExternalServiceError,
+    ImageNotFoundError,
     InternalError,
     InvalidImageError,
     InvalidRequestError,
@@ -30,6 +31,7 @@ __all__ = [
     "IImageSanitizer",
     "IImageStorage",
     "IUnitOfWork",
+    "ImageNotFoundError",
     "InternalError",
     "InvalidImageError",
     "InvalidRequestError",

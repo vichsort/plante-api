@@ -62,7 +62,7 @@ def test_garden_lists_the_plants(api: _App) -> None:
     # Arrange
     plant = make_user_plant(user_id=USER)
     plant.nickname = "Clotilde"
-    use_case = api.use_case(api.container.get_garden_use_case, [GardenPlant(plant=plant, needs_watering=True)])
+    use_case = api.use_case(api.container.get_garden_use_case, [GardenPlant(plant=plant, needs_watering=True, image_url="https://images.test/identifications/a.jpg?sig=fake")])
 
     # Act
     response = api.client.get("/garden", headers=AUTH)
@@ -71,13 +71,14 @@ def test_garden_lists_the_plants(api: _App) -> None:
     assert response.status_code == 200
     (item,) = response.json()["data"]
     assert (item["id"], item["display_name"], item["needs_watering"]) == (str(plant.id), "Clotilde", True)
+    assert item["primary_image_url"] == "https://images.test/identifications/a.jpg?sig=fake"
     assert use_case.execute.call_args.args[0].user_id == USER
 
 
 def test_add_creates_the_plant_from_the_identification(api: _App) -> None:
     # Arrange
     plant = make_user_plant(user_id=USER)
-    use_case = api.use_case(api.container.add_plant_use_case, GardenPlant(plant=plant, needs_watering=False))
+    use_case = api.use_case(api.container.add_plant_use_case, GardenPlant(plant=plant, needs_watering=False, image_url=None))
 
     # Act
     response = api.client.post(
@@ -163,7 +164,10 @@ def test_plant_details_include_the_species(api: _App) -> None:
     # Arrange
     plant = make_user_plant(user_id=USER)
     species = PlantSpecies.create_skeleton("Monstera deliciosa", family="Araceae")
-    api.use_case(api.container.get_plant_details_use_case, PlantDetailsOutput(plant=plant, species=species, needs_watering=False))
+    api.use_case(
+        api.container.get_plant_details_use_case,
+        PlantDetailsOutput(plant=plant, species=species, needs_watering=False, image_url="https://images.test/identifications/a.jpg?sig=fake"),
+    )
 
     # Act
     response = api.client.get(f"/plants/{plant.id}", headers=AUTH)
@@ -172,6 +176,7 @@ def test_plant_details_include_the_species(api: _App) -> None:
     assert response.status_code == 200
     data = response.json()["data"]
     assert (data["id"], data["species_info"]["family"], data["care_schedule"]["interval_days"]) == (str(plant.id), "Araceae", 7)
+    assert data["primary_image_url"] == "https://images.test/identifications/a.jpg?sig=fake"
 
 
 def test_details_of_a_missing_plant_are_not_found(api: _App) -> None:

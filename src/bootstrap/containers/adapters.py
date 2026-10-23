@@ -7,6 +7,7 @@ from src.shared.adapters import (
     CeleryPublisher,
     CircuitBreaker,
     KindwiseClient,
+    LocalImageStorage,
     PillowImageSanitizer,
     RedisClient,
     S3ImageStorage,
@@ -27,12 +28,24 @@ class AdaptersContainer(containers.DeclarativeContainer):
         socket_connect_timeout=settings.provided.redis_connect_timeout_seconds,
     )
 
-    image_storage = providers.Singleton(
-        S3ImageStorage,
-        bucket_name=settings.provided.s3_bucket,
-        region=settings.provided.aws_region,
-        aws_access_key_id=settings.provided.aws_access_key_id,
-        aws_secret_access_key=settings.provided.aws_secret_access_key,
+    image_storage = providers.Selector(
+        settings.provided.storage_backend,
+        local=providers.Singleton(
+            LocalImageStorage,
+            root=settings.provided.storage_local_root,
+            public_url=settings.provided.public_api_url,
+            secret_key=settings.provided.secret_key,
+            link_ttl_seconds=settings.provided.image_link_ttl_seconds,
+        ),
+        s3=providers.Singleton(
+            S3ImageStorage,
+            bucket_name=settings.provided.s3_bucket,
+            region=settings.provided.aws_region,
+            aws_access_key_id=settings.provided.aws_access_key_id,
+            aws_secret_access_key=settings.provided.aws_secret_access_key,
+            link_ttl_seconds=settings.provided.image_link_ttl_seconds,
+            endpoint_url=settings.provided.s3_endpoint_url,
+        ),
     )
 
     # Kindwise atende identificação e saúde: um único breaker por provedor

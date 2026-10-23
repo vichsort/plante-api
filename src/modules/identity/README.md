@@ -47,7 +47,7 @@ portas em memória dos testes daqui.
     - O e-mail fica livre na hora: o mesmo endereço cria uma conta nova.
     - O refresh é revogado; o access morre sozinho em minutos (e não acha mais o usuário).
     - As fotos saem depois do commit (`IImageStorage.delete_user_images`, que apaga o prefixo do
-      usuário). Se o S3 falhar, a conta sai mesmo assim e o log `account.photos_not_deleted` diz qual
+      usuário). Se o armazenamento falhar, a conta sai mesmo assim e o log `account.photos_not_deleted` diz qual
       prefixo limpar à mão.
 - **Código de verificação:** `PLA-XXX-C-XXX`, com dígito verificador. Fica 15 minutos no Redis.
   - É enviado pela task do Celery depois do commit do cadastro.
