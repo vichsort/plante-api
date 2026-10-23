@@ -13,32 +13,62 @@ O site só ganha cadastro depois destes itens; captcha e aceite dos termos mudam
 - [ ] **Release `v0.2.0`** (`develop` → `main`): ok do usuário de que está "redondinho".
 - [ ] **Validar com as chaves reais:**
   - Testes de contrato: `uv run --env-file .env pytest -m contract` (~2 créditos do Kindwise).
-  - Um `/identify` real com o S3 de verdade. Risco: bucket novo bloqueia `ACL="public-read"` por
-    padrão, e o upload (inclusive a cópia de treino) pode falhar.
+  - Um `/identify` real com o armazenamento escolhido (depois da `feat/storage`), incluindo a cópia
+    de treino.
   - A `main` (`v0.1.x`) lê a chave do Kindwise de `PLANT_ID_API_KEY`; a `develop` lê
     `KINDWISE_API_KEY` (com `PLANT_ID_API_KEY` como nome antigo).
-- [ ] **Captcha validado na API** (Cloudflare Turnstile, grátis). Captcha só no site não protege: um
-  robô chama `/auth/register` direto. Fluxo: o widget no site (com a *site key*) gera um token de uso
-  único (~5 min); o site manda o token no cadastro; a API confere o token com a *secret key* em
-  `https://challenges.cloudflare.com/turnstile/v0/siteverify` e só cadastra se for válido.
-  - Usuário: painel da Cloudflare → Turnstile → Add widget; hostnames = domínio do site +
-    `localhost`; modo Managed. Site key no site, secret key no `.env` da API.
-  - API: campo novo no corpo do `/auth/register` (ex.: `captcha_token`; muda o contrato, confirmar o
-    nome); porta de verificação no identity com adaptador HTTP do Turnstile e falso nos testes;
-    erro próprio no identity (400) para token inválido; sem secret key, verificação desligada
-    (dev/testes) com aviso no log da subida. A Cloudflare tem chaves de teste que sempre passam ou
-    sempre falham.
-  - Decidir: só no cadastro (proposta) ou também no login (o rate limit já cobre o básico).
-- [ ] **Consentimento para o treino (LGPD):** aceite dos termos registrado no cadastro (versão dos
-  termos e data), dizendo que as fotos viram dataset anônimo **e** que são enviadas a provedores de
-  identificação (o Kindwise pode usá-las para treinar e redistribuí-las em CC BY-SA 4.0, T&C 17.5).
-  Sem isso não se coleta dado de treino em público.
-- [ ] **Fotos privadas no S3:** hoje tudo é gravado com `ACL="public-read"` e quem tem a URL vê a
-  foto. Servir URLs assinadas (com validade) onde a API devolve imagem (`image_url` do `/identify`,
-  `primary_image_url` do jardim, foto do diagnóstico); imagens de referência podem continuar
-  públicas. Política por módulo, mecanismo no shared (critério do módulo `media` no
-  `src/shared/README.md`). Junto: a foto do diagnóstico é gravada com `upload_identification_image`
-  (prefixo das fotos de identificação; ver o README do health).
+- [ ] **Armazenamento das fotos** (branch `feat/storage`). Hoje as colunas `image_key` e
+  `user_image_key` (e `primary_image_url` do jardim) guardam a URL pública inteira do S3, e tudo é
+  gravado com `ACL="public-read"`: quem tem a URL vê a foto, e trocar de armazenamento quebra as
+  fotos antigas. Sem infra na AWS por ora; decidir depois entre disco local e Cloudflare R2.
+  1. Banco guarda só a chave relativa (`identifications/<user>/<espécie>/<uuid>.jpg`); o link é
+     gerado ao responder (método novo na porta `IImageStorage`). Migração converte as URLs gravadas
+     em chaves.
+  2. Braço local: pasta no disco; a API serve as fotos por links assinados por ela mesma
+     (`/images/<chave>?exp=…&sig=…`, com validade), porque `<img>` não manda o token. Backup da
+     pasta por conta do servidor (o dataset de treino mora lá).
+  3. Braço compatível com S3: o adaptador atual corrigido (sem `public-read`, links pré-assinados),
+     com endereço configurável; serve para AWS e R2 (R2: 10 GB grátis, sem custo de saída, pede
+     cartão cadastrado).
+  4. Escolha do braço pelo `.env` (`STORAGE_BACKEND=local|s3`). Imagens de referência podem
+     continuar públicas. Junto: a foto do diagnóstico é gravada com `upload_identification_image`
+     (prefixo das fotos de identificação; ver o README do health).
+- [ ] **E-mail** (branch `feat/email`). O e-mail de verificação sai pelo AWS SES, e não há conta na
+  AWS; o domínio só tem o redirecionamento da Cloudflare (recebe, não envia).
+  1. `EMAIL_VERIFICATION_REQUIRED` no `.env`; desligado, o cadastro nasce verificado e nada é
+     enviado. Riscos aceitos enquanto desligado: alguém cadastrar o e-mail de outra pessoa (resolve
+     à mão) e contas descartáveis (o captcha e o teto global seguram).
+  2. Adaptador de e-mail que só escreve no log (dev e sem provedor).
+  3. Adaptador SMTP genérico, escolhido pelo `.env` (o SES continua). Usuário, quando quiser ligar:
+     conta grátis num provedor (Resend 3 mil/mês, Brevo 300/dia) e os registros DNS (SPF/DKIM) no
+     painel da Cloudflare; o Resend usa um subdomínio próprio e não mexe no redirecionamento.
+  - Não existe "esqueci a senha": quem esquecer perde a conta até existir (depende de e-mail).
+- [ ] **Cadastro protegido** (branch `feat/signup`, depois da `feat/email`, porque as duas mexem no
+  cadastro do identity).
+  1. **Teto global diário de identificações** (configurável): protege os créditos do Kindwise
+     independente de quantas contas existam.
+  2. **Captcha validado na API** (Cloudflare Turnstile, grátis). Captcha só no site não protege: um
+     robô chama `/auth/register` direto. Fluxo: o widget no site (com a *site key*) gera um token de
+     uso único (~5 min); o site manda o token no próprio cadastro (não num endpoint separado, que o
+     robô pularia); a API confere com a *secret key* em
+     `https://challenges.cloudflare.com/turnstile/v0/siteverify` e só cadastra se for válido.
+     - Decidido: campo `captcha_token` no corpo do `/auth/register`; só no cadastro (o login fica
+       com o rate limit).
+     - API: porta de verificação no identity, adaptador HTTP do Turnstile e falso nos testes; erro
+       próprio no identity (400) para token inválido; sem secret key, verificação desligada
+       (dev/testes) com aviso no log da subida. A Cloudflare tem chaves de teste que sempre passam
+       ou sempre falham.
+     - Usuário: painel da Cloudflare → Turnstile → Add widget; hostnames = domínio do site +
+       `localhost`; modo Managed. Site key no site, secret key no `.env` da API.
+  3. **Consentimento para o treino (LGPD):** aceite dos termos registrado no cadastro (versão e
+     data), dizendo que as fotos viram dataset anônimo **e** que são enviadas a provedores de
+     identificação (o Kindwise pode usá-las para treinar e redistribuí-las em CC BY-SA 4.0, T&C
+     17.5). Sem isso não se coleta dado de treino em público.
+     - Decidido: `GET /terms` (público: versão vigente e texto ou link);
+       `accepted_terms_version` no corpo do `/auth/register` (recusa se não for a vigente);
+       `POST /me/terms` para aceitar versão nova; sem aceite da vigente, as fotos do usuário não
+       vão para o treino.
+     - Usuário: o texto dos termos (posso rascunhar para revisão).
 - [ ] **Créditos do Kindwise:** a chave tem limite de 10 identificações por mês. Comprar créditos
   (menor pacote ~€50 / 1000) e ajustar o limite no painel. Cada `/identify` e `/diagnose` gasta 1.
 - [ ] Restringir `/health/*` no proxy reverso (Caddy/nginx).
