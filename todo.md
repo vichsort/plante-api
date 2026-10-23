@@ -3,17 +3,47 @@
 O que falta fazer. O histórico está no git e nos PRs; as regras, no `ARCHITECTURE.md` e nos
 READMEs dos módulos.
 
-## Próxima release (`v0.2.0`, `develop` → `main`)
+## Mais urgentes (impedem publicar no site)
 
-- [ ] Ok do usuário de que está "redondinho". Só então a release.
+Contexto: primeiro num servidor caseiro (PC antigo), API usada pelo site pessoal com captcha,
+pouquíssimas requisições por mês; AWS no futuro; possível projeto de pesquisa para a Latinoware.
+O site só ganha cadastro depois destes itens; captcha e aceite dos termos mudam o contrato do
+`/auth/register`, então vêm antes do site para ele ser feito uma vez só.
 
-## Validar com as chaves reais
-
-- [ ] Testes de contrato: `uv run --env-file .env pytest -m contract` (~2 créditos do Kindwise).
-- [ ] Um `/identify` real com o S3 de verdade. Risco: bucket novo bloqueia `ACL="public-read"` por
-  padrão, e o upload (inclusive a cópia de treino) pode falhar.
-- A `main` (`v0.1.x`) lê a chave do Kindwise de `PLANT_ID_API_KEY`; a `develop` lê
-  `KINDWISE_API_KEY` (com `PLANT_ID_API_KEY` como nome antigo).
+- [ ] **Release `v0.2.0`** (`develop` → `main`): ok do usuário de que está "redondinho".
+- [ ] **Validar com as chaves reais:**
+  - Testes de contrato: `uv run --env-file .env pytest -m contract` (~2 créditos do Kindwise).
+  - Um `/identify` real com o S3 de verdade. Risco: bucket novo bloqueia `ACL="public-read"` por
+    padrão, e o upload (inclusive a cópia de treino) pode falhar.
+  - A `main` (`v0.1.x`) lê a chave do Kindwise de `PLANT_ID_API_KEY`; a `develop` lê
+    `KINDWISE_API_KEY` (com `PLANT_ID_API_KEY` como nome antigo).
+- [ ] **Captcha validado na API** (Cloudflare Turnstile, grátis). Captcha só no site não protege: um
+  robô chama `/auth/register` direto. Fluxo: o widget no site (com a *site key*) gera um token de uso
+  único (~5 min); o site manda o token no cadastro; a API confere o token com a *secret key* em
+  `https://challenges.cloudflare.com/turnstile/v0/siteverify` e só cadastra se for válido.
+  - Usuário: painel da Cloudflare → Turnstile → Add widget; hostnames = domínio do site +
+    `localhost`; modo Managed. Site key no site, secret key no `.env` da API.
+  - API: campo novo no corpo do `/auth/register` (ex.: `captcha_token`; muda o contrato, confirmar o
+    nome); porta de verificação no identity com adaptador HTTP do Turnstile e falso nos testes;
+    erro próprio no identity (400) para token inválido; sem secret key, verificação desligada
+    (dev/testes) com aviso no log da subida. A Cloudflare tem chaves de teste que sempre passam ou
+    sempre falham.
+  - Decidir: só no cadastro (proposta) ou também no login (o rate limit já cobre o básico).
+- [ ] **Consentimento para o treino (LGPD):** aceite dos termos registrado no cadastro (versão dos
+  termos e data), dizendo que as fotos viram dataset anônimo **e** que são enviadas a provedores de
+  identificação (o Kindwise pode usá-las para treinar e redistribuí-las em CC BY-SA 4.0, T&C 17.5).
+  Sem isso não se coleta dado de treino em público.
+- [ ] **Fotos privadas no S3:** hoje tudo é gravado com `ACL="public-read"` e quem tem a URL vê a
+  foto. Servir URLs assinadas (com validade) onde a API devolve imagem (`image_url` do `/identify`,
+  `primary_image_url` do jardim, foto do diagnóstico); imagens de referência podem continuar
+  públicas. Política por módulo, mecanismo no shared (critério do módulo `media` no
+  `src/shared/README.md`). Junto: a foto do diagnóstico é gravada com `upload_identification_image`
+  (prefixo das fotos de identificação; ver o README do health).
+- [ ] **Créditos do Kindwise:** a chave tem limite de 10 identificações por mês. Comprar créditos
+  (menor pacote ~€50 / 1000) e ajustar o limite no painel. Cada `/identify` e `/diagnose` gasta 1.
+- [ ] Restringir `/health/*` no proxy reverso (Caddy/nginx).
+- [ ] `FORWARDED_ALLOW_IPS` = IP/faixa do proxy reverso ou do `cloudflared`, se usar Cloudflare
+  Tunnel (recomendado: não abre portas nem expõe o IP de casa).
 
 ## Até a `v1.0.0`
 
@@ -22,12 +52,6 @@ READMEs dos módulos.
 
 ## Produto e dados
 
-- [ ] **Fotos privadas no S3:** hoje tudo é gravado com `ACL="public-read"` e quem tem a URL vê a
-  foto. Servir URLs assinadas (com validade) onde a API devolve imagem (`image_url` do `/identify`,
-  `primary_image_url` do jardim, foto do diagnóstico); imagens de referência podem continuar
-  públicas. Política por módulo, mecanismo no shared (critério do módulo `media` no
-  `src/shared/README.md`). Junto: a foto do diagnóstico é gravada com `upload_identification_image`
-  (prefixo das fotos de identificação; ver o README do health).
 - [ ] **Engine de confiança do rótulo** (desenho no README do training), nesta ordem:
   1. ~~Pesquisar os termos de uso~~ (feito; resumo no README do training). Falta a resposta dos
      provedores (perguntas, contatos e status em `docs/decisions/2026-10-19-provider-emails.md`): perguntar ao Kindwise (support@FlowerChecker.com) se dá para treinar um modelo
@@ -50,23 +74,6 @@ READMEs dos módulos.
   mas a entidade exige `user_id` nesse tipo; excluir a conta deixaria uma linha que quebra ao ser
   lida. Hoje nada cria `user_confirmed`. Decidir antes de criar (apagar junto, ou anonimizar e
   relaxar a regra).
-
-## Antes de publicar
-
-Contexto: primeiro num servidor caseiro (PC antigo), API usada pelo site pessoal com captcha,
-pouquíssimas requisições por mês; AWS no futuro; possível projeto de pesquisa para a Latinoware.
-
-- [ ] **Consentimento para o treino (LGPD):** aceite dos termos registrado no cadastro (versão dos
-  termos e data), dizendo que as fotos viram dataset anônimo **e** que são enviadas a provedores de
-  identificação (o Kindwise pode usá-las para treinar e redistribuí-las em CC BY-SA 4.0, T&C 17.5).
-  Sem isso não se coleta dado de treino em público.
-- [ ] **Créditos do Kindwise:** a chave tem limite de 10 identificações por mês. Comprar créditos
-  (menor pacote ~€50 / 1000) e ajustar o limite no painel. Cada `/identify` e `/diagnose` gasta 1.
-- [ ] **Captcha validado na API** (ao menos em `/auth/register`): captcha só no site não protege a
-  API se o navegador a chama direto.
-- [ ] Restringir `/health/*` no proxy reverso (Caddy/nginx).
-- [ ] `FORWARDED_ALLOW_IPS` = IP/faixa do proxy reverso ou do `cloudflared`, se usar Cloudflare
-  Tunnel (recomendado: não abre portas nem expõe o IP de casa).
 
 ## Descartado (não propor de novo sem motivo novo)
 
