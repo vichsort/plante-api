@@ -33,6 +33,12 @@ O site só ganha cadastro depois destes itens; captcha e aceite dos termos mudam
   4. Escolha do braço pelo `.env` (`STORAGE_BACKEND=local|s3`). Imagens de referência podem
      continuar públicas. Junto: a foto do diagnóstico é gravada com `upload_identification_image`
      (prefixo das fotos de identificação; ver o README do health).
+  - Decidido (2026-10-23): braço padrão `local` quando o `.env` não diz nada; no `/diagnose` e no
+    histórico de saúde, o campo `image_key` (que hoje carrega a URL) vira `image_url` com o link
+    assinado, igual ao `/identify` (quebra o contrato, mas ainda não há cliente). Internamente,
+    `primary_image_url` do jardim passa a guardar a chave. Fotos de referência das doenças
+    (`similar_images_urls`) continuam sendo URLs externas do Kindwise.
+  - Ainda nada implementado (a branch foi aberta e descartada sem commits).
 - [ ] **E-mail** (branch `feat/email`). O e-mail de verificação sai pelo AWS SES, e não há conta na
   AWS; o domínio só tem o redirecionamento da Cloudflare (recebe, não envia).
   1. `EMAIL_VERIFICATION_REQUIRED` no `.env`; desligado, o cadastro nasce verificado e nada é
