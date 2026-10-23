@@ -14,7 +14,6 @@ from src.modules.catalog.domain.entities.reference_image import (
     ImageSource,
     PlantReferenceImage,
 )
-from src.modules.catalog.domain.exceptions import SpeciesNotFoundError
 from src.modules.catalog.domain.ports.species_enricher import (
     EnrichmentResult,
     ISpeciesEnricher,
@@ -41,5 +40,4 @@ __all__ = [
     "PlantSpeciesId",
     "ReferenceImageId",
     "SoilType",
-    "SpeciesNotFoundError",
 ]

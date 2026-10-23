@@ -58,12 +58,11 @@ def test_error_codes_follow_the_scheme() -> None:
 
 
 def test_every_error_is_raised_somewhere() -> None:
-    # Arrange: the catalog has no route and /identify never misses a species yet (open point in todo)
+    # Arrange
     files = sorted(_SRC.glob("**/exceptions.py"))
-    pending = frozenset({"SpeciesNotFoundError"})
 
     # Act
-    violations = rules.unused_errors(_SRC, files, allowed=pending)
+    violations = rules.unused_errors(_SRC, files)
 
     # Assert
     assert violations == []

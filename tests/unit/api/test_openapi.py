@@ -1,16 +1,16 @@
 from fastapi.testclient import TestClient
 
-from src.modules.catalog import SpeciesNotFoundError
 from src.modules.garden import PlantNotFoundError
+from src.modules.identification import IdentificationNotFoundError
 from src.modules.quota import PlantLimitExceededError
 from src.shared.api import error_responses
 
 
 def test_error_responses_groups_examples_by_status():
-    responses = error_responses(PlantNotFoundError, SpeciesNotFoundError, PlantLimitExceededError)
+    responses = error_responses(PlantNotFoundError, IdentificationNotFoundError, PlantLimitExceededError)
 
     not_found = responses[404]["content"]["application/json"]["examples"]
-    assert set(not_found) == {PlantNotFoundError.code, SpeciesNotFoundError.code}
+    assert set(not_found) == {PlantNotFoundError.code, IdentificationNotFoundError.code}
     assert not_found[PlantNotFoundError.code]["value"]["error"]["code"] == PlantNotFoundError.code
     # Exceção com argumento obrigatório usa a docstring como mensagem de exemplo
     forbidden = responses[PlantLimitExceededError.status_code]["content"]["application/json"]["examples"]
