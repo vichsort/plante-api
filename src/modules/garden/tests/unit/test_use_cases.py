@@ -59,8 +59,8 @@ from src.modules.identification.tests.fakes import (
     make_identification,
 )
 from src.modules.identity.tests.fakes import FakeUserDirectory
-from src.modules.subscription import PlantLimitExceededError
-from src.modules.subscription.tests.fakes import FakeGardenQuota
+from src.modules.quota import PlantLimitExceededError
+from src.modules.quota.tests.fakes import FakeGardenQuota
 from src.modules.training import (
     FeedbackOrigin,
     FeedbackVerdict,
@@ -149,7 +149,7 @@ async def test_adding_the_same_identification_twice_returns_the_existing_plant()
 
 
 async def test_garden_limit_counts_the_active_plants() -> None:
-    # Arrange: o FREE aceita 3
+    # Arrange: o standard aceita 3
     plants = InMemoryUserPlantRepository(*(make_user_plant(user_id=OWNER) for _ in range(3)))
     add = _Add(plants=plants)
 

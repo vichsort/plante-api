@@ -18,7 +18,7 @@ from src.modules.garden.domain.use_cases.get_plant_details import (
 from src.modules.garden.domain.use_cases.water_plant import WaterPlantUseCase
 from src.modules.identification import IIdentificationLookup
 from src.modules.identity import IUserDirectory
-from src.modules.subscription import IGardenQuota
+from src.modules.quota import IGardenQuota
 from src.modules.training import ITrainingRecorder
 from src.shared.domain import IDomainPublisher, LocalCalendar
 

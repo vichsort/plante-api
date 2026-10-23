@@ -17,8 +17,8 @@ from src.modules.identification.tests.fakes import (
 )
 from src.modules.identity import UserLocation
 from src.modules.identity.tests.fakes import FakeUserDirectory
-from src.modules.subscription import DailyQuotaExceededError, FeatureCost
-from src.modules.subscription.tests.fakes import FakeTokenWallet
+from src.modules.quota import DailyQuotaExceededError, FeatureCost
+from src.modules.quota.tests.fakes import FakeTokenWallet
 from src.modules.training.tests.fakes import FakeTrainingRecorder
 from src.shared.domain import UserId
 from src.shared.tests.fakes import (

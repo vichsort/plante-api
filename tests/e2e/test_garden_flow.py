@@ -93,7 +93,7 @@ async def test_free_plan_garden_limit(api: Api, db_session: AsyncSession) -> Non
     for _ in range(3):
         await api.plant_in_garden(headers)
     await db_session.execute(text(
-        "UPDATE subscriptions SET tokens_used_today = 0"
+        "UPDATE quotas SET tokens_used_today = 0"
         " WHERE user_id = (SELECT id FROM users WHERE email = 'limite@plante.org')"
     ))
     await db_session.commit()

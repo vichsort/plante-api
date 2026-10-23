@@ -148,7 +148,7 @@ async def test_enum_column_rejects_unknown_value(db_session: AsyncSession) -> No
         async with db_session.begin_nested():
             await db_session.execute(
                 text(
-                    "INSERT INTO subscriptions (user_id, tier, tokens_used_today, created_at, updated_at)"
+                    "INSERT INTO quotas (user_id, level, tokens_used_today, created_at, updated_at)"
                     " VALUES (:id, 'GOLD', 0, now(), now())"
                 ),
                 {"id": user.id},
@@ -230,7 +230,7 @@ _EXPECTED_FOREIGN_KEYS = {
     ("health_records", "user_id"): ("users", "CASCADE"),
     ("health_records", "user_plant_id"): ("user_plants", "CASCADE"),
     ("user_achievements", "user_id"): ("users", "CASCADE"),
-    ("subscriptions", "user_id"): ("users", "CASCADE"),
+    ("quotas", "user_id"): ("users", "CASCADE"),
     ("plant_reference_images", "user_id"): ("users", "SET NULL"),
     # Vínculos de mão única para o treino: o lado do usuário aponta para a amostra, nunca o contrário
     ("identifications", "training_sample_id"): ("training_identification_samples", "RESTRICT"),

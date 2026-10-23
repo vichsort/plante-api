@@ -19,7 +19,7 @@ from src.modules.identification import (
     IIdentificationLookup,
 )
 from src.modules.identity import IUserDirectory
-from src.modules.subscription import IGardenQuota, PlantLimitExceededError
+from src.modules.quota import IGardenQuota, PlantLimitExceededError
 from src.modules.training import (
     FeedbackOrigin,
     FeedbackVerdict,

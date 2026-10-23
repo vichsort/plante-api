@@ -58,6 +58,17 @@ def test_ai_breakers_use_settings_thresholds(monkeypatch):
         assert breaker._recovery_timeout == 7.5
 
 
+def test_quota_limits_come_from_settings(monkeypatch):
+    # The collective goal raises the standard quota without a code change
+    monkeypatch.setenv("QUOTA_STANDARD_MAX_PLANTS", "5")
+    monkeypatch.setenv("QUOTA_STANDARD_DAILY_TOKENS", "6")
+    monkeypatch.setenv("QUOTA_EXTENDED_MAX_PLANTS", "20")
+    monkeypatch.setenv("QUOTA_EXTENDED_DAILY_TOKENS", "40")
+    limits = Container().quota.policy().limits
+    assert (limits.standard.max_plants, limits.standard.daily_tokens) == (5, 6)
+    assert (limits.extended.max_plants, limits.extended.daily_tokens) == (20, 40)
+
+
 @pytest.mark.parametrize(("env", "sent_key"), [
     ({"KINDWISE_API_KEY": "documented"}, "documented"),  # o nome do `.env.example` (antes ia vazio)
     ({"PLANT_ID_API_KEY": "legacy"}, "legacy"),           # o nome antigo continua valendo

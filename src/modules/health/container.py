@@ -16,7 +16,7 @@ from src.modules.health.domain.use_cases.give_feedback import (
     GiveHealthFeedbackUseCase,
 )
 from src.modules.identity import IUserDirectory
-from src.modules.subscription import ITokenWallet
+from src.modules.quota import ITokenWallet
 from src.modules.training import ITrainingRecorder
 from src.shared.adapters import CircuitBreaker, KindwiseClient
 from src.shared.domain import IImageSanitizer, IImageStorage

@@ -69,11 +69,12 @@ from src.modules.identity.adapters.persistence.unit_of_work import (
     SqlAlchemyIdentityUnitOfWork,
 )
 from src.modules.identity.domain.services.user_directory import UserDirectory
-from src.modules.subscription.adapters.persistence.unit_of_work import (
-    SqlAlchemySubscriptionUnitOfWork,
+from src.modules.quota.adapters.persistence.unit_of_work import (
+    SqlAlchemyQuotaUnitOfWork,
 )
-from src.modules.subscription.domain.services.garden_quota import GardenQuota
-from src.modules.subscription.domain.services.token_wallet import TokenWallet
+from src.modules.quota.domain.services.garden_quota import GardenQuota
+from src.modules.quota.domain.services.token_wallet import TokenWallet
+from src.modules.quota.tests.fakes import POLICY
 from src.modules.training import (
     DiseaseSuggestion,
     FeedbackOrigin,
@@ -142,7 +143,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
         return TrainingRecorder(SqlAlchemyTrainingUnitOfWork(session_factory))
 
     def wallet() -> TokenWallet:
-        return TokenWallet(SqlAlchemySubscriptionUnitOfWork(session_factory), CALENDAR)
+        return TokenWallet(SqlAlchemyQuotaUnitOfWork(session_factory), CALENDAR, POLICY)
 
     async with SqlAlchemyIdentityUnitOfWork(session_factory) as setup:
         user = await setup.users.save(make_user(email="flow@plante.org"))
@@ -165,7 +166,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
     ))
 
     # 2. Adicionar ao jardim (sinal implícito) e regar
-    quota = GardenQuota(SqlAlchemySubscriptionUnitOfWork(session_factory))
+    quota = GardenQuota(SqlAlchemyQuotaUnitOfWork(session_factory), POLICY)
     plant = (await AddPlantToGardenUseCase(
         uow=garden(), publisher=AsyncMock(), calendar=CALENDAR, users=users, quota=quota, training=training(),
         identifications=IdentificationLookup(identifications()),
@@ -207,7 +208,7 @@ async def test_full_flow_keeps_training_data_anonymous_after_user_is_deleted(
         assert (FeedbackVerdict.WRONG, FeedbackOrigin.REMOVED_MISIDENTIFIED) in {(f.verdict, f.origin) for f in feedback}
     await db_session.execute(text("DELETE FROM users WHERE id = :id"), {"id": user.id})
 
-    for table in ("identifications", "user_plants", "health_records", "subscriptions"):
+    for table in ("identifications", "user_plants", "health_records", "quotas"):
         assert await _rows(db_session, table) == [], f"{table} deveria ter saído com o usuário"
 
     training_rows = {

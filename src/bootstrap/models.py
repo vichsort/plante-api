@@ -9,7 +9,7 @@ import src.modules.garden.container  # noqa: F401
 import src.modules.health.container  # noqa: F401
 import src.modules.identification.container  # noqa: F401
 import src.modules.identity.container  # noqa: F401
-import src.modules.subscription.container  # noqa: F401
+import src.modules.quota.container  # noqa: F401
 import src.modules.training.container  # noqa: F401
 from src.shared.adapters import Base
 

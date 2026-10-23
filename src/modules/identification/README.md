@@ -10,7 +10,7 @@ resolve a espécie por consenso e grava duas coisas sem ligação de volta entre
 
 Fica de fora:
 - a espécie e as imagens de referência (catalog, pelo `ISpeciesRegistry`);
-- a cota de tokens (subscription, pelo `ITokenWallet`);
+- a cota de tokens (quota, pelo `ITokenWallet`);
 - a planta no jardim (garden): `POST /identify` **não cria planta**. Adicionar ao jardim é uma
   ação separada, que lê a identificação pelo `IIdentificationLookup`.
 

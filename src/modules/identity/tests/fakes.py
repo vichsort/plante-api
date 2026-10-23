@@ -42,6 +42,9 @@ class FakeUserDirectory(IUserDirectory):
     location: UserLocation = field(default_factory=lambda: UserLocation(country="BR", state="SP"))
     missing: set[UserId] = field(default_factory=set)
 
+    async def id_by_email(self, email: str) -> UserId:
+        raise UserNotFoundError("No account has this email.")
+
     async def ensure_exists(self, user_id: UserId) -> None:
         await self.region_of(user_id)
 

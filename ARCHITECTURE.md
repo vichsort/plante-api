@@ -147,7 +147,7 @@ e por `tests/architecture` (`test_imports_go_through_barrels`).
    health · achievements
    garden
    identification
-   identity · subscription · catalog · training      (base: não importam módulo)
+   identity · quota · catalog · training      (base: não importam módulo)
    ```
 
 ---
@@ -160,7 +160,7 @@ e por `tests/architecture` (`test_imports_go_through_barrels`).
   unexpected failure) also goes out as one of these classes, built by the handler.
 - **Code `PLANTE_ABCD_NAME`:**
   - **A**, family: `4` client error, `5` server error (ours, our infrastructure or a provider's).
-  - **B**, the module the class lives in: `0` shared, `1` identity, `2` subscription, `3` catalog,
+  - **B**, the module the class lives in: `0` shared, `1` identity, `2` quota, `3` catalog,
     `4` identification, `5` garden, `6` health, `7` achievements, `8` training.
   - **C**, kind, which fixes the HTTP status:
 

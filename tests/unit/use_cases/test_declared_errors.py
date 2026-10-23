@@ -3,7 +3,7 @@ Cada use case declara em `raises` os erros de domínio que pode lançar; as rota
 exatamente essa lista no OpenAPI (`error_responses(*UseCase.raises)`).
 
 Aqui só dá para conferir os `raise` escritos no próprio módulo do use case. Erros vindos de
-policies, entidades e ports (ex.: `SubscriptionPolicy`, `UserPlant.water()`, `IPlantIdentifier`)
+policies, entidades e ports (ex.: `QuotaPolicy`, `UserPlant.water()`, `IPlantIdentifier`)
 continuam sendo listados à mão.
 """
 import ast
