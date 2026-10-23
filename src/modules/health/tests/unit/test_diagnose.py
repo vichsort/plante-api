@@ -16,8 +16,17 @@ from src.modules.health.tests.fakes import (
     make_assessment,
 )
 from src.modules.identity.tests.fakes import FakeUserDirectory
-from src.modules.quota import DailyQuotaExceededError, FeatureCost
-from src.modules.quota.tests.fakes import FakeTokenWallet
+from src.modules.quota import (
+    DailyQuotaExceededError,
+    FeatureCost,
+    IProviderBudget,
+    ServiceDailyLimitError,
+)
+from src.modules.quota.tests.fakes import (
+    FakeTokenWallet,
+    InMemoryUsageCounter,
+    make_provider_budget,
+)
 from src.modules.training import DiseaseSuggestion, HealthSeverity
 from src.modules.training.tests.fakes import FakeTrainingRecorder
 from src.shared.domain import ExternalServiceError, UserId, UserNotFoundError
@@ -31,6 +40,7 @@ class _Scenario:
     """O use case com todas as portas em memória, para o teste olhar o estado de cada uma."""
     health_probability: float = 0.1
     used_today: int = 0
+    daily_limit: int = 30
     plant: UserPlant = field(default_factory=lambda: make_user_plant(user_id=USER))
     uow: FakeHealthUnitOfWork = field(default_factory=FakeHealthUnitOfWork)
     analyzer: StubHealthAnalyzer = field(init=False)
@@ -38,11 +48,14 @@ class _Scenario:
     storage: RecordingImageStorage = field(default_factory=RecordingImageStorage)
     users: FakeUserDirectory = field(default_factory=FakeUserDirectory)
     wallet: FakeTokenWallet = field(init=False)
+    budget: IProviderBudget = field(init=False)
+    provider_calls: InMemoryUsageCounter = field(init=False)
     training: FakeTrainingRecorder = field(default_factory=FakeTrainingRecorder)
 
     def __post_init__(self) -> None:
         self.analyzer = StubHealthAnalyzer(make_assessment(self.health_probability))
         self.wallet = FakeTokenWallet(used_today=self.used_today)
+        self.budget, self.provider_calls = make_provider_budget(self.daily_limit)
 
     def use_case(self) -> DiagnoseHealthUseCase:
         return DiagnoseHealthUseCase(
@@ -53,6 +66,7 @@ class _Scenario:
             storage=self.storage,
             users=self.users,
             wallet=self.wallet,
+            budget=self.budget,
             training=self.training,
             plants=FakePlantLookup(self.plant),
         )
@@ -167,6 +181,18 @@ async def test_diagnosis_without_tokens_is_refused_before_calling_providers() ->
         await scenario.use_case().execute(scenario.dto())
     assert (scenario.analyzer.received, scenario.enricher.requests, scenario.storage.user_uploads) == ([], [], [])
     assert scenario.training.is_empty
+    assert scenario.provider_calls.total == 0  # the user's own check comes first
+
+
+async def test_diagnosis_past_the_service_daily_limit_is_refused_before_calling_providers() -> None:
+    # Arrange: the user still has tokens, but the whole service spent today's calls
+    scenario = _Scenario(daily_limit=0)
+
+    # Act & Assert
+    with pytest.raises(ServiceDailyLimitError):
+        await scenario.use_case().execute(scenario.dto())
+    assert (scenario.analyzer.received, scenario.enricher.requests, scenario.storage.user_uploads) == ([], [], [])
+    assert (scenario.training.is_empty, scenario.wallet.charged) == (True, 0)
 
 
 async def test_last_token_buys_the_diagnosis_without_gemini() -> None:

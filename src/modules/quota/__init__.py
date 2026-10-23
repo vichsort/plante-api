@@ -6,8 +6,10 @@ from src.modules.quota.domain.entities.quota import Quota
 from src.modules.quota.domain.exceptions import (
     DailyQuotaExceededError,
     PlantLimitExceededError,
+    ServiceDailyLimitError,
 )
 from src.modules.quota.domain.services.garden_quota import IGardenQuota
+from src.modules.quota.domain.services.provider_budget import IProviderBudget
 from src.modules.quota.domain.services.token_wallet import ITokenWallet
 from src.modules.quota.domain.use_cases.grant_extended_quota import (
     MAX_GRANT_DAYS,
@@ -25,6 +27,7 @@ __all__ = [
     "GrantExtendedQuotaInputDTO",
     "FeatureCost",
     "IGardenQuota",
+    "IProviderBudget",
     "ITokenWallet",
     "PlantLimitExceededError",
     "Quota",
@@ -32,4 +35,5 @@ __all__ = [
     "LevelLimits",
     "QuotaLevel",
     "QuotaLimits",
+    "ServiceDailyLimitError",
 ]

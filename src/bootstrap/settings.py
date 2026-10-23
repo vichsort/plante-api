@@ -101,6 +101,9 @@ class Settings(BaseSettings):
     quota_standard_daily_tokens: int = 3
     quota_extended_max_plants: int = 10
     quota_extended_daily_tokens: int = 10
+    # The whole service's identifications and diagnoses per local day (1 Kindwise credit each),
+    # however many accounts there are
+    provider_daily_limit: int = 30
 
 @lru_cache
 def get_settings() -> Settings:

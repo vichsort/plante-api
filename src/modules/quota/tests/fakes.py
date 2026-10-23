@@ -1,10 +1,12 @@
-"""`ITokenWallet` and `IGardenQuota` doubles for the tests of the quota's consumers (other modules)."""
+"""`ITokenWallet`, `IGardenQuota` and `IProviderBudget` doubles for the tests of the quota's consumers (other modules)."""
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 
 from src.modules.quota.domain.entities.quota import Quota
 from src.modules.quota.domain.policies.quota_policy import QuotaPolicy
+from src.modules.quota.domain.ports.usage_counter import IUsageCounter
 from src.modules.quota.domain.services.garden_quota import IGardenQuota
+from src.modules.quota.domain.services.provider_budget import ProviderBudget
 from src.modules.quota.domain.services.token_wallet import ITokenWallet
 from src.modules.quota.domain.value_objects.level import (
     FeatureCost,
@@ -12,7 +14,7 @@ from src.modules.quota.domain.value_objects.level import (
     QuotaLevel,
     QuotaLimits,
 )
-from src.shared.domain import UserId
+from src.shared.domain import LocalCalendar, UserId
 
 # The settings defaults: standard 3 plants and 3 tokens a day, extended 10 and 10
 LIMITS = LevelLimits(standard=QuotaLimits(max_plants=3, daily_tokens=3), extended=QuotaLimits(max_plants=10, daily_tokens=10))
@@ -57,3 +59,22 @@ class FakeGardenQuota(IGardenQuota):
     async def ensure_can_add_plant(self, user_id: UserId, plants_in_garden: int, now: datetime) -> None:
         expires_at = datetime.max.replace(tzinfo=now.tzinfo) if self.level is QuotaLevel.EXTENDED else None
         POLICY.enforce_can_add_to_garden(Quota(user_id, self.level, expires_at), plants_in_garden, now)
+
+
+@dataclass
+class InMemoryUsageCounter(IUsageCounter):
+    counts: dict[date, int] = field(default_factory=dict)
+
+    async def increment(self, day: date) -> int:
+        self.counts[day] = self.counts.get(day, 0) + 1
+        return self.counts[day]
+
+    @property
+    def total(self) -> int:
+        return sum(self.counts.values())
+
+
+def make_provider_budget(daily_limit: int = 30) -> tuple[ProviderBudget, InMemoryUsageCounter]:
+    """The real budget over a counter in memory (the test reads the counter)."""
+    counter = InMemoryUsageCounter()
+    return ProviderBudget(counter, LocalCalendar.from_name("America/Sao_Paulo"), daily_limit), counter

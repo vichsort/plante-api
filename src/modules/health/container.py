@@ -16,7 +16,7 @@ from src.modules.health.domain.use_cases.give_feedback import (
     GiveHealthFeedbackUseCase,
 )
 from src.modules.identity import IUserDirectory
-from src.modules.quota import ITokenWallet
+from src.modules.quota import IProviderBudget, ITokenWallet
 from src.modules.training import ITrainingRecorder
 from src.shared.adapters import CircuitBreaker, KindwiseClient
 from src.shared.domain import IImageSanitizer, IImageStorage
@@ -32,6 +32,7 @@ class HealthContainer(containers.DeclarativeContainer):
     gemini_api_key: providers.Dependency[str | None] = providers.Dependency()
     users: providers.Dependency[IUserDirectory] = providers.Dependency()
     wallet: providers.Dependency[ITokenWallet] = providers.Dependency()
+    budget: providers.Dependency[IProviderBudget] = providers.Dependency()
     training: providers.Dependency[ITrainingRecorder] = providers.Dependency()
     plants: providers.Dependency[IPlantLookup] = providers.Dependency()
 
@@ -50,6 +51,7 @@ class HealthContainer(containers.DeclarativeContainer):
         storage=storage,
         users=users,
         wallet=wallet,
+        budget=budget,
         training=training,
         plants=plants,
     )

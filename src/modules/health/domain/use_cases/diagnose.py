@@ -18,7 +18,9 @@ from src.modules.identity import IUserDirectory
 from src.modules.quota import (
     DailyQuotaExceededError,
     FeatureCost,
+    IProviderBudget,
     ITokenWallet,
+    ServiceDailyLimitError,
 )
 from src.modules.training import (
     HealthSeverity,
@@ -83,6 +85,7 @@ class DiagnoseHealthUseCase:
         NotAPlantError,
         PlantNotFoundError,
         DailyQuotaExceededError,
+        ServiceDailyLimitError,
         UserNotFoundError,
     )
 
@@ -95,6 +98,7 @@ class DiagnoseHealthUseCase:
         storage: IImageStorage,
         users: IUserDirectory,
         wallet: ITokenWallet,
+        budget: IProviderBudget,
         training: ITrainingRecorder,
         plants: IPlantLookup,
     ) -> None:
@@ -102,6 +106,7 @@ class DiagnoseHealthUseCase:
         self._training = training
         self._users = users
         self._wallet = wallet
+        self._budget = budget
         self._uow = uow
         self._sanitizer = sanitizer
         self._health_analyzer = health_analyzer
@@ -119,6 +124,7 @@ class DiagnoseHealthUseCase:
 
             await self._wallet.ensure_can_diagnose(dto.user_id, now)
             can_enrich = await self._wallet.can_enrich_diagnosis(dto.user_id, now)
+        await self._budget.take(now)
 
         # 2. Serviços externos, só com a foto já sem metadados (GPS, aparelho, data)
         image_bytes = self._sanitizer.sanitize(dto.image_bytes)

@@ -20,7 +20,9 @@ from src.modules.identity import IUserDirectory
 from src.modules.quota import (
     DailyQuotaExceededError,
     FeatureCost,
+    IProviderBudget,
     ITokenWallet,
+    ServiceDailyLimitError,
 )
 from src.modules.training import (
     ITrainingRecorder,
@@ -72,6 +74,7 @@ class IdentifyPlantUseCase:
         LowConfidenceError,
         NotAPlantError,
         DailyQuotaExceededError,
+        ServiceDailyLimitError,
         UserNotFoundError,
     )
 
@@ -84,6 +87,7 @@ class IdentifyPlantUseCase:
         publisher: IDomainPublisher,
         users: IUserDirectory,
         wallet: ITokenWallet,
+        budget: IProviderBudget,
         training: ITrainingRecorder,
         catalog: ISpeciesRegistry,
     ) -> None:
@@ -96,6 +100,7 @@ class IdentifyPlantUseCase:
         self.publisher = publisher
         self.users = users
         self.wallet = wallet
+        self.budget = budget
 
     async def execute(self, dto: IdentifyPlantInputDTO) -> IdentifyPlantOutput:
         now = datetime.now(UTC)
@@ -103,6 +108,7 @@ class IdentifyPlantUseCase:
         # 1. Leituras curtas: nenhuma transação fica aberta durante as chamadas à IA e ao S3
         region = await self.users.region_of(dto.user_id)
         await self.wallet.ensure_can_identify(dto.user_id, now)
+        await self.budget.take(now)
 
         # 2. Serviços externos, só com a foto já sem metadados (GPS, aparelho, data)
         image_bytes = self.sanitizer.sanitize(dto.image_bytes)
